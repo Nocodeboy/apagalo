@@ -35,7 +35,7 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 
 ## Prueba de monedas, tienda y anuncios (Python + Playwright, con `dist/` servido)
 
-`python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis, compras, restaurar), +30 s al acabarse el tiempo, topes del anuncio entre niveles, oferta de inicio, reto diario sin mejoras, anuncios y compras que fallan (`?fakeads=fail`), la web sin anuncios, una partida guardada de la 1.2.0 y la pantalla final y la tienda a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.
+`python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis con su tope de 24 h, compras entregadas y luego consumidas, restaurar), +30 s al acabarse el tiempo, que los botones con anuncio lo digan, el anuncio entre niveles solo con «Siguiente» y sus topes (120 s desde cualquier anuncio, reloj atrasado), oferta de inicio, reto diario sin mejoras y con su tope de 24 h, anuncios y compras que fallan (`?fakeads=fail`), compras pagadas sin entregar que llegan al arrancar (una sola vez), pagos pendientes (`?fakeads=pending`), «Borrar progreso» con su aviso, la web sin anuncios, una partida guardada de la 1.2.0 y la pantalla final, la tienda, el +30 s y el aviso de borrar a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.
 
 ## Negocio
 

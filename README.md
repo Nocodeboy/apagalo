@@ -79,9 +79,11 @@ Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abier
 **Google Play**: la app es el mismo juego empaquetado con Capacitor 8 (carpeta `android/`, paquete `com.nocodeboy.apagalo`, objetivo Android 16 / API 36). Tiene pantalla completa, la pantalla siempre encendida, el botón atrás del sistema integrado (pausa, vuelve o sale desde el título) y compartir con el menú nativo.
 
 ```bash
-npm run android:sync                      # copia dist/android dentro del proyecto Android
+RELEASE=1 npm run android:sync            # compila (sin anuncios de prueba) y copia dist/android dentro del proyecto Android
 cd android && ./gradlew bundleRelease     # android/app/build/outputs/bundle/release/app-release.aab
 ```
+
+Con `RELEASE=1`, `build.mjs` no compila la versión de Android si sigue con los anuncios de prueba de Google (`USE_TEST_ADS: true` en `src/monetize/android.ts` o el id de app de prueba en `AndroidManifest.xml`), y `bundleRelease`/`assembleRelease` fallan por lo mismo. Mientras la prueba cerrada use anuncios de prueba a propósito: `npm run android:sync` y `./gradlew bundleRelease -PallowTestAds`. Detalles en `docs/android-monetizacion.md`.
 
 Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo-upload.jks`. No van en el repositorio: están en la carpeta `NO-COMPARTIR`. Antes de cada subida, sube `versionCode` y `versionName` en `android/app/build.gradle` y `VERSION` en `build.mjs`. Los pasos completos, la ficha y las respuestas de Play Console están en `docs/google-play.md`.
 
@@ -113,9 +115,9 @@ El juego solo habla con el contrato de `src/monetize/types.ts` (`AdProvider` e `
 
 Si no hay anuncio con recompensa listo, sus botones no aparecen; si no hay tienda, tampoco la sección de compras. Mientras se ve un anuncio el juego se para y se silencia, y si un anuncio o una compra fallan el juego sigue sin bloquearse.
 
-- **Con recompensa** (siempre los elige el jugador): +30 s cuando se acaba el tiempo (una vez por intento y nunca en el reto diario), x2 de monedas en la pantalla final (una vez) y +150 monedas gratis en la tienda (3 al día).
-- **Entre niveles**: al salir de la pantalla final (Siguiente, Reintentar o Menú). Solo si hay al menos 3 niveles terminados en total, 2 desde el último anuncio y 120 s desde el último; nunca en la primera sesión, nunca si se ha comprado «Sin anuncios» y nunca en la misma transición que un anuncio con recompensa (x2 o +30 s en ese intento) o que la oferta de inicio. Los topes son constantes al principio de `src/monetize/index.ts`.
-- **Compras** (solo Android): «Sin anuncios» (+500 monedas), pack de inicio (3.000 monedas, una sola vez; además se ofrece en una ventana tras completar el segundo nivel) y packs de 1.000, 6.000 y 14.000 monedas. Los precios los da la tienda y un producto que la tienda no devuelve no se muestra. «Restaurar compras» recupera lo comprado; lo que no se consume se concede una sola vez por partida guardada.
+- **Con recompensa** (siempre los elige el jugador, y el botón dice «Anuncio»/«Ad» además del icono): +30 s cuando se acaba el tiempo (una vez por intento y nunca en el reto diario), x2 de monedas en la pantalla final (una vez) y +150 monedas gratis en la tienda (3 al día, y como mucho 3 en 24 h aunque se cambie la fecha del móvil). El premio del reto diario tampoco se cobra más de 3 veces en 24 h.
+- **Entre niveles**: solo al pulsar «Siguiente» en la pantalla final, que lleva a la presentación del nivel (nunca con «Reintentar», que empieza a jugar directamente, ni con «Menú» o el botón atrás). Solo si hay al menos 3 niveles terminados en total, 2 desde el último anuncio entre niveles y 120 s desde el último anuncio a pantalla completa (también los de recompensa); nunca en la primera sesión, nunca si se ha comprado «Sin anuncios» y nunca en la misma transición que un anuncio con recompensa (x2 o +30 s en ese intento) o que la oferta de inicio. Si no hay anuncio cargado, no cuenta. Los topes son constantes al principio de `src/monetize/index.ts`.
+- **Compras** (solo Android): «Sin anuncios» (+500 monedas), pack de inicio (3.000 monedas, una sola vez; además se ofrece en una ventana tras completar el segundo nivel) y packs de 1.000, 6.000 y 14.000 monedas. Los precios los da la tienda y un producto que la tienda no devuelve no se muestra. Cada compra se entrega y se guarda antes de consumirla, y la partida recuerda su identificador, así que nunca se entrega dos veces; las pagadas que no llegaron a entregarse (app cerrada, pago pendiente que se confirma después) se entregan al arrancar o al volver a la app. «Restaurar compras» recupera lo comprado; lo que no se consume se concede una sola vez por partida guardada. «Borrar progreso» borra también las monedas compradas (lo avisa antes); «Sin anuncios» se conserva.
 
 Prueba de punta a punta: `python3 tools/test_monetize.py` (con `dist/` servido), en español y en inglés.
 
@@ -125,7 +127,7 @@ Prueba de punta a punta: `python3 tools/test_monetize.py` (con `dist/` servido),
 
 Eventos: `first_open`, `session_start`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). `first_open` y `session_start` llevan además el idioma del dispositivo (`loc`, p. ej. `en-US`) y su zona horaria (`tz`, p. ej. `America/New_York`), que dan la región aproximada. El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
 
-Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}`, `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_fail {id}` y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
+Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}` (el intersticial, solo si de verdad se ha mostrado), `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_pending {id}` (pago pendiente), `iap_fail {id}`, `iap_recover {id}` (compra pagada entregada al arrancar o al volver a la app) y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
 
 Consultas listas en Supabase:
 

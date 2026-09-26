@@ -9,18 +9,22 @@ Estado a 26 sept 2026, versión 1.3.0 (`versionCode` 2). La app ya lleva AdMob (
 | `@capacitor-community/admob` 8.1 | Anuncios de AdMob (SDK de Google Mobile Ads 25.4) y consentimiento UMP. Compatible con Capacitor 8 |
 | `@capgo/native-purchases` 8.8 | Google Play Billing Library 9.1: productos de compra única, consumir y confirmar, restaurar. Sin servidor propio ni cuenta de terceros |
 | `src/monetize/android.ts` | El adaptador. Arriba del todo está `ADMOB_CONFIG`, lo único que hay que tocar |
+| `src/monetize/index.ts` | Las reglas del juego: cuándo sale cada anuncio, pausa, y entrega de compras (una sola vez por compra) |
 | `android/app/src/main/AndroidManifest.xml` | Id de la app de AdMob (ahora el de prueba de Google) y permisos `AD_ID` y `BILLING` |
 | `android/app/src/main/res/values*/strings.xml` | Nombre bajo el icono: «Put It Out!» por defecto y «¡Apágalo!» en móviles en español |
 
 Cómo se comporta:
 
 - **Al arrancar**, primero pide a Google el estado del consentimiento. Si el jugador está en la UE o el Reino Unido y aún no ha decidido, muestra el formulario de Google. Después inicia AdMob y deja cargado un anuncio con recompensa y uno entre niveles. Tras mostrar uno, carga el siguiente. Si no hay anuncio (sin conexión, sin inventario), reintenta cada vez más espaciado, hasta cada 5 minutos.
-- **Anuncio con recompensa:** el juego solo da el premio si Google avisa de que se ha visto entero. Si el jugador lo cierra antes, no hay premio.
+- **Opciones de privacidad:** en la UE y el Reino Unido (cuando Google lo pide), Ajustes muestra el botón «Opciones de privacidad de los anuncios», que abre el formulario de Google para cambiar la decisión, como exige su política de consentimiento. Fuera de esas zonas el botón no aparece.
+- **Anuncio con recompensa:** el juego solo da el premio si Google avisa de que se ha visto entero. Si el jugador lo cierra antes, no hay premio. Si el premio ya ha llegado, se da aunque el anuncio tarde en cerrarse (por ejemplo, el jugador toca el anuncio, se va a Play Store y vuelve minutos después).
+- **Anuncio entre niveles:** solo al pulsar «Siguiente» en la pantalla final, que lleva a la presentación del nivel (nunca con «Reintentar», que empieza a jugar directamente, ni con «Menú» o el botón atrás). Además, al menos 120 s desde el último anuncio a pantalla completa de cualquier tipo (también los de recompensa), 2 niveles terminados desde el último y 3 en total, nunca en la primera sesión ni con «Sin anuncios». Si no hay ninguno cargado, no se para el juego ni se gasta el turno. Si el reloj del móvil se ha atrasado, no se bloquean los anuncios hasta que se ponga al día.
+- **Mientras sale un anuncio el juego está en pausa y en silencio.** El adaptador lo da por terminado cuando Google avisa de que se ha cerrado; si no llega ninguna señal del anuncio en 15 s, lo da por fallido. Como red de seguridad, lo cierra a los 5 minutos (con recompensa) o a los 3 (entre niveles), pero mientras el anuncio o Play Store tapen el juego sigue esperando (hasta 15 minutos). El juego tiene su propio límite, más largo (6 minutos, y más mientras el adaptador diga que hay un anuncio abierto): solo salta si algo falla.
 - **Ninguna llamada se queda colgada:** todas tienen tiempo máximo y nunca lanzan errores al juego.
-- **Compras:** las monedas (`coins_s`, `coins_m`, `coins_l`) se consumen tras la compra, así se pueden volver a comprar. `remove_ads` y `starter_pack` se confirman (acknowledge), porque si no Google las reembolsa a los 3 días. «Restaurar compras» devuelve los productos no consumibles de la cuenta de Google.
-- **Compras interrumpidas:** si alguien paga y la app se cierra antes de terminar, o paga con un método lento (efectivo en tienda), la compra queda pendiente en Google. La próxima vez que toque ese mismo producto se le entrega sin cobrarle otra vez.
-
-Pendiente en el juego (no está en este adaptador): un botón «Opciones de privacidad» en Ajustes. La política de consentimiento de Google en la UE exige que el jugador pueda cambiar su decisión. `android.ts` exporta `androidPrivacyOptionsRequired()` (dice si hay que enseñar el botón) y `showAndroidPrivacyOptions()` (abre el formulario de Google).
+- **Compras:** Google avisa de que la compra está pagada; el juego la **entrega y la guarda primero** y solo después la consume (monedas: `coins_s`, `coins_m`, `coins_l`, así se pueden volver a comprar) o la confirma (acknowledge: `remove_ads` y `starter_pack`, porque si no Google las reembolsa a los 3 días). La partida guardada recuerda el identificador de cada compra entregada (`purchaseToken`), así que una compra nunca se entrega dos veces aunque haya que reintentar el consumo. Si el consumo tarda o falla, al jugador no se le dice que ha fallado: ya tiene lo suyo, y el juego vuelve a intentarlo más tarde. «Restaurar compras» devuelve los productos no consumibles de la cuenta de Google.
+- **Compras sin terminar:** si alguien paga y la app se cierra antes de entregarla, si la respuesta de Google llega tarde o si el consumo falló, la compra sigue en la cuenta de Google sin terminar. El juego la busca **al arrancar, cada vez que la app vuelve al primer plano** (al cerrar la hoja de pago de Google, al volver de otra app) y antes de cada compra; la entrega si no lo había hecho y avisa con «¡Compra recibida! +N monedas». No se cobra dos veces.
+- **Pagos pendientes:** con métodos lentos (efectivo en una tienda, algunas tarjetas) Google deja la compra «pendiente». El juego avisa con «Pago pendiente: recibirás la compra en cuanto se confirme» (no con «La compra no se ha completado») y la entrega sola cuando Google la da por pagada, al arrancar o al volver a la app.
+- **Lo que no hace:** no retira nada si Google reembolsa una compra (los reembolsos no se revocan en el juego) y solo sabe entregar una unidad por compra. Por eso, en Play Console **no actives la compra de varias unidades** («multi-quantity») en ningún producto.
 
 ## Qué crear en AdMob
 
@@ -46,6 +50,22 @@ Documentación general: [Getting started guide](https://support.google.com/admob
 3. Compila como siempre (`npm run android:sync` y `cd android && ./gradlew bundleRelease`).
 
 Si pones `USE_TEST_ADS: false` sin pegar los ids, la app no muestra anuncios (no se rompe). **No toques nunca tus propios anuncios reales**: AdMob puede suspender la cuenta por clics no válidos. Para probar con los ids reales, mete tu móvil en `TEST_DEVICE_IDS` (ver «Pruebas»).
+
+## Antes de publicar: el guardián de anuncios de prueba
+
+Para que no se suba nunca una versión con los anuncios de prueba de Google (no ganan nada) ni con el interruptor y el manifiesto descuadrados, hay dos comprobaciones:
+
+- **`build.mjs`** no compila la versión de Android (sale con error y no deja `dist/android`, así que `cap sync` no copia nada malo) si `USE_TEST_ADS` es `false` pero el manifiesto sigue con el id de app de prueba de Google (`ca-app-pub-3940256099942544~3347511713`): los bloques reales no funcionan con ese id. Con `RELEASE=1` además se niega si `USE_TEST_ADS` es `true` o si el manifiesto tiene el id de prueba. Sin `RELEASE=1`, las compilaciones normales siguen usando los anuncios de prueba.
+- **Gradle**: `bundleRelease` y `assembleRelease` fallan si el manifiesto tiene el id de app de prueba o si el juego copiado se compiló con `USE_TEST_ADS: true` (lo lee de `ads-check.json`, que escribe `build.mjs` en `dist/android`). Las versiones de depuración (`assembleDebug`, `installDebug`) no se ven afectadas.
+
+Para la versión que va a producción:
+
+```bash
+RELEASE=1 npm run android:sync
+cd android && ./gradlew bundleRelease
+```
+
+Mientras la app siga en prueba cerrada con anuncios de prueba a propósito, la versión firmada se puede sacar igualmente con `./gradlew bundleRelease -PallowTestAds` (avisa en lugar de fallar). No lo uses para producción.
 
 ## Archivo app-ads.txt
 
@@ -96,7 +116,9 @@ Referencia: [UMP SDK para Android](https://developers.google.com/admob/android/p
    - Comprar `coins_s` dos veces seguidas (las dos deben dar monedas).
    - Comprar `remove_ads`, desinstalar, reinstalar y usar «Restaurar compras».
    - Cancelar en la hoja de pago de Google (no debe dar nada).
-   - Pagar con «Slow test card, approves after a few minutes»: al principio no da nada. Cuando Google la aprueba, se entrega la próxima vez que se toque ese producto (monedas) o al restaurar (`remove_ads`, `starter_pack`).
+   - Pagar con «Slow test card, approves after a few minutes»: al principio sale «Pago pendiente» y no da nada. Cuando Google la aprueba, se entrega sola al volver a la app o al abrirla («¡Compra recibida!»).
+   - Comprar `coins_m` y cerrar la app a la fuerza justo después de pagar: al abrirla otra vez aparece «¡Compra recibida! +6.000 monedas», una sola vez.
+   - Comprar `coins_s` con el modo avión activado justo después de pagar (el consumo falla): las monedas llegan igual; al volver a tener conexión y abrir la app se consume sin dar monedas otra vez.
    - Tarjeta que rechaza: no debe dar nada.
 
 ## Declaraciones de Play Console que cambian
@@ -124,8 +146,8 @@ Y fuera de «Contenido de la app»:
 ## Resumen de lo que tienes que hacer tú
 
 1. AdMob: cuenta, app «Put It Out!» (sin enlazar de momento), dos bloques, URL de privacidad, mensaje europeo publicado, pagos e información fiscal.
-2. Pegar los dos ids de bloque y `USE_TEST_ADS: false` en `android.ts`, y el id de app en el manifiesto.
+2. Pegar los dos ids de bloque y `USE_TEST_ADS: false` en `android.ts`, y el id de app en el manifiesto. Compilar la versión de producción con `RELEASE=1 npm run android:sync` (ver «Antes de publicar»).
 3. Publicar `app-ads.txt` en la web.
-4. Play Console: perfil de pagos, los cinco productos activos, probadores con licencia.
+4. Play Console: perfil de pagos, los cinco productos activos (sin compra de varias unidades), probadores con licencia.
 5. Declaraciones: anuncios, ID de publicidad, seguridad de los datos, IARC, descripción y política de privacidad.
 6. Cuando la app salga a producción: enlazarla con Google Play en AdMob.

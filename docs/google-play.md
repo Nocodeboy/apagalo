@@ -30,7 +30,7 @@ Se generan con el código (ver «Compilar una versión nueva»). En la carpeta d
 
 1. Sube `versionCode` (entero, +1 cada vez) y `versionName` en `android/app/build.gradle`, y `VERSION` en `build.mjs`.
 2. Copia la clave de firma a su sitio: `keystore.properties` → `android/keystore.properties` y `apagalo-upload.jks` → `android/keystore/apagalo-upload.jks` (están en `NO-COMPARTIR`; Git no los sube).
-3. `npm run android:sync` y después `cd android && ./gradlew bundleRelease` (en Windows, `gradlew.bat bundleRelease`). El archivo sale en `android/app/build/outputs/bundle/release/app-release.aab`.
+3. `RELEASE=1 npm run android:sync` (en Windows, `set RELEASE=1` antes) y después `cd android && ./gradlew bundleRelease` (en Windows, `gradlew.bat bundleRelease`). El archivo sale en `android/app/build/outputs/bundle/release/app-release.aab`. Las dos cosas fallan a propósito si la app sigue con los anuncios de prueba de Google; mientras la prueba cerrada los use a propósito, `npm run android:sync` y `./gradlew bundleRelease -PallowTestAds` (ver «Antes de publicar» en `docs/android-monetizacion.md`).
 4. En Play Console → Prueba cerrada → Crear versión, sube el `.aab`, escribe las notas (español e inglés) y envíala a revisión.
 
 ## Clave de subida (guárdala: sin ella no puedes subir actualizaciones)
