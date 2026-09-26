@@ -71,6 +71,7 @@ async function bundle(target, gameUrl) {
       __VERSION__: JSON.stringify(VERSION),
       __GAME_URL__: JSON.stringify(gameUrl),
       __ANALYTICS__: JSON.stringify(target === 'artifact' ? null : ANALYTICS),
+      __PRIVACY_URL__: JSON.stringify(target === 'artifact' ? '' : target === 'web' ? '/privacidad' : `${GAME_URL}/privacidad`),
     },
   });
   return res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');

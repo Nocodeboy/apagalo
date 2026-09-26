@@ -99,6 +99,8 @@ const S = {
   dailyPlayed: { es: 'Ya jugado hoy: {s} pts. Puedes mejorar tu récord.', en: 'Played today: {s} pts. You can beat it.' },
   loading: { es: 'Preparando el reto…', en: 'Preparing the challenge…' },
   credits: { es: 'Hecho por @nocodeboy', en: 'Made by @nocodeboy' },
+  privacyNote: { es: 'Guardamos estadísticas anónimas (desactívalas en Ajustes).', en: 'We collect anonymous stats (turn them off in Settings).' },
+  privacyPolicy: { es: 'Política de privacidad', en: 'Privacy policy' },
 } satisfies Record<string, Txt>;
 
 export type Key = keyof typeof S;

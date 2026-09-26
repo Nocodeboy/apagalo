@@ -42,9 +42,11 @@ import {
 declare const __MUSIC__: { menu?: string; game?: string };
 declare const __GAME_URL__: string;
 declare const __TARGET__: string;
+declare const __PRIVACY_URL__: string;
 declare const __VERSION__: string;
-const TARGET_WEB = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'web';
 const TARGET_ANDROID = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'android';
+const TARGET_CG = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'crazygames';
+const PRIVACY_URL = typeof __PRIVACY_URL__ !== 'undefined' ? __PRIVACY_URL__ : '';
 const GAME_URL = typeof __GAME_URL__ !== 'undefined' ? __GAME_URL__ : '';
 let dailyRank: { players: number; below: number } | null = null;
 
@@ -229,6 +231,8 @@ function showTitle() {
     dailyNum: d.num,
     dailyDone: done,
     streak: save.streak.last === d.key || isYesterday(save.streak.last) ? save.streak.count : 0,
+    // CrazyGames: games that collect their own data must show a privacy notice to new players
+    privacyUrl: TARGET_CG && PRIVACY_URL && save.settings.stats !== false && !anyStars ? PRIVACY_URL : undefined,
     onPlay: () => {
       audio.play('click');
       // first ever game: straight into level 1 (the tutorial explains it) — one click from the title to playing
@@ -281,7 +285,7 @@ function showSettings() {
     music: st.music,
     vibration: st.vibration,
     stats: st.stats !== false,
-    privacyUrl: TARGET_WEB ? '/privacidad' : TARGET_ANDROID && GAME_URL ? `${GAME_URL}/privacidad` : undefined,
+    privacyUrl: PRIVACY_URL || undefined,
     version: typeof __VERSION__ !== 'undefined' ? __VERSION__ : '',
     gfx: st.gfx ?? 'auto',
     lang: getLang(),

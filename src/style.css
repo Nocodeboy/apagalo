@@ -338,6 +338,20 @@ p {
   gap: 14px;
   align-items: center;
 }
+.privacy-note {
+  width: max-content;
+  max-width: min(600px, 92vw);
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  color: #c3cde0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+.privacy-note a {
+  color: #7fd6ff;
+  white-space: nowrap;
+}
 
 /* levels */
 .levels {
@@ -1013,6 +1027,12 @@ p {
   }
   #toast {
     top: calc(96px + var(--safe-t));
+  }
+  .title-screen .menu {
+    gap: 10px;
+  }
+  .privacy-note {
+    font-size: 12px;
   }
 }
 

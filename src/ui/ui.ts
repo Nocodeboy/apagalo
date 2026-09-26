@@ -57,6 +57,8 @@ export interface TitleOpts {
   onLevels: () => void;
   onDaily: () => void;
   onSettings: () => void;
+  /** Privacy notice for new players (CrazyGames asks for it when the game collects its own stats). */
+  privacyUrl?: string;
 }
 export function titleScreen(o: TitleOpts) {
   const n = el(`
@@ -73,6 +75,7 @@ export function titleScreen(o: TitleOpts) {
         <button class="btn amber daily-btn" data-a="daily">${IC.cal}#${o.dailyNum}${o.streak > 0 ? `<span class="badge">🔥 ${o.streak}</span>` : o.dailyDone ? `<span class="badge">✓</span>` : ''}</button>
       </div>
       <div class="foot"><button class="icon-btn" data-a="settings" aria-label="${t('settings')}">${IC.gear}</button><span class="starcount"><span class="star-on">★</span> ${o.stars}/${o.maxStars}</span><span>${t('credits')}</span></div>
+      ${o.privacyUrl ? `<p class="privacy-note">${t('privacyNote')} <a href="${o.privacyUrl}" target="_blank" rel="noopener">${t('privacyPolicy')}</a></p>` : ''}
     </div>
   </div>`);
   n.querySelector('[data-a=play]')!.addEventListener('click', o.onPlay);
