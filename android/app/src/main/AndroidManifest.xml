@@ -27,9 +27,20 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- AdMob app id. This is Google's TEST app id: before releasing real ads, replace it with the app id from
+             AdMob (Apps > Put It Out! > App settings, "ca-app-pub-...~...") and paste the ad unit ids in
+             src/monetize/android.ts (ADMOB_CONFIG). See docs/android-monetizacion.md. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Advertising ID for AdMob (declare it in Play Console > App content > Advertising ID) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <!-- Google Play Billing (in-app products) -->
+    <uses-permission android:name="com.android.vending.BILLING" />
 </manifest>
