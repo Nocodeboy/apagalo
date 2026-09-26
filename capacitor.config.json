@@ -1,0 +1,13 @@
+{
+  "appId": "com.nocodeboy.apagalo",
+  "appName": "¡Apágalo!",
+  "webDir": "dist/android",
+  "backgroundColor": "#162341",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": { "launchAutoHide": true }
+  }
+}

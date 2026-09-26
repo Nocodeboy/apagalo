@@ -1,0 +1,26 @@
+const s = (body: string, vb = '0 0 24 24') => `<svg viewBox="${vb}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+export const IC = {
+  pause: s('<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>'),
+  soundOn: s('<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'),
+  soundOff: s('<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/>'),
+  gear: s('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/>'),
+  back: s('<path d="M15 5l-7 7 7 7"/>'),
+  grid: s('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'),
+  cal: s('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/><path d="M12 13.5c1.5 1.2 1.8 2.6 1 3.7-.6.8-2 .8-2.6 0-.6-.8-.3-1.7.4-2.3" fill="currentColor"/>'),
+  share: s('<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 13v6h14v-6"/>'),
+  retry: s('<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/>'),
+  next: s('<path d="M9 5l7 7-7 7"/>'),
+  play: s('<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>'),
+  home: s('<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/>'),
+  clock: s('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2.5h6"/>'),
+  flame: s('<path d="M12 21c-4 0-6.5-2.6-6.5-6 0-4 3.5-5.5 4-10 3 2 3.5 4 3.5 5.5 1-.8 1.6-2 1.8-3.2 2 1.8 3.7 4.3 3.7 7.7 0 3.4-2.5 6-6.5 6z" fill="currentColor" stroke="none"/>'),
+  arrow: s('<path d="M3 12h15M13 6l6 6-6 6"/>'),
+  jet: s('<path d="M3 12h4"/><rect x="7" y="9.5" width="5" height="5" rx="1" fill="currentColor"/><path d="M13 12h8M13 9.5l8-1M13 14.5l8 1" stroke-width="2"/>'),
+  fog: s('<path d="M3 12h4"/><rect x="7" y="9.5" width="4" height="5" rx="1" fill="currentColor"/><path d="M12 12h9M12 11l8-6M12 13l8 6M12 11.5l9-3M12 12.5l9 3" stroke-width="1.8"/>'),
+  foam: s('<path d="M3 12h4"/><rect x="7" y="9.5" width="4" height="5" rx="1" fill="currentColor"/><circle cx="15" cy="12" r="2.2"/><circle cx="19.5" cy="9" r="1.8"/><circle cx="19.5" cy="15" r="1.8"/><circle cx="21.5" cy="12" r="1"/>', '0 0 24 24'),
+  house: s('<path d="M4 11 12 4l8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-5h4v5"/>'),
+  paw: s('<ellipse cx="12" cy="15.5" rx="4.2" ry="3.6" fill="currentColor" stroke="none"/><circle cx="6.5" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="9.5" cy="6.5" r="1.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="6.5" r="1.8" fill="currentColor" stroke="none"/>'),
+  rocket: s('<path d="M12 3c3 2 4.5 5 4.5 9l-2 3h-5l-2-3c0-4 1.5-7 4.5-9z"/><path d="M9.5 15l-2 4M14.5 15l2 4M12 16v5"/>'),
+  wind: s('<path d="M12 3v18M12 3l-5 6M12 3l5 6"/>'),
+};

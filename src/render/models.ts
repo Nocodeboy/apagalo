@@ -1,0 +1,672 @@
+import * as THREE from 'three';
+import type { EntType } from '../sim/types';
+import { box, cone, cyl, dode, ico, merge, part, prism, sphere, type Part } from './geo';
+import type { Theme } from './themes';
+
+const PI = Math.PI;
+const WINDOW = 0x2d4a66;
+const WINDOW_LIT = 0x8fc8e8;
+const DOOR = 0x6b4128;
+const DARK = 0x2b2b30;
+const WHITE = 0xf7f4ee;
+
+function pick<T>(arr: T[], v: number): T {
+  return arr[Math.abs(v) % arr.length];
+}
+
+// ---------- buildings ----------
+function house(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const wall = pick(t.wall, v);
+  const roof = pick(t.roof, v >> 1);
+  const W = w - 0.35;
+  const D = d - 0.35;
+  const H = 2.3;
+  P.push(part(box(W + 0.1, 0.3, D + 0.1), 0xb8ab98, 0, 0.15, 0));
+  P.push(part(box(W, H, D), wall, 0, H / 2 + 0.2, 0));
+  P.push(part(prism(W + 0.35, D + 0.45, 1.15), roof, 0, H + 0.2, 0));
+  // windows front/back
+  for (const s of [-1, 1]) {
+    P.push(part(box(0.6, 0.7, 0.06), WINDOW, -W / 4, 1.55, s * (D / 2 + 0.02)));
+    P.push(part(box(0.6, 0.7, 0.06), WINDOW, W / 4 + 0.2, 1.55, s * (D / 2 + 0.02)));
+    P.push(part(box(0.75, 0.08, 0.1), WHITE, -W / 4, 1.16, s * (D / 2 + 0.04)));
+    P.push(part(box(0.75, 0.08, 0.1), WHITE, W / 4 + 0.2, 1.16, s * (D / 2 + 0.04)));
+    P.push(part(box(0.06, 0.7, 0.6), WINDOW, s * (W / 2 + 0.02), 1.55, 0));
+  }
+  P.push(part(box(0.7, 1.25, 0.08), DOOR, -0.05, 0.82, D / 2 + 0.03));
+  P.push(part(box(0.35, 0.8, 0.35), 0xa88f7a, W / 4, H + 1.0, -D / 5));
+  // flower pots
+  P.push(part(box(0.45, 0.25, 0.25), 0xb5652e, W / 4 + 0.2, 1.08, D / 2 + 0.18));
+  P.push(part(ico(0.16), 0xe0457a, W / 4 + 0.1, 1.28, D / 2 + 0.18));
+  P.push(part(ico(0.16), 0xf2c43a, W / 4 + 0.32, 1.28, D / 2 + 0.18));
+  return P;
+}
+
+function church(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const stone = 0xe8dcc2;
+  const H = 4.4;
+  P.push(part(box(w - 3, H, d - 0.3), stone, 1.2, H / 2, 0));
+  P.push(part(prism(w - 2.7, d + 0.2, 1.4), 0xb95a36, 1.2, H, 0));
+  // bell tower on the left
+  const tx = -w / 2 + 1.6;
+  P.push(part(box(2.6, 8.2, 2.6), 0xe2d4b8, tx, 4.1, 0.2));
+  P.push(part(box(2.8, 0.25, 2.8), 0xcdbd9e, tx, 6.2, 0.2));
+  P.push(part(box(1.1, 1.3, 2.7), 0x3a3030, tx, 7.1, 0.2));
+  P.push(part(box(2.7, 1.3, 1.1), 0x3a3030, tx, 7.1, 0.2));
+  P.push(part(cyl(0.28, 0.42, 0.6, 8), 0xd4a93a, tx, 7.0, 0.2));
+  P.push(part(cone(2.0, 2.0, 4), 0xb95a36, tx, 9.2, 0.2, 0, PI / 4, 0));
+  P.push(part(box(0.06, 0.8, 0.06), 0x3a3a3a, tx, 10.5, 0.2));
+  P.push(part(box(0.5, 0.06, 0.06), 0x3a3a3a, tx, 10.7, 0.2));
+  // facade details
+  P.push(part(box(1.4, 2.4, 0.1), DOOR, 1.2, 1.2, d / 2 - 0.1));
+  P.push(part(cyl(0.7, 0.7, 0.12, 10), DOOR, 1.2, 2.4, d / 2 - 0.1, PI / 2, 0, 0));
+  P.push(part(cyl(0.55, 0.55, 0.12, 10), 0x5a7fb0, 1.2, 3.55, d / 2 - 0.1, PI / 2, 0, 0));
+  for (const x of [-2.2, 4.6]) P.push(part(box(0.5, 1.4, 0.1), WINDOW, 1.2 + x * 0.7, 2.6, d / 2 - 0.1));
+  P.push(part(box(w - 2.6, 0.35, d + 0.2), 0xcdbd9e, 1.2, 0.17, 0.1));
+  return P;
+}
+
+function barn(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const red = 0xb2402f;
+  P.push(part(box(w - 0.3, 2.8, d - 0.3), red, 0, 1.4, 0));
+  P.push(part(prism(w, d + 0.3, 1.6), 0x4a4a52, 0, 2.8, 0));
+  // big doors with white X
+  const z = d / 2 - 0.13;
+  P.push(part(box(2.2, 2.2, 0.06), 0x8e2e22, 0, 1.1, z));
+  P.push(part(box(2.3, 0.14, 0.08), WHITE, 0, 2.2, z + 0.02));
+  P.push(part(box(0.14, 2.2, 0.08), WHITE, -1.1, 1.1, z + 0.02));
+  P.push(part(box(0.14, 2.2, 0.08), WHITE, 1.1, 1.1, z + 0.02));
+  P.push(part(box(0.12, 3.0, 0.08), WHITE, 0, 1.1, z + 0.03, 0, 0, 0.78));
+  P.push(part(box(0.12, 3.0, 0.08), WHITE, 0, 1.1, z + 0.03, 0, 0, -0.78));
+  P.push(part(box(0.8, 0.8, 0.06), 0x3a2a20, 0, 3.4, z + 0.05));
+  for (const x of [-w / 2 + 0.16, w / 2 - 0.16]) P.push(part(box(0.1, 2.8, d - 0.2), WHITE, x, 1.4, 0));
+  return P;
+}
+
+const STALL_COLORS = [0xd8433a, 0x3a76c8, 0x3aa35a, 0xe06aa0, 0xf09a2a];
+function stall(w: number, d: number, v: number, churros = false): Part[] {
+  const P: Part[] = [];
+  const wood = 0xa8723f;
+  const c = churros ? 0xf2b705 : pick(STALL_COLORS, v);
+  const c2 = churros ? 0xd8433a : WHITE;
+  const W = w - 0.15;
+  const D = d - 0.2;
+  P.push(part(box(W, 0.95, D * 0.55), wood, 0, 0.47, D * 0.2));
+  P.push(part(box(W + 0.05, 0.08, D * 0.6), 0xd9b27a, 0, 0.97, D * 0.2));
+  P.push(part(box(W, 1.6, 0.08), wood, 0, 0.8, -D / 2 + 0.05));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(box(0.09, 2.3, 0.09), 0x6b4a2a, (sx * W) / 2, 1.15, (sz * D) / 2));
+  // striped sloped awning
+  const n = Math.max(3, Math.round(W / 0.4));
+  const sw = W / n;
+  for (let k = 0; k < n; k++) {
+    P.push(part(box(sw, 0.07, D + 0.35), k % 2 ? c2 : c, -W / 2 + sw * (k + 0.5), 2.35, 0.05, -0.18, 0, 0));
+    P.push(part(box(sw, 0.28, 0.05), k % 2 ? c2 : c, -W / 2 + sw * (k + 0.5), 2.18, D / 2 + 0.23));
+  }
+  // goods on the counter
+  for (let k = 0; k < Math.floor(W / 0.7); k++) {
+    const col = churros ? 0xd99a3a : pick([0xf2c43a, 0xe25b5b, 0x7fc96b, 0x6fa8e0, 0xf28a3a], v + k);
+    P.push(part(box(0.35, 0.22, 0.3), col, -W / 2 + 0.45 + k * 0.7, 1.12, D * 0.2));
+  }
+  if (churros) {
+    P.push(part(box(W * 0.7, 0.4, 0.06), 0xd8433a, 0, 2.75, D / 2 + 0.2));
+    P.push(part(box(W * 0.6, 0.12, 0.07), 0xfff3c0, 0, 2.75, D / 2 + 0.22));
+  }
+  return P;
+}
+
+function warehouse(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const wall = pick(t.wall, v);
+  const H = 3.8;
+  P.push(part(box(w - 0.3, H, d - 0.3), wall, 0, H / 2, 0));
+  P.push(part(box(w - 0.1, 0.25, d - 0.1), 0x5f6a72, 0, H + 0.1, 0));
+  for (let x = -w / 2 + 0.6; x < w / 2 - 0.3; x += 0.6) P.push(part(box(0.12, 0.12, d - 0.2), 0x707c85, x, H + 0.28, 0));
+  // big roller door + hazard stripes
+  const z = d / 2 - 0.13;
+  P.push(part(box(3, 2.8, 0.06), 0x9aa3a8, -w / 6, 1.4, z));
+  for (let y = 0.2; y < 2.8; y += 0.25) P.push(part(box(3, 0.04, 0.07), 0x7a8288, -w / 6, y, z + 0.01));
+  for (const s of [-1, 1]) {
+    for (let k = 0; k < 6; k++) P.push(part(box(0.18, 0.4, 0.08), k % 2 ? DARK : 0xf2c21a, -w / 6 + s * 1.62, 0.2 + k * 0.45, z + 0.01));
+  }
+  P.push(part(box(w * 0.3, 0.5, 0.06), WINDOW_LIT, w / 4, 3.0, z));
+  P.push(part(box(1.8, 0.45, 0.08), 0x2f6fb5, w / 4, 2.2, z + 0.02));
+  return P;
+}
+
+function shop(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const H = 2.7;
+  P.push(part(box(w - 0.3, H, d - 0.3), 0xf4f1ea, 0, H / 2, 0));
+  P.push(part(box(w - 0.1, 0.35, d - 0.1), 0xd8433a, 0, H + 0.05, 0));
+  P.push(part(box(w - 0.1, 0.12, d - 0.1), 0xf2c21a, 0, H - 0.18, 0));
+  const z = d / 2 - 0.13;
+  P.push(part(box(w * 0.62, 1.4, 0.06), WINDOW_LIT, -w * 0.12, 1.25, z));
+  P.push(part(box(1.0, 2.0, 0.07), 0x5a8fb8, w * 0.32, 1.0, z));
+  P.push(part(box(2.4, 0.9, 0.3), 0xd8433a, w / 4, H + 0.75, 0));
+  P.push(part(box(2.0, 0.5, 0.32), WHITE, w / 4, H + 0.75, 0));
+  return P;
+}
+
+function cabin(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const log = 0x8a5a36;
+  P.push(part(box(w - 0.3, 2.1, d - 0.3), log, 0, 1.05, 0));
+  for (let y = 0.25; y < 2.1; y += 0.35) P.push(part(box(w - 0.2, 0.06, d - 0.2), 0x6e4527, 0, y, 0));
+  P.push(part(prism(w + 0.3, d + 0.5, 1.3), 0x4f6b3a, 0, 2.1, 0));
+  P.push(part(box(0.7, 1.3, 0.06), 0x4a2e1c, 0, 0.65, d / 2 - 0.13));
+  P.push(part(box(0.6, 0.55, 0.06), WINDOW_LIT, w / 4, 1.3, d / 2 - 0.13));
+  P.push(part(box(0.5, 1.4, 0.5), 0x8e8a82, -w / 4, 2.7, -0.2));
+  return P;
+}
+
+function chiringuito(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.3;
+  const D = d - 0.3;
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) P.push(part(cyl(0.07, 0.08, 2.2, 6), 0x8a6a42, (sx * W) / 2, 1.1, (sz * D) / 2));
+  P.push(part(box(W, 1.0, 0.5), 0x9a7048, 0, 0.5, D / 2 - 0.2));
+  P.push(part(box(W + 0.1, 0.08, 0.6), 0xd9b27a, 0, 1.02, D / 2 - 0.2));
+  P.push(part(box(W, 1.6, 0.1), 0x9a7048, 0, 0.8, -D / 2 + 0.1));
+  P.push(part(cone(Math.max(W, D) * 0.82, 1.4, 4), 0xd9b86a, 0, 2.85, 0, 0, PI / 4, 0));
+  P.push(part(cone(Math.max(W, D) * 0.84, 0.25, 4), 0xc4a257, 0, 2.2, 0, 0, PI / 4, 0));
+  for (let k = 0; k < 3; k++) P.push(part(cyl(0.16, 0.12, 0.7, 6), 0x6a4a30, -W / 3 + (k * W) / 3, 0.35, D / 2 + 0.45));
+  for (let k = 0; k < 4; k++) P.push(part(box(0.25, 0.3, 0.2), pick([0xe25b5b, 0x6fa8e0, 0xf2c43a, 0x7fc96b], k), -W / 2 + 0.4 + k * 0.6, 1.2, D / 2 - 0.2));
+  return P;
+}
+
+function fountain(w: number): Part[] {
+  const P: Part[] = [];
+  const r = w / 2 - 0.1;
+  P.push(part(cyl(r, r + 0.1, 0.6, 8), 0xd9ccb2, 0, 0.3, 0));
+  P.push(part(cyl(r - 0.22, r - 0.22, 0.04, 8), 0x4aa6d8, 0, 0.62, 0));
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
+    P.push(part(box(r * 0.8, 0.14, 0.26), 0xe6dac2, Math.cos(a) * (r - 0.1), 0.66, Math.sin(a) * (r - 0.1), 0, -a + Math.PI / 2, 0));
+  }
+  P.push(part(cyl(0.25, 0.35, 1.3, 8), 0xd0c2a6, 0, 1.0, 0));
+  P.push(part(cyl(0.7, 0.4, 0.25, 8), 0xd9ccb2, 0, 1.6, 0));
+  P.push(part(cone(0.18, 0.7, 6), 0xbfe8ff, 0, 2.05, 0));
+  return P;
+}
+
+// ---------- nature & small props ----------
+function tree(v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const c1 = pick(t.foliage, v);
+  const c2 = pick(t.foliage, v + 1);
+  const s = 0.9 + (v % 5) * 0.06;
+  P.push(part(cyl(0.12, 0.19, 1.5, 5), t.trunk, 0, 0.75, 0));
+  P.push(part(ico(0.95 * s), c1, 0, 2.15 * s, 0, v, v * 2, 0));
+  P.push(part(ico(0.68 * s), c2, 0.45, 2.6 * s, 0.2, v * 3, 0, 0));
+  P.push(part(ico(0.6 * s), c1, -0.4, 2.5 * s, -0.25, 0, v, 0));
+  return P;
+}
+function pine(v: number): Part[] {
+  const P: Part[] = [];
+  const g = v % 2 ? 0x2f6b3a : 0x2a5f35;
+  const s = 0.9 + (v % 4) * 0.07;
+  P.push(part(cyl(0.1, 0.16, 1.2, 5), 0x5e3d25, 0, 0.6, 0));
+  P.push(part(cone(0.95 * s, 1.5 * s, 7), g, 0, 1.55 * s, 0));
+  P.push(part(cone(0.75 * s, 1.3 * s, 7), g, 0, 2.3 * s, 0, 0, 0.3, 0));
+  P.push(part(cone(0.5 * s, 1.1 * s, 7), g, 0, 3.0 * s, 0));
+  return P;
+}
+function palm(v: number): Part[] {
+  const P: Part[] = [];
+  let x = 0;
+  let y = 0;
+  const lean = 0.1 + (v % 3) * 0.05;
+  for (let k = 0; k < 6; k++) {
+    P.push(part(cyl(0.12 - k * 0.008, 0.15 - k * 0.008, 0.6, 6), k % 2 ? 0x8a6a45 : 0x7a5c3a, x, y + 0.3, 0, 0, 0, -lean));
+    x += Math.sin(lean) * 0.6;
+    y += Math.cos(lean) * 0.6;
+  }
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * PI * 2;
+    P.push(part(box(1.5, 0.05, 0.35), k % 2 ? 0x3f8a3a : 0x4f9a44, x + Math.cos(a) * 0.65, y - 0.15, Math.sin(a) * 0.65, 0, -a, -0.45));
+  }
+  P.push(part(ico(0.12), 0x6a4a2a, x + 0.12, y - 0.1, 0.05));
+  P.push(part(ico(0.12), 0x6a4a2a, x - 0.1, y - 0.12, -0.06));
+  return P;
+}
+function hedge(v: number, t: Theme): Part[] {
+  const g = pick([0x4f8f3c, 0x5a9a44, 0x478635], v);
+  void t;
+  return [part(box(0.98, 0.8, 0.9), g, 0, 0.42, 0), part(ico(0.38), g, -0.22, 0.85, 0), part(ico(0.38), g, 0.24, 0.87, 0.05)];
+}
+function fence(): Part[] {
+  const c = 0x9a6a3e;
+  return [
+    part(box(0.1, 0.95, 0.1), c, -0.42, 0.47, 0),
+    part(box(0.1, 0.95, 0.1), c, 0.42, 0.47, 0),
+    part(box(1.02, 0.1, 0.06), 0xb07c48, 0, 0.72, 0),
+    part(box(1.02, 0.1, 0.06), 0xb07c48, 0, 0.4, 0),
+  ];
+}
+function hay(v: number): Part[] {
+  if (v % 3 === 0) return [part(box(0.95, 0.75, 0.75), 0xdcbc5c, 0, 0.38, 0), part(box(0.97, 0.05, 0.77), 0xb8963e, 0, 0.3, 0), part(box(0.97, 0.05, 0.77), 0xb8963e, 0, 0.55, 0)];
+  return [part(cyl(0.55, 0.55, 0.9, 12), 0xe0c060, 0, 0.55, 0, 0, 0, PI / 2), part(cyl(0.42, 0.42, 0.92, 12), 0xcaa64a, 0, 0.55, 0, 0, 0, PI / 2)];
+}
+function pallet(v: number): Part[] {
+  const P: Part[] = [];
+  const n = 3 + (v % 3);
+  for (let k = 0; k < n; k++) {
+    P.push(part(box(0.92, 0.07, 0.92), 0xb5874f, 0, 0.1 + k * 0.17, 0, 0, (k % 2) * 0.08, 0));
+    P.push(part(box(0.92, 0.07, 0.15), 0x9c7040, 0, 0.04 + k * 0.17, -0.35));
+    P.push(part(box(0.92, 0.07, 0.15), 0x9c7040, 0, 0.04 + k * 0.17, 0.35));
+  }
+  if (v % 2) P.push(part(box(0.6, 0.45, 0.6), 0xc49a5c, 0.05, 0.1 + n * 0.17 + 0.2, 0, 0, 0.3, 0));
+  return P;
+}
+function bench(): Part[] {
+  return [
+    part(box(0.95, 0.08, 0.4), 0xa8723f, 0, 0.45, 0),
+    part(box(0.95, 0.3, 0.06), 0xa8723f, 0, 0.7, -0.18),
+    part(box(0.06, 0.45, 0.4), 0x3a3a3a, -0.4, 0.22, 0),
+    part(box(0.06, 0.45, 0.4), 0x3a3a3a, 0.4, 0.22, 0),
+  ];
+}
+function rock(v: number): Part[] {
+  return [part(dode(0.45), 0x8e8b86, 0, 0.3, 0, v, v * 2, 0, 1, 0.7, 1), part(dode(0.25), 0x7e7b76, 0.3, 0.18, 0.2, v, 0, 0)];
+}
+function hydrant(): Part[] {
+  const r = 0xd8342a;
+  return [
+    part(cyl(0.26, 0.3, 0.12, 8), 0x9a2a22, 0, 0.06, 0),
+    part(cyl(0.17, 0.2, 0.62, 8), r, 0, 0.42, 0),
+    part(sphere(0.18, 8, 4), r, 0, 0.74, 0),
+    part(cyl(0.06, 0.06, 0.18, 6), 0xd4a93a, 0, 0.92, 0),
+    part(cyl(0.08, 0.08, 0.5, 6), 0xd4a93a, 0, 0.5, 0, 0, 0, PI / 2),
+    part(cyl(0.09, 0.09, 0.22, 6), 0xd4a93a, 0, 0.5, 0.17, PI / 2, 0, 0),
+  ];
+}
+function elec(): Part[] {
+  return [
+    part(box(0.95, 0.15, 0.75), 0x7a7a7a, 0, 0.07, 0),
+    part(box(0.85, 1.45, 0.62), 0x9aa3a8, 0, 0.87, 0),
+    part(box(0.87, 0.06, 0.64), 0x7a8288, 0, 1.6, 0),
+    part(box(0.02, 1.2, 0.02), 0x5a6268, 0, 0.85, 0.32),
+    part(cone(0.18, 0.3, 3), 0xf2c21a, 0.2, 1.15, 0.33, PI / 2, 0, 0),
+    part(box(0.05, 0.14, 0.02), DARK, 0.2, 1.12, 0.36, 0, 0, 0.4),
+    part(cyl(0.04, 0.04, 1.4, 5), DARK, -0.3, 1.9, -0.2),
+  ];
+}
+function leverBase(): Part[] {
+  return [part(box(0.18, 1.1, 0.18), 0x6a6a6a, 0, 0.55, 0), part(box(0.45, 0.5, 0.25), 0xb8c0c4, 0, 1.0, 0.05), part(box(0.2, 0.2, 0.05), 0xf2c21a, 0, 1.0, 0.19)];
+}
+function cylinder(): Part[] {
+  const o = 0xf07a1a;
+  return [
+    part(cyl(0.21, 0.21, 0.5, 10), o, 0, 0.33, 0),
+    part(sphere(0.21, 10, 4), o, 0, 0.58, 0, 0, 0, 0, 1, 0.45, 1),
+    part(cyl(0.22, 0.22, 0.08, 10), 0xd06010, 0, 0.08, 0),
+    part(cyl(0.05, 0.06, 0.12, 6), 0x8a8a8a, 0, 0.7, 0),
+    part(box(0.14, 0.03, 0.03), 0x5a5a5a, 0, 0.76, 0),
+  ];
+}
+function pump(): Part[] {
+  return [
+    part(box(1.0, 0.18, 0.7), 0xbcb8b0, 0, 0.09, 0),
+    part(box(0.55, 1.55, 0.45), WHITE, 0, 0.95, 0),
+    part(box(0.57, 0.35, 0.47), 0xd8433a, 0, 1.6, 0),
+    part(box(0.35, 0.25, 0.02), DARK, 0, 1.25, 0.24),
+    part(cyl(0.035, 0.035, 0.9, 5), DARK, 0.3, 0.8, 0.1, 0.2, 0, 0.1),
+    part(box(0.1, 0.2, 0.12), DARK, 0.35, 0.35, 0.18),
+  ];
+}
+function umbrella(v: number): Part[] {
+  return [
+    part(cyl(0.035, 0.035, 2.0, 5), 0xd9c9a8, 0, 1.0, 0),
+    part(cone(1.0, 0.55, 8), 0xd4b265, 0, 2.05, 0, 0, v, 0),
+    part(box(0.5, 0.08, 1.3), pick([0x3a76c8, 0xe25b5b, 0x3aa35a], v), 0.7, 0.25, 0.1, 0, 0, 0),
+  ];
+}
+function bonfire(): Part[] {
+  const P: Part[] = [];
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * PI * 2;
+    P.push(part(cyl(0.07, 0.09, 1.2, 5), 0x6a4526, Math.cos(a) * 0.22, 0.45, Math.sin(a) * 0.22, Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45));
+  }
+  for (let k = 0; k < 9; k++) {
+    const a = (k / 9) * PI * 2;
+    P.push(part(dode(0.13), 0x8a8580, Math.cos(a) * 0.5, 0.08, Math.sin(a) * 0.5, k, k, 0));
+  }
+  return P;
+}
+function lampPole(): Part[] {
+  return [part(cyl(0.12, 0.16, 0.3, 6), 0x2e3238, 0, 0.15, 0), part(cyl(0.05, 0.06, 3.0, 6), 0x2e3238, 0, 1.6, 0), part(box(0.5, 0.05, 0.05), 0x2e3238, 0.2, 3.05, 0)];
+}
+function car(v: number): Part[] {
+  const c = pick([0xd8433a, 0x3a76c8, 0xf4f1ea, 0xf2c21a, 0x3aa35a, 0x6a6f78], v);
+  const P: Part[] = [
+    part(box(1.85, 0.55, 0.92), c, 0, 0.5, 0),
+    part(box(1.05, 0.48, 0.84), 0x26384a, -0.1, 0.99, 0),
+    part(box(1.0, 0.06, 0.86), c, -0.1, 1.24, 0),
+    part(box(0.1, 0.15, 0.3), 0xfff2c0, 0.93, 0.55, 0.28),
+    part(box(0.1, 0.15, 0.3), 0xfff2c0, 0.93, 0.55, -0.28),
+    part(box(0.08, 0.12, 0.25), 0xc0202a, -0.93, 0.55, 0.3),
+    part(box(0.08, 0.12, 0.25), 0xc0202a, -0.93, 0.55, -0.3),
+  ];
+  for (const sx of [-0.58, 0.58]) for (const sz of [-0.46, 0.46]) P.push(part(cyl(0.22, 0.22, 0.14, 10), 0x1f1f22, sx, 0.23, sz, PI / 2, 0, 0));
+  return P;
+}
+
+export interface ModelSpec {
+  geo: THREE.BufferGeometry;
+  rotY: number;
+}
+
+/** Build the static geometry for an entity. Returns null for dynamic/animated entities. */
+export function entityModel(type: EntType, w: number, h: number, v: number, orient: number, t: Theme): ModelSpec | null {
+  let P: Part[] | null = null;
+  let rotY = 0;
+  // multi-cell buildings are authored along X with the front facing +Z.
+  switch (type) {
+    case 'house':
+      P = house(w, h, v, t);
+      break;
+    case 'church':
+      P = church(w, h);
+      break;
+    case 'barn':
+      P = barn(w, h);
+      break;
+    case 'stall':
+      P = stall(w, h, v);
+      break;
+    case 'churros':
+      P = stall(w, h, v, true);
+      break;
+    case 'warehouse':
+      P = warehouse(w, h, v, t);
+      break;
+    case 'shop':
+      P = shop(w, h);
+      break;
+    case 'cabin':
+      P = cabin(w, h);
+      break;
+    case 'chiringuito':
+      P = chiringuito(w, h);
+      break;
+    case 'fountain':
+      P = fountain(Math.min(w, h));
+      break;
+    case 'car':
+      P = car(v);
+      rotY = w >= h ? 0 : PI / 2;
+      break;
+    case 'tree':
+      P = tree(v, t);
+      rotY = v;
+      break;
+    case 'pine':
+      P = pine(v);
+      rotY = v;
+      break;
+    case 'palm':
+      P = palm(v);
+      rotY = v * 1.3;
+      break;
+    case 'hedge':
+      P = hedge(v, t);
+      rotY = orient ? 0 : PI / 2;
+      break;
+    case 'fence':
+      P = fence();
+      rotY = orient ? 0 : PI / 2;
+      break;
+    case 'hay':
+      P = hay(v);
+      rotY = (v % 4) * 0.4;
+      break;
+    case 'pallet':
+      P = pallet(v);
+      rotY = (v % 3) * 0.1;
+      break;
+    case 'bench':
+      P = bench();
+      break;
+    case 'rock':
+      P = rock(v);
+      break;
+    case 'hydrant':
+      P = hydrant();
+      break;
+    case 'elec':
+      P = elec();
+      break;
+    case 'lever':
+      P = leverBase();
+      break;
+    case 'pump':
+      P = pump();
+      rotY = PI / 2;
+      break;
+    case 'umbrella':
+      P = umbrella(v);
+      break;
+    case 'bonfire':
+      P = bonfire();
+      break;
+    case 'lamp':
+      P = lampPole();
+      break;
+    case 'cylinder':
+      P = cylinder();
+      break;
+    default:
+      return null;
+  }
+  return { geo: merge(P), rotY };
+}
+
+// ---------- fire truck ----------
+export function truckGroup(): { group: THREE.Group; lights: THREE.Mesh[]; reel: THREE.Object3D } {
+  const red = 0xd42b22;
+  const P: Part[] = [
+    part(box(3.3, 1.55, 1.85), red, -0.25, 1.15, 0),
+    part(box(1.05, 1.35, 1.85), red, 1.45, 1.05, 0),
+    part(box(0.06, 0.6, 1.6), 0x26384a, 1.98, 1.35, 0),
+    part(box(0.8, 0.55, 0.06), 0x26384a, 1.5, 1.35, 0.93),
+    part(box(0.8, 0.55, 0.06), 0x26384a, 1.5, 1.35, -0.93),
+    part(box(4.35, 0.14, 1.9), WHITE, 0.0, 0.95, 0),
+    part(box(4.4, 0.3, 1.7), 0x3a3a3e, 0, 0.35, 0),
+    part(box(0.12, 0.25, 1.7), 0xbfbfbf, 2.02, 0.5, 0),
+    part(box(0.05, 0.14, 0.28), 0xfff3c0, 2.0, 0.8, 0.65),
+    part(box(0.05, 0.14, 0.28), 0xfff3c0, 2.0, 0.8, -0.65),
+    // compartment doors
+    part(box(0.9, 0.9, 0.03), 0xb82520, -1.3, 1.25, 0.94),
+    part(box(0.9, 0.9, 0.03), 0xb82520, -0.3, 1.25, 0.94),
+    part(box(0.9, 0.9, 0.03), 0xb82520, -1.3, 1.25, -0.94),
+    part(box(0.9, 0.9, 0.03), 0xb82520, -0.3, 1.25, -0.94),
+    // ladder on the roof
+    part(box(3.2, 0.08, 0.08), 0xc9ccd0, -0.35, 2.05, 0.35),
+    part(box(3.2, 0.08, 0.08), 0xc9ccd0, -0.35, 2.05, -0.35),
+  ];
+  for (let k = 0; k < 9; k++) P.push(part(box(0.05, 0.05, 0.72), 0xc9ccd0, -1.85 + k * 0.38, 2.05, 0));
+  for (const x of [-1.35, -0.55, 1.35]) for (const z of [-0.88, 0.88]) P.push(part(cyl(0.36, 0.36, 0.26, 12), 0x1f1f22, x, 0.36, z, PI / 2, 0, 0));
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const body = new THREE.Mesh(merge(P), mat);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  const group = new THREE.Group();
+  group.add(body);
+  const lights: THREE.Mesh[] = [];
+  for (const z of [-0.45, 0.45]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.3), new THREE.MeshBasicMaterial({ color: 0x2f7bff }));
+    m.position.set(1.55, 1.82, z);
+    group.add(m);
+    lights.push(m);
+  }
+  const reel = new THREE.Mesh(merge([part(cyl(0.45, 0.45, 0.5, 12), 0xf2e6c8, 0, 0, 0, PI / 2, 0, 0), part(cyl(0.5, 0.5, 0.06, 12), 0x9a9a9a, 0, 0, 0.27, PI / 2, 0, 0), part(cyl(0.5, 0.5, 0.06, 12), 0x9a9a9a, 0, 0, -0.27, PI / 2, 0, 0)]), mat);
+  reel.position.set(-1.95, 1.2, 0);
+  group.add(reel);
+  return { group, lights, reel };
+}
+
+// ---------- characters ----------
+const SKIN = [0xf1c7a0, 0xd9a07a, 0xa9704a, 0xf5d2b5];
+const SHIRTS = [0x3a76c8, 0xe25b5b, 0x3aa35a, 0xf2c43a, 0x9a5ac8, 0xf28a3a, 0x40b8b0];
+
+export function characterMesh(type: EntType, v: number): THREE.Group {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  let P: Part[] = [];
+  switch (type) {
+    case 'cat': {
+      const c = pick([0xf28a2a, 0x3a3a3a, 0xe8e2d8], v);
+      P = [
+        part(box(0.42, 0.22, 0.2), c, 0, 0.28, 0),
+        part(box(0.22, 0.2, 0.2), c, 0.26, 0.42, 0),
+        part(cone(0.06, 0.12, 3), c, 0.28, 0.58, 0.06),
+        part(cone(0.06, 0.12, 3), c, 0.28, 0.58, -0.06),
+        part(box(0.05, 0.3, 0.05), c, -0.25, 0.45, 0, 0, 0, 0.4),
+        part(box(0.02, 0.04, 0.04), DARK, 0.37, 0.45, 0.05),
+        part(box(0.02, 0.04, 0.04), DARK, 0.37, 0.45, -0.05),
+      ];
+      for (const x of [-0.14, 0.14]) for (const z of [-0.07, 0.07]) P.push(part(box(0.05, 0.18, 0.05), c, x, 0.09, z));
+      break;
+    }
+    case 'dog': {
+      const c = pick([0x9a6a3e, 0xd9b27a, 0x3a3a3a], v);
+      P = [
+        part(box(0.6, 0.3, 0.28), c, 0, 0.42, 0),
+        part(box(0.28, 0.26, 0.26), c, 0.36, 0.62, 0),
+        part(box(0.14, 0.12, 0.16), 0x5a3a22, 0.54, 0.58, 0),
+        part(box(0.05, 0.16, 0.1), 0x5a3a22, 0.32, 0.72, 0.15),
+        part(box(0.05, 0.16, 0.1), 0x5a3a22, 0.32, 0.72, -0.15),
+        part(box(0.06, 0.25, 0.06), c, -0.34, 0.6, 0, 0, 0, 0.6),
+      ];
+      for (const x of [-0.2, 0.2]) for (const z of [-0.1, 0.1]) P.push(part(box(0.08, 0.28, 0.08), c, x, 0.14, z));
+      break;
+    }
+    case 'sheep': {
+      P = [part(ico(0.34, 0), 0xf4f1ea, 0, 0.5, 0, 0, 0, 0, 1.25, 0.9, 1), part(ico(0.2, 0), 0xf4f1ea, 0.15, 0.72, 0.12), part(box(0.2, 0.22, 0.18), 0x2a2a2a, 0.42, 0.56, 0)];
+      for (const x of [-0.18, 0.18]) for (const z of [-0.12, 0.12]) P.push(part(box(0.07, 0.3, 0.07), 0x2a2a2a, x, 0.15, z));
+      break;
+    }
+    case 'goat': {
+      const c = v % 2 ? 0xf1ece2 : 0x8a6a4a;
+      P = [part(box(0.62, 0.32, 0.28), c, 0, 0.5, 0), part(box(0.22, 0.26, 0.2), c, 0.38, 0.72, 0), part(cone(0.04, 0.2, 4), 0x6a6a6a, 0.34, 0.92, 0.06, 0, 0, -0.5), part(cone(0.04, 0.2, 4), 0x6a6a6a, 0.34, 0.92, -0.06, 0, 0, -0.5), part(box(0.06, 0.12, 0.06), 0xd9d2c4, 0.45, 0.55, 0)];
+      for (const x of [-0.2, 0.2]) for (const z of [-0.1, 0.1]) P.push(part(box(0.07, 0.36, 0.07), c, x, 0.18, z));
+      break;
+    }
+    default: {
+      // person / bystander (chibi)
+      const shirt = pick(SHIRTS, v);
+      const skin = pick(SKIN, v >> 1);
+      const hair = pick([0x3a2a1e, 0x1f1f22, 0x8a5a2a, 0xd9b26a, 0x9a9a9a], v >> 2);
+      P = [
+        part(box(0.14, 0.5, 0.16), 0x3a4a6a, 0, 0.25, 0.1),
+        part(box(0.14, 0.5, 0.16), 0x3a4a6a, 0, 0.25, -0.1),
+        part(box(0.3, 0.5, 0.46), shirt, 0, 0.75, 0),
+        part(box(0.12, 0.42, 0.12), shirt, 0, 0.78, 0.3, 0.2, 0, 0),
+        part(box(0.12, 0.42, 0.12), shirt, 0, 0.78, -0.3, -0.2, 0, 0),
+        part(sphere(0.26, 8, 6), skin, 0, 1.25, 0),
+        part(sphere(0.27, 8, 4), hair, -0.04, 1.33, 0, 0, 0, 0, 1, 0.7, 1),
+        part(box(0.02, 0.06, 0.05), DARK, 0.25, 1.26, 0.09),
+        part(box(0.02, 0.06, 0.05), DARK, 0.25, 1.26, -0.09),
+      ];
+    }
+  }
+  const m = new THREE.Mesh(merge(P), mat);
+  m.castShadow = true;
+  g.add(m);
+  return g;
+}
+
+// ---------- the firefighter ----------
+export interface HeroRig {
+  root: THREE.Group;
+  hips: THREE.Group;
+  torso: THREE.Group;
+  legL: THREE.Object3D;
+  legR: THREE.Object3D;
+  armL: THREE.Object3D;
+  armR: THREE.Object3D;
+  head: THREE.Object3D;
+  nozzle: THREE.Object3D;
+  tint: THREE.MeshLambertMaterial;
+}
+
+export function heroRig(): HeroRig {
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const navy = 0x243a5e;
+  const stripe = 0xf5e23a;
+  const mk = (P: Part[]) => {
+    const m = new THREE.Mesh(merge(P), mat);
+    m.castShadow = true;
+    return m;
+  };
+  const root = new THREE.Group();
+  const hips = new THREE.Group();
+  root.add(hips);
+  const leg = () => {
+    const g = new THREE.Group();
+    g.add(mk([part(box(0.2, 0.42, 0.22), navy, 0, -0.21, 0), part(box(0.22, 0.06, 0.24), stripe, 0, -0.28, 0), part(box(0.24, 0.16, 0.3), 0x1f1f22, 0.04, -0.46, 0)]));
+    return g;
+  };
+  const legL = leg();
+  legL.position.set(0, 0.54, 0.13);
+  const legR = leg();
+  legR.position.set(0, 0.54, -0.13);
+  hips.add(legL, legR);
+  const torso = new THREE.Group();
+  torso.position.set(0, 0.54, 0);
+  hips.add(torso);
+  torso.add(
+    mk([
+      part(box(0.42, 0.52, 0.56), navy, 0, 0.3, 0),
+      part(box(0.44, 0.07, 0.58), stripe, 0, 0.18, 0),
+      part(box(0.44, 0.07, 0.58), 0xd9d9d9, 0, 0.26, 0),
+      part(box(0.44, 0.1, 0.58), 0x1f1f22, 0, 0.05, 0),
+      // air tank on the back
+      part(cyl(0.12, 0.12, 0.5, 8), 0xf2c21a, -0.3, 0.32, 0),
+      part(box(0.05, 0.3, 0.3), 0x3a3a3a, -0.22, 0.32, 0),
+    ]),
+  );
+  const head = new THREE.Group();
+  head.position.set(0, 0.82, 0);
+  torso.add(head);
+  head.add(
+    mk([
+      part(sphere(0.27, 10, 8), 0xf1c7a0, 0, 0, 0),
+      part(box(0.02, 0.08, 0.06), DARK, 0.26, 0.02, 0.09),
+      part(box(0.02, 0.08, 0.06), DARK, 0.26, 0.02, -0.09),
+      part(box(0.02, 0.02, 0.12), 0xc0705a, 0.26, -0.1, 0),
+      // helmet
+      part(sphere(0.31, 10, 6, ), 0xd8342a, 0, 0.08, 0, 0, 0, 0, 1, 0.8, 1),
+      part(cyl(0.4, 0.42, 0.05, 12), 0xd8342a, -0.04, 0.02, 0),
+      part(box(0.05, 0.22, 0.16), 0xf5e23a, 0.3, 0.2, 0),
+      part(box(0.36, 0.05, 0.08), 0xb82520, 0, 0.36, 0),
+    ]),
+  );
+  const arm = (side: number) => {
+    const g = new THREE.Group();
+    g.add(mk([part(box(0.14, 0.14, 0.42), navy, 0.0, 0, side * 0.12), part(box(0.15, 0.06, 0.15), stripe, 0, 0, side * 0.26), part(box(0.16, 0.16, 0.16), 0x2a2a2a, 0.05, 0, side * 0.34)]));
+    return g;
+  };
+  const armL = arm(1);
+  armL.position.set(0.12, 0.45, 0.2);
+  const armR = arm(-1);
+  armR.position.set(0.12, 0.45, -0.2);
+  torso.add(armL, armR);
+  const nozzle = new THREE.Group();
+  nozzle.position.set(0.32, 0.42, 0);
+  nozzle.add(mk([part(cyl(0.06, 0.07, 0.5, 8), 0xc0c4c8, 0.2, 0, 0, 0, 0, PI / 2), part(cyl(0.09, 0.06, 0.12, 8), 0xd4a93a, 0.48, 0, 0, 0, 0, PI / 2), part(box(0.1, 0.12, 0.05), 0x2a2a2a, 0.05, -0.1, 0)]));
+  torso.add(nozzle);
+  root.scale.setScalar(1.12);
+  return { root, hips, torso, legL, legR, armL, armR, head, nozzle, tint: mat };
+}
+
+export function leverHandle(): THREE.Mesh {
+  const m = new THREE.Mesh(
+    merge([part(box(0.06, 0.45, 0.06), 0x5a5a5a, 0, 0.22, 0), part(sphere(0.09, 8, 6), 0xd8342a, 0, 0.46, 0)]),
+    new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+  );
+  m.castShadow = true;
+  return m;
+}

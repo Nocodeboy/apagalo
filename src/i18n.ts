@@ -1,0 +1,125 @@
+import type { Lang, Txt } from './sim/types';
+
+const S = {
+  play: { es: 'JUGAR', en: 'PLAY' },
+  continue: { es: 'CONTINUAR', en: 'CONTINUE' },
+  levels: { es: 'Niveles', en: 'Levels' },
+  daily: { es: 'Reto diario', en: 'Daily challenge' },
+  dailyDone: { es: 'Hecho hoy', en: 'Done today' },
+  streak: { es: 'racha', en: 'streak' },
+  settings: { es: 'Ajustes', en: 'Settings' },
+  tagline: { es: 'Coge la manguera. Salva el pueblo.', en: 'Grab the hose. Save the town.' },
+  go: { es: '¡VAMOS!', en: "LET'S GO!" },
+  back: { es: 'Volver', en: 'Back' },
+  level: { es: 'Nivel', en: 'Level' },
+  locked: { es: 'Consigue más estrellas', en: 'Earn more stars' },
+  goal1: { es: 'Apaga todo el fuego', en: 'Put out every fire' },
+  goal2: { es: 'Salva el {n}%', en: 'Save {n}%' },
+  goal3: { es: 'Salva el {n}% y que no se escape nadie', en: 'Save {n}% and nobody flees' },
+  goal3b: { es: 'Salva el {n}%', en: 'Save {n}%' },
+  control: { es: 'EXTINCIÓN', en: 'CONTROL' },
+  saved: { es: 'A salvo', en: 'Saved' },
+  pause: { es: 'Pausa', en: 'Paused' },
+  resume: { es: 'Seguir', en: 'Resume' },
+  restart: { es: 'Reintentar', en: 'Retry' },
+  next: { es: 'Siguiente', en: 'Next' },
+  share: { es: 'Compartir', en: 'Share' },
+  menu: { es: 'Menú', en: 'Menu' },
+  win: { es: '¡FUEGO APAGADO!', en: 'FIRE OUT!' },
+  loseTime: { es: '¡SE ACABÓ EL TIEMPO!', en: "TIME'S UP!" },
+  loseControl: { es: '¡SE HA DESCONTROLADO!', en: 'OUT OF CONTROL!' },
+  loseTip: { es: 'Ataca primero el frente que avanza con el viento.', en: 'Attack the front the wind is pushing first.' },
+  statSaved: { es: 'Zona a salvo', en: 'Area saved' },
+  statTime: { es: 'Tiempo', en: 'Time' },
+  statRescued: { es: 'Vecinos a salvo', en: 'Safe & sound' },
+  breeze: { es: 'Brisa', en: 'Breeze' },
+  windy: { es: 'Viento', en: 'Windy' },
+  strongWind: { es: 'Viento fuerte', en: 'Strong wind' },
+  statCombo: { es: 'Combo máx.', en: 'Best combo' },
+  statScore: { es: 'Puntos', en: 'Score' },
+  best: { es: 'Récord', en: 'Best' },
+  newBest: { es: '¡Nuevo récord!', en: 'New best!' },
+  jet: { es: 'Chorro', en: 'Jet' },
+  fog: { es: 'Abanico', en: 'Fog' },
+  foam: { es: 'Espuma', en: 'Foam' },
+  sound: { es: 'Efectos', en: 'Sound' },
+  music: { es: 'Música', en: 'Music' },
+  vibration: { es: 'Vibración', en: 'Vibration' },
+  quality: { es: 'Calidad gráfica', en: 'Graphics' },
+  high: { es: 'Alta', en: 'High' },
+  low: { es: 'Ahorro', en: 'Battery saver' },
+  gfx_auto: { es: 'Automática', en: 'Automatic' },
+  gfx_high: { es: 'Alta', en: 'High' },
+  gfx_medium: { es: 'Media', en: 'Medium' },
+  gfx_low: { es: 'Ahorro', en: 'Battery saver' },
+  newTag: { es: 'NUEVO', en: 'NEW' },
+  unlocked: { es: '¡Nivel {n} desbloqueado!', en: 'Level {n} unlocked!' },
+  bannerWin: { es: '¡APAGADO!', en: 'FIRE OUT!' },
+  bannerTime: { es: '¡TIEMPO!', en: "TIME'S UP!" },
+  bannerLost: { es: '¡DESCONTROLADO!', en: 'OUT OF CONTROL!' },
+  starLost: { es: '−1 ★', en: '−1 ★' },
+  goalsNow: { es: 'Así vas', en: 'Right now' },
+  stats: { es: 'Estadísticas anónimas', en: 'Anonymous stats' },
+  privacy: { es: 'Privacidad', en: 'Privacy' },
+  statsNote: { es: 'Cómo se juega, sin datos personales', en: 'How the game is played, no personal data' },
+  dailyRank: { es: 'Mejor que el {p}% de los {n} jugadores de hoy', en: 'Better than {p}% of today’s {n} players' },
+  dailyFirst: { es: '¡Eres de los primeros en jugar el reto de hoy!', en: 'You’re one of the first to play today’s challenge!' },
+  language: { es: 'Idioma', en: 'Language' },
+  reset: { es: 'Borrar progreso', en: 'Reset progress' },
+  resetConfirm: { es: 'Pulsa otra vez para borrar', en: 'Tap again to confirm' },
+  copied: { es: '¡Copiado! Pégalo donde quieras', en: 'Copied! Paste it anywhere' },
+  tutMove: { es: 'Arrastra aquí para moverte', en: 'Drag here to move' },
+  tutAim: { es: 'Arrastra aquí para apuntar y echar agua', en: 'Drag here to aim & spray' },
+  tutDesk: { es: 'WASD para moverte · Ratón para apuntar · Clic para echar agua', en: 'WASD to move · Mouse to aim · Click to spray' },
+  tutNozzle: { es: 'Cambia de boquilla aquí', en: 'Switch nozzle here' },
+  // in-game toasts
+  tClusterOut: { es: '¡Foco apagado!', en: 'Blaze out!' },
+  tCombo: { es: '¡Combo x{n}!', en: 'Combo x{n}!' },
+  tRescue: { es: '¡Rescatado!', en: 'Rescued!' },
+  tFled: { es: '¡Se ha escapado!', en: 'It ran off!' },
+  tSoak: { es: '¡Oiga, que me mojo!', en: "Hey, I'm soaked!" },
+  tSoakAnimal: { es: '¡Miau!', en: 'Meow!' },
+  tShort: { es: '¡Calambre! Corta la luz primero', en: 'Zap! Cut the power first' },
+  tFlare: { es: '¡Llamarada! El agua no sirve con combustible: usa ESPUMA', en: 'Flare-up! Water spreads fuel fires: use FOAM' },
+  tFlareNoFoam: { es: '¡Llamarada! No eches agua al combustible', en: "Flare-up! Don't spray water on fuel" },
+  tExplode: { es: '¡BUUUM! Enfría las bombonas antes', en: 'KABOOM! Cool the gas bottles next time' },
+  tCylinder: { es: '¡La bombona se calienta! Échale agua', en: 'Gas bottle heating up! Cool it down' },
+  tPowerOff: { es: 'Luz cortada. ¡Ya puedes mojar!', en: 'Power off. Spray away!' },
+  tConnect: { es: 'Manguera enganchada', en: 'Hose connected' },
+  tHose: { es: 'Manguera al límite. Busca una boca de riego', en: 'Hose at full length. Find a hydrant' },
+  tOverheat: { es: '¡Quema! Usa el abanico para protegerte', en: 'Too hot! Use fog to shield yourself' },
+  tWindWarn: { es: '¡Cambia el viento!', en: 'Wind is shifting!' },
+  tRocket: { es: '¡Cohete! Moja la zona marcada', en: 'Rocket! Wet the marked spot' },
+  tFizzle: { es: '¡Cohete apagado!', en: 'Rocket fizzled!' },
+  tFoamEmpty: { es: 'Sin espuma', en: 'Out of foam' },
+  tLever: { es: '¡Baja la palanca!', en: 'Pull the lever!' },
+  rockets: { es: 'cohetes', en: 'rockets' },
+  dailyTitle: { es: 'Reto diario #{n}', en: 'Daily #{n}' },
+  dailyAgain: { es: 'Vuelve mañana para el #{n}', en: 'Come back tomorrow for #{n}' },
+  dailyPlayed: { es: 'Ya jugado hoy: {s} pts. Puedes mejorar tu récord.', en: 'Played today: {s} pts. You can beat it.' },
+  loading: { es: 'Preparando el reto…', en: 'Preparing the challenge…' },
+  credits: { es: 'Hecho por @nocodeboy', en: 'Made by @nocodeboy' },
+} satisfies Record<string, Txt>;
+
+export type Key = keyof typeof S;
+
+let lang: Lang = 'es';
+export function setLang(l: Lang) {
+  lang = l;
+  document.documentElement.lang = l;
+}
+export function getLang(): Lang {
+  return lang;
+}
+export function detectLang(): Lang {
+  const n = (navigator.language || 'es').toLowerCase();
+  return n.startsWith('es') || n.startsWith('ca') || n.startsWith('gl') || n.startsWith('eu') ? 'es' : 'en';
+}
+export function t(k: Key, vars?: Record<string, string | number>): string {
+  let s = S[k][lang];
+  if (vars) for (const [a, b] of Object.entries(vars)) s = s.replace(`{${a}}`, String(b));
+  return s;
+}
+export function tx(x: Txt): string {
+  return x[lang];
+}

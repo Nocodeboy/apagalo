@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hazte tester de ¡Apágalo!</title>
+<meta name="description" content="Ayúdame a sacar ¡Apágalo!, un juego de bomberos para Android, en Google Play. Gratis, 3 pasos, 14 días.">
+<meta name="theme-color" content="#162341">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/bungee-400.woff2" as="font" type="font/woff2" crossorigin>
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://apagalo.vercel.app/testers">
+<meta property="og:title" content="Se buscan testers para ¡Apágalo!">
+<meta property="og:description" content="Juego de bomberos para Android. Gratis, 3 pasos y dejarlo instalado 14 días.">
+<meta property="og:image" content="https://apagalo.vercel.app/t/og-testers.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@nocodeboy">
+<meta name="twitter:title" content="Se buscan testers para ¡Apágalo!">
+<meta name="twitter:description" content="Juego de bomberos para Android. Gratis, 3 pasos y dejarlo instalado 14 días.">
+<meta name="twitter:image" content="https://apagalo.vercel.app/t/og-testers.png">
+<style>
+  @font-face { font-family: 'Bungee'; font-weight: 400; font-display: swap; src: url(/fonts/bungee-400.woff2) format('woff2'); }
+  @font-face { font-family: 'Baloo 2'; font-weight: 600; font-display: swap; src: url(/fonts/baloo2-600.woff2) format('woff2'); }
+  @font-face { font-family: 'Baloo 2'; font-weight: 800; font-display: swap; src: url(/fonts/baloo2-800.woff2) format('woff2'); }
+  :root {
+    color-scheme: dark;
+    --bg: #162341; --bg2: #1d2d52; --card: #22345e; --line: #34497a;
+    --ink: #f6f8fb; --muted: #b3c0d8; --amber: #ffb21f; --amber-ink: #162341;
+    --red: #ff5a3c; --blue: #7fd6ff; --ok: #6ee7a0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 600 17px/1.5 'Baloo 2', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background-image: radial-gradient(900px 500px at 85% -10%, rgba(255, 90, 60, .22), transparent 60%),
+                      radial-gradient(700px 420px at -10% 10%, rgba(127, 214, 255, .10), transparent 60%);
+    background-repeat: no-repeat;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 28px 16px 56px; }
+  a { color: var(--blue); }
+  .top { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .brand img { width: 48px; height: 48px; border-radius: 12px; }
+  .brand b { font: 400 20px/1 'Bungee', sans-serif; letter-spacing: .5px; }
+  .lang { display: flex; gap: 4px; background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .lang button { all: unset; cursor: pointer; font-weight: 800; font-size: 14px; padding: 4px 12px; border-radius: 999px; color: var(--muted); }
+  .lang button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); }
+  h1 { font: 400 clamp(30px, 8vw, 48px)/1.05 'Bungee', sans-serif; margin: 28px 0 12px; }
+  h1 em { font-style: normal; color: var(--amber); }
+  .lead { font-size: 19px; color: var(--ink); margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 8px; padding: 0; list-style: none; }
+  .facts li { background: var(--bg2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 15px; }
+  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 22px 0 8px; }
+  .shots img { width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px; border: 2px solid var(--line); background: var(--bg2); }
+  h2 { font: 400 22px/1.2 'Bungee', sans-serif; margin: 36px 0 14px; }
+  ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: s; }
+  ol.steps > li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px 16px 16px 64px; position: relative; }
+  ol.steps > li::before {
+    content: counter(s); position: absolute; left: 14px; top: 14px; width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--amber); color: var(--amber-ink); font: 400 18px/1 'Bungee', sans-serif;
+  }
+  ol.steps h3 { margin: 2px 0 4px; font-size: 19px; font-weight: 800; }
+  ol.steps p { margin: 0 0 10px; color: var(--muted); }
+  ol.steps p:last-child { margin-bottom: 0; }
+  ol.steps p.alt { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 15px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 800; font-size: 17px;
+    background: var(--amber); color: var(--amber-ink); padding: 10px 18px; border-radius: 12px; min-height: 44px;
+    box-shadow: 0 3px 0 #b87a00;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #b87a00; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); box-shadow: none; }
+  .key { background: rgba(127, 214, 255, .1); border: 2px solid rgba(127, 214, 255, .55); border-radius: 16px; padding: 14px 16px; margin: 0 0 14px; }
+  .key > b { display: block; font-size: 18px; color: var(--ink); margin-bottom: 4px; }
+  .key p { margin: 0; color: var(--ink); }
+  ul.fix { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  ul.fix li { margin: 6px 0; }
+  .note { background: rgba(255, 178, 31, .1); border: 1px solid rgba(255, 178, 31, .35); border-radius: 14px; padding: 12px 14px; margin-top: 14px; }
+  .note b { color: var(--amber); }
+  details { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 800; }
+  details p, details ul { color: var(--muted); margin: 8px 0 0; }
+  details li { margin: 4px 0; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 15px; }
+  [data-l] { display: none; }
+  html[lang="es"] [data-l="es"], html[lang="en"] [data-l="en"] { display: revert; }
+  @media (max-width: 420px) { ol.steps > li { padding-left: 58px; } .btn { width: 100%; justify-content: center; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <a class="brand" href="/"><img src="/icon-192.png" alt="" width="48" height="48"><b>¡Apágalo!</b></a>
+    <div class="lang" role="group" aria-label="Idioma / Language">
+      <button type="button" data-set="es" aria-pressed="true">ES</button>
+      <button type="button" data-set="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+
+  <!-- ESPAÑOL -->
+  <section data-l="es">
+    <h1>Se buscan <em>testers</em> para ¡Apágalo!</h1>
+    <p class="lead">He hecho un juego de bomberos en 3D para Android. Para publicarlo en Google Play necesito que al menos 12 personas lo prueben durante 14 días. Si tienes un Android, me ayudas un montón.</p>
+    <ul class="facts">
+      <li>🆓 Gratis, sin anuncios ni compras</li>
+      <li>⏱️ 5 minutos para apuntarte</li>
+      <li>📱 Android 7 o superior</li>
+    </ul>
+  </section>
+
+  <!-- ENGLISH -->
+  <section data-l="en">
+    <h1>Looking for <em>testers</em> for ¡Apágalo!</h1>
+    <p class="lead">I made a 3D firefighter game for Android. To publish it on Google Play I need at least 12 people testing it for 14 days. If you have an Android phone, you'd help me a lot.</p>
+    <ul class="facts">
+      <li>🆓 Free, no ads, no purchases</li>
+      <li>⏱️ 5 minutes to join</li>
+      <li>📱 Android 7 or newer</li>
+    </ul>
+  </section>
+
+  <div class="shots">
+    <img src="/t/shot-granja.webp" alt="" width="360" height="640" loading="lazy">
+    <img src="/t/shot-sanjuan.webp" alt="" width="360" height="640" loading="lazy">
+    <img src="/t/shot-gasolinera.webp" alt="" width="360" height="640" loading="lazy">
+  </div>
+
+  <!-- PASOS ES -->
+  <section data-l="es">
+    <h2>Cómo apuntarte</h2>
+    <div class="key">
+      <b>🔑 Lo único importante: usa la misma cuenta de Google en todo.</b>
+      <p>Abre la <b>Play Store</b>, toca tu foto (arriba a la derecha) y mira qué correo sale. <b>Esa</b> es la cuenta que tienes que usar en los pasos 1, 2 y 3. Si usas otra, la app no te aparecerá.</p>
+    </div>
+    <ol class="steps">
+      <li>
+        <h3>Únete al grupo de testers</h3>
+        <p>Pulsa el botón y, en la página del grupo, toca <b>«Unirse al grupo»</b> (arriba, junto al nombre). Si te pide iniciar sesión, entra con la cuenta de tu Play Store. Nadie más ve tu correo.</p>
+        <p><a class="btn" href="https://groups.google.com/g/apagalo-testers" target="_blank" rel="noopener">Abrir el grupo</a></p>
+        <p class="alt"><b>¿No ves «Unirse al grupo»?</b> Únete por correo: pulsa el botón, envía el mensaje tal cual <b>desde el Gmail de tu Play Store</b> y responde al correo de confirmación que te llegará.</p>
+        <p><a class="btn ghost" href="mailto:apagalo-testers+subscribe@googlegroups.com?subject=Unirme&body=Quiero%20probar%20%C2%A1Ap%C3%A1galo!">Unirme por correo</a></p>
+      </li>
+      <li>
+        <h3>Acepta la prueba</h3>
+        <p>Pulsa el botón y luego <b>«Convertirse en tester»</b> (o <i>«Become a tester»</i> si sale en inglés). Está hecho cuando ves <b>«You are a tester»</b> o «Ya eres tester».</p>
+        <p><a class="btn" href="https://play.google.com/apps/testing/com.nocodeboy.apagalo" target="_blank" rel="noopener">Aceptar la prueba</a></p>
+      </li>
+      <li>
+        <h3>Instala el juego</h3>
+        <p>Se abre Google Play con <b>«¡Apágalo! Bomberos»</b>: pulsa <b>Instalar</b>, como cualquier app.</p>
+        <p><a class="btn" href="https://play.google.com/store/apps/details?id=com.nocodeboy.apagalo" target="_blank" rel="noopener">Instalar desde Google Play</a></p>
+        <p class="alt"><b>¿Sale «Elemento no encontrado»?</b> Tu Play Store está usando otra cuenta. Arréglalo de una de estas dos formas:</p>
+        <ul class="fix">
+          <li><b>Cambia la cuenta:</b> en la Play Store toca tu foto y elige la cuenta con la que hiciste los pasos 1 y 2. Luego vuelve a pulsar «Instalar desde Google Play».</li>
+          <li><b>O instálala desde Chrome:</b> abre el enlace, toca <b>⋮</b> (arriba a la derecha), marca <b>«Sitio web de escritorio»</b>, pulsa <b>Instalar</b> y elige tu móvil. Se instala sola en un minuto.</li>
+        </ul>
+      </li>
+      <li>
+        <h3>Déjala instalada 14 días</h3>
+        <p>No hace falta viciarse: con abrirla de vez en cuando basta. Lo importante es <b>no desinstalarla ni salir de la prueba</b> hasta que pasen 14 días, o no cuenta.</p>
+      </li>
+    </ol>
+
+    <h2>Cuéntame qué te parece</h2>
+    <p class="muted">Cualquier cosa sirve: un error, un nivel que no se entiende, algo que te ha gustado. Puedes escribirme a <a href="mailto:ghptiemblo@gmail.com?subject=%C2%A1Ap%C3%A1galo!%20-%20comentarios">ghptiemblo@gmail.com</a>, por X a <a href="https://x.com/nocodeboy" target="_blank" rel="noopener">@nocodeboy</a> o dejar un comentario privado en la ficha de Google Play.</p>
+
+    <h2>Si algo falla</h2>
+    <details>
+      <summary>No veo el botón «Unirse al grupo»</summary>
+      <p>Si arriba a la derecha pone «Iniciar sesión», entra primero con la cuenta de tu Play Store y el botón aparecerá. Si aun así no sale, usa «Unirme por correo» del paso 1.</p>
+    </details>
+    <details>
+      <summary>Sigue saliendo «Elemento no encontrado»</summary>
+      <p>Prueba la opción de Chrome del paso 3 («Sitio web de escritorio» → Instalar). Si tampoco: Ajustes → Aplicaciones → Google Play Store → Almacenamiento → Borrar caché, y vuelve a intentarlo. Y si nada funciona, escríbeme con una captura de lo que ves.</p>
+    </details>
+    <details>
+      <summary>No tengo Android</summary>
+      <p>Puedes jugar gratis en el navegador (móvil o PC) en <a href="/">apagalo.vercel.app</a>. No cuenta para la prueba de Google, pero tu opinión me sirve igual.</p>
+    </details>
+    <details>
+      <summary>¿Qué datos veo de ti?</summary>
+      <p>Solo tu correo como miembro del grupo, y nadie más del grupo lo ve. El juego registra datos anónimos de partida (niveles, tiempo de juego) que puedes desactivar en Ajustes. Más en <a href="/privacidad">privacidad</a>.</p>
+    </details>
+  </section>
+
+  <!-- STEPS EN -->
+  <section data-l="en">
+    <h2>How to join</h2>
+    <div class="key">
+      <b>🔑 The one thing that matters: use the same Google account for everything.</b>
+      <p>Open the <b>Play Store</b>, tap your picture (top right) and check which email it shows. <b>That</b> is the account to use in steps 1, 2 and 3. If you use a different one, the app won't show up.</p>
+    </div>
+    <ol class="steps">
+      <li>
+        <h3>Join the testers group</h3>
+        <p>Tap the button and, on the group page, tap <b>“Join group”</b> (at the top, next to its name). If it asks you to sign in, use your Play Store account. Nobody else sees your email.</p>
+        <p><a class="btn" href="https://groups.google.com/g/apagalo-testers" target="_blank" rel="noopener">Open the group</a></p>
+        <p class="alt"><b>No “Join group” button?</b> Join by email: tap the button, send the message as is <b>from your Play Store Gmail</b> and reply to the confirmation email you'll get.</p>
+        <p><a class="btn ghost" href="mailto:apagalo-testers+subscribe@googlegroups.com?subject=Join&body=I%20want%20to%20test%20%C2%A1Ap%C3%A1galo!">Join by email</a></p>
+      </li>
+      <li>
+        <h3>Accept the test</h3>
+        <p>Tap the button and then <b>“Become a tester”</b>. It's done when you see <b>“You are a tester”</b>.</p>
+        <p><a class="btn" href="https://play.google.com/apps/testing/com.nocodeboy.apagalo" target="_blank" rel="noopener">Accept the test</a></p>
+      </li>
+      <li>
+        <h3>Install the game</h3>
+        <p>Google Play opens with <b>“¡Apágalo! Bomberos”</b>: tap <b>Install</b>, like any other app.</p>
+        <p><a class="btn" href="https://play.google.com/store/apps/details?id=com.nocodeboy.apagalo" target="_blank" rel="noopener">Install from Google Play</a></p>
+        <p class="alt"><b>Getting “Item not found”?</b> Your Play Store is using another account. Fix it one of these two ways:</p>
+        <ul class="fix">
+          <li><b>Switch account:</b> in the Play Store tap your picture and pick the account you used in steps 1 and 2. Then tap “Install from Google Play” again.</li>
+          <li><b>Or install from Chrome:</b> open the link, tap <b>⋮</b> (top right), tick <b>“Desktop site”</b>, tap <b>Install</b> and pick your phone. It installs by itself in a minute.</li>
+        </ul>
+      </li>
+      <li>
+        <h3>Keep it installed for 14 days</h3>
+        <p>No need to grind: opening it now and then is enough. What matters is <b>not uninstalling it or leaving the test</b> before 14 days, or it won't count.</p>
+      </li>
+    </ol>
+
+    <h2>Tell me what you think</h2>
+    <p class="muted">Anything helps: a bug, a confusing level, something you liked. Email <a href="mailto:ghptiemblo@gmail.com?subject=%C2%A1Ap%C3%A1galo!%20feedback">ghptiemblo@gmail.com</a>, message <a href="https://x.com/nocodeboy" target="_blank" rel="noopener">@nocodeboy</a> on X, or leave private feedback on the Google Play page. The game is in English and Spanish.</p>
+
+    <h2>Troubleshooting</h2>
+    <details>
+      <summary>I can't see the “Join group” button</summary>
+      <p>If the top right says “Sign in”, sign in first with your Play Store account and the button will appear. If it still doesn't, use “Join by email” in step 1.</p>
+    </details>
+    <details>
+      <summary>Still getting “Item not found”</summary>
+      <p>Try the Chrome option in step 3 (“Desktop site” → Install). If that fails too: Settings → Apps → Google Play Store → Storage → Clear cache, and try again. If nothing works, message me with a screenshot of what you see.</p>
+    </details>
+    <details>
+      <summary>I don't have Android</summary>
+      <p>You can play for free in your browser (phone or PC) at <a href="/">apagalo.vercel.app</a>. It doesn't count for Google's test, but your feedback still helps.</p>
+    </details>
+    <details>
+      <summary>What data do you see?</summary>
+      <p>Only your email as a group member, and no other member can see it. The game records anonymous gameplay data (levels, play time) that you can turn off in Settings. More in the <a href="/privacidad">privacy page</a> (Spanish, with an English summary).</p>
+    </details>
+  </section>
+
+  <footer>
+    <span data-l="es">Gracias por echar una mano. — Germán (<a href="https://x.com/nocodeboy" target="_blank" rel="noopener">@nocodeboy</a>)</span>
+    <span data-l="en">Thanks for helping out. — Germán (<a href="https://x.com/nocodeboy" target="_blank" rel="noopener">@nocodeboy</a>)</span>
+  </footer>
+</main>
+<script>
+  (function () {
+    var html = document.documentElement;
+    function set(l) {
+      html.lang = l;
+      document.querySelectorAll('.lang button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.set === l)); });
+      try { localStorage.setItem('apagalo-testers-lang', l); } catch (e) {}
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('apagalo-testers-lang'); } catch (e) {}
+    var q = new URLSearchParams(location.search).get('lang');
+    set(q === 'en' || q === 'es' ? q : saved || (/^es\b/i.test(navigator.language || 'es') ? 'es' : 'en'));
+    document.querySelectorAll('.lang button').forEach(function (b) { b.addEventListener('click', function () { set(b.dataset.set); }); });
+  })();
+</script>
+</body>
+</html>
