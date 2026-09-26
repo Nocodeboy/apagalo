@@ -54,6 +54,9 @@ export function buyUpgrade(save: Save, id: UpgradeId): number {
 // ---------- coins ----------
 export const FREE_COINS = 150;
 export const FREE_COINS_PER_DAY = 3;
+/** Daily-challenge rewards allowed per rolling 24 h (normally one a day; 3 leaves room around midnight). */
+export const DAILY_REWARDS_PER_DAY = 3;
+const DAY_MS = 86_400_000;
 
 /** Any level end, won or lost: 50 + 50 per star + up to 50 for the % saved (in steps of 5). */
 export function levelCoins(r: Result): number {
@@ -65,20 +68,40 @@ export function dailyCoins(r: Result): number {
   return r.win ? 150 + 50 * r.stars : 100;
 }
 
-export function freeCoinsLeft(save: Save, today: string): number {
-  return save.ads.freeDay === today ? Math.max(0, FREE_COINS_PER_DAY - save.ads.freeClaims) : FREE_COINS_PER_DAY;
+/**
+ * Claims made in the last 24 h. Guard against changing the phone's date: the per-day counters are keyed to the
+ * local date, these timestamps are not. A timestamp in the future (the clock went back) is clamped to now, so it
+ * blocks at most 24 h. Mutates the list (clamped, trimmed to the last `max`).
+ */
+function recentClaims(times: number[], now: number, max: number): number {
+  for (let i = 0; i < times.length; i++) times[i] = Math.min(times[i], now);
+  times.splice(0, Math.max(0, times.length - max));
+  return times.filter((t) => now - t < DAY_MS).length;
+}
+
+export function freeCoinsLeft(save: Save, today: string, now = Date.now()): number {
+  const byDay = save.ads.freeDay === today ? Math.max(0, FREE_COINS_PER_DAY - save.ads.freeClaims) : FREE_COINS_PER_DAY;
+  return Math.min(byDay, Math.max(0, FREE_COINS_PER_DAY - recentClaims(save.ads.freeTimes, now, FREE_COINS_PER_DAY)));
 }
 
 /** Rewarded "free coins" in the shop. Returns the coins added (0 when today's claims are used up). */
-export function claimFreeCoins(save: Save, today: string): number {
-  if (freeCoinsLeft(save, today) <= 0) return 0;
+export function claimFreeCoins(save: Save, today: string, now = Date.now()): number {
+  if (freeCoinsLeft(save, today, now) <= 0) return 0;
   if (save.ads.freeDay !== today) {
     save.ads.freeDay = today;
     save.ads.freeClaims = 0;
   }
   save.ads.freeClaims++;
+  save.ads.freeTimes.push(now);
   save.coins += FREE_COINS;
   return FREE_COINS;
+}
+
+/** The daily challenge's first-result reward is still allowed (at most 3 per rolling 24 h). Records it when true. */
+export function takeDailyReward(save: Save, now = Date.now()): boolean {
+  if (recentClaims(save.dailyTimes, now, DAILY_REWARDS_PER_DAY) >= DAILY_REWARDS_PER_DAY) return false;
+  save.dailyTimes.push(now);
+  return true;
 }
 
 // ---------- store ----------

@@ -1,9 +1,9 @@
 import { initAnalytics, localeProps, setAnalyticsEnabled, submitDaily, track } from './analytics';
 import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDone, onAndroidBack, platformInit } from './platform';
 import { audio, vibrate } from './audio';
-import { buyUpgrade, claimFreeCoins, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, upgradeOptions, type UpgradeId } from './economy';
-import { detectLang, getLang, setLang, t, tx } from './i18n';
-import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, openPrivacyOptions, privacyOptionsAvailable, restorePurchases, showRewarded, storeProducts } from './monetize';
+import { buyUpgrade, claimFreeCoins, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, takeDailyReward, upgradeOptions, type UpgradeId } from './economy';
+import { detectLang, getLang, num, setLang, t, tx } from './i18n';
+import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, openPrivacyOptions, privacyOptionsAvailable, restorePurchases, showRewarded, storeProducts, type BuyResult, type Delivered } from './monetize';
 import type { ProductId } from './monetize/types';
 import { Input } from './input';
 import { Stage, type Tier } from './render/stage';
@@ -127,7 +127,7 @@ platformInit().finally(() => {
   requestAnimationFrame(done);
   setTimeout(done, 400);
   // ads and store after the portal SDK is ready; restored purchases may change the balance
-  initMonetize({ firstSession, onPause: adPause }).then(() => {
+  initMonetize({ firstSession, onPause: adPause, onDelivered: purchaseDelivered }).then(() => {
     if (document.querySelector('#screens .title-screen')) showTitle();
     else refreshShop();
   });
@@ -179,6 +179,22 @@ function applyLang(l: Lang) {
   setLang(l);
   document.title = t('pageTitle');
   canvas.setAttribute('aria-label', t('gameName'));
+}
+/** A purchase paid earlier (app closed before delivery, slow payment cleared) was delivered at launch or on return. */
+function purchaseDelivered(d: Delivered) {
+  audio.play('coin');
+  toast(d.coins ? t('buyDelivered', { n: num(d.coins) }) : t('buyOk'), 'good', 3200);
+  if (document.querySelector('#screens .title-screen')) showTitle();
+  else refreshShop();
+}
+/** Toast after a Buy tap. */
+function buyToast(r: BuyResult) {
+  if (r === 'pending') toast(t('buyPending'), '', 4200);
+  else if (r === null) toast(t('buyFail'), 'warn');
+  else {
+    audio.play('coin');
+    toast(t('buyOk'), 'good');
+  }
 }
 /** Around every ad: silence, stop the loop and tell the portal the game is not being played. */
 function adPause(on: boolean) {
@@ -329,12 +345,7 @@ function renderShop() {
       refreshShop();
     },
     onBuy: async (id: ProductId) => {
-      const n = await buy(id);
-      if (n === null) toast(t('buyFail'), 'warn');
-      else {
-        audio.play('coin');
-        toast(t('buyOk'), 'good');
-      }
+      buyToast(await buy(id));
       refreshShop();
     },
     onRestore: async () => {
@@ -919,7 +930,8 @@ function commitResult() {
     const d = current.daily;
     info.eyebrow = t('dailyTitle', { n: d.num });
     const prev = save.daily[d.key];
-    if (!prev) info.coins = dailyCoins(r); // today's daily reward, once; replays pay like a level
+    // today's daily reward, once (and at most 3 in any 24 h, whatever the phone's date says); replays pay like a level
+    if (!prev && takeDailyReward(save)) info.coins = dailyCoins(r);
     if (!prev || r.score > prev.score) {
       info.newBest = !!prev && r.win;
       save.daily[d.key] = { score: r.score, stars: r.stars, saved: r.saved, time: r.timeUsed, win: r.win };
@@ -991,10 +1003,12 @@ function renderEnd(instant: boolean) {
     balance: save.coins,
     canDouble,
     instant,
+    // the interstitial only goes before the next level's intro screen: never right before play (Retry) nor on
+    // navigation (Menu, Android back)
     onNext: () =>
       leaveEnd(() => {
         if (current?.kind === 'level') openLevel(current.index + 1);
-      }),
+      }, true),
     onRetry: () => leaveEnd(retry),
     onMenu: () =>
       leaveEnd(() => {
@@ -1028,12 +1042,12 @@ function renderEnd(instant: boolean) {
 }
 
 let leaving = false;
-/** Next / Retry / Menu from the end screen, with the interstitial in between when it is due. */
-async function leaveEnd(go: () => void) {
+/** Next / Retry / Menu from the end screen; with `interstitial` (Next only), the interstitial in between when it is due. */
+async function leaveEnd(go: () => void, interstitial = false) {
   if (leaving || adBusy) return;
   leaving = true;
   audio.play('click');
-  if (!endInfo?.adSeen) await maybeInterstitial();
+  if (interstitial && !endInfo?.adSeen) await maybeInterstitial();
   leaving = false;
   go();
 }
@@ -1055,12 +1069,7 @@ function maybeStarterOffer() {
     starterOffer({
       price,
       onBuy: async () => {
-        const n = await buy('starter_pack');
-        if (n === null) toast(t('buyFail'), 'warn');
-        else {
-          audio.play('coin');
-          toast(t('buyOk'), 'good');
-        }
+        buyToast(await buy('starter_pack'));
         if (endInfo === info && mode === 'end') renderEnd(true);
       },
       onClose: () => audio.play('click'),

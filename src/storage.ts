@@ -26,8 +26,12 @@ export interface AdCounters {
   /** day (yyyy-mm-dd) of the free-coins claims and how many were claimed that day */
   freeDay: string;
   freeClaims: number;
+  /** Date.now() of the free-coins claims in the last 24 h (at most 3, oldest first): a changed clock or date cannot give more */
+  freeTimes: number[];
   /** Date.now() of the last interstitial */
   lastInterstitial: number;
+  /** Date.now() of the last full-screen ad of any kind (interstitial or rewarded): the interstitial gap counts from it */
+  lastFullscreen: number;
   /** level ends in total and since the last interstitial */
   levelEnds: number;
   sinceInterstitial: number;
@@ -49,6 +53,10 @@ export interface Save {
   ads: AdCounters;
   /** the one-time starter pack offer was shown */
   starterOffered: boolean;
+  /** Date.now() of the last daily-challenge rewards (at most 3): at most 3 per rolling 24 h whatever the date says */
+  dailyTimes: number[];
+  /** store purchase tokens already granted (newest last), so a purchase is never granted twice */
+  iapTokens: string[];
 }
 
 const KEY = 'apagalo.v1';
@@ -67,22 +75,31 @@ function fresh(): Save {
     coins: 0,
     upgrades: { hose: 0, power: 0, speed: 0, time: 0 },
     owned: { remove_ads: false, starter_pack: false },
-    ads: { freeDay: '', freeClaims: 0, lastInterstitial: 0, levelEnds: 0, sinceInterstitial: 0 },
+    ads: { freeDay: '', freeClaims: 0, freeTimes: [], lastInterstitial: 0, lastFullscreen: 0, levelEnds: 0, sinceInterstitial: 0 },
     starterOffered: false,
+    dailyTimes: [],
+    iapTokens: [],
   };
 }
+
+const nums = (a: unknown): number[] => (Array.isArray(a) ? a.filter((x): x is number => Number.isFinite(x)) : []);
+const strs = (a: unknown): string[] => (Array.isArray(a) ? a.filter((x): x is string => typeof x === 'string' && x !== '') : []);
 
 /** Fills in what older saves (or the portal copy from an older version) do not have. */
 function normalize(s: Partial<Save>): Save {
   const f = fresh();
+  const ads = { ...f.ads, ...s.ads };
   return {
     ...f,
     ...s,
     settings: { ...f.settings, ...s.settings },
     upgrades: { ...f.upgrades, ...s.upgrades },
     owned: { ...f.owned, ...s.owned },
-    ads: { ...f.ads, ...s.ads },
+    // saves from 1.3.0 only had lastInterstitial
+    ads: { ...ads, freeTimes: nums(ads.freeTimes), lastFullscreen: Math.max(Number(ads.lastFullscreen) || 0, Number(ads.lastInterstitial) || 0) },
     coins: Number.isFinite(s.coins) ? Math.max(0, Math.floor(s.coins!)) : 0,
+    dailyTimes: nums(s.dailyTimes),
+    iapTokens: strs(s.iapTokens),
   };
 }
 
@@ -156,10 +173,13 @@ export function data(): Save {
   return mem;
 }
 
-/** Clears the progress (stars, records, coins, upgrades). Settings, purchases and ad counters stay. */
+/**
+ * Clears the progress (stars, records, coins, upgrades): bought coins are lost too (the settings screen says so).
+ * Settings, non-consumable purchases, ad counters, claim limits and granted purchase tokens stay.
+ */
 export function reset() {
-  const { settings, owned, ads, starterOffered } = mem;
-  mem = { ...fresh(), settings, owned, ads, starterOffered, firstOpen: false };
+  const { settings, owned, ads, starterOffered, dailyTimes, iapTokens } = mem;
+  mem = { ...fresh(), settings, owned, ads, starterOffered, dailyTimes, iapTokens, firstOpen: false };
   save();
 }
 

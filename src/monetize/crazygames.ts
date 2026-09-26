@@ -13,8 +13,12 @@ interface CGAdModule {
   hasAdblock?: () => Promise<boolean>;
 }
 
-/** If the SDK has not started the ad by then, give up so the game never waits forever. */
-const START_TIMEOUT_MS = 15000;
+/**
+ * CrazyGames asks to keep the game blocked until adFinished or adError: a request runs several auctions and can
+ * take a while. This is only a backstop for an SDK that never answers before the ad starts; once it has started,
+ * the game's own watchdog (src/monetize/index.ts) applies, and it keeps waiting while adShowing() is true.
+ */
+const START_TIMEOUT_MS = 60_000;
 
 function adModule(): CGAdModule | null {
   const sdk = (window as unknown as { CrazyGames?: { SDK?: { environment?: string; ad?: CGAdModule } } }).CrazyGames?.SDK;
@@ -24,21 +28,26 @@ function adModule(): CGAdModule | null {
 export function createCrazyGamesAds(): AdProvider {
   // ads unavailable for the rest of the session (ad blocker, or the game is still in Basic Launch)
   let off = false;
+  // a request is waiting for adFinished / adError
+  let open = false;
 
+  /** Resolves `started` (the ad played, even if it ended with an error) and `finished` (adFinished: reward earned). */
   const request = (type: 'midgame' | 'rewarded') =>
-    new Promise<boolean>((resolve) => {
+    new Promise<{ started: boolean; finished: boolean }>((resolve) => {
       const ad = adModule();
       if (!ad || off) {
-        resolve(false);
+        resolve({ started: false, finished: false });
         return;
       }
       let started = false;
       let done = false;
-      const end = (ok: boolean) => {
+      open = true;
+      const end = (finished: boolean) => {
         if (done) return;
         done = true;
+        open = false;
         clearTimeout(timer);
-        resolve(ok);
+        resolve({ started: started || finished, finished });
       };
       const timer = setTimeout(() => {
         if (!started) end(false);
@@ -66,10 +75,16 @@ export function createCrazyGamesAds(): AdProvider {
         /* keep trying ads; a failed request resolves false */
       }
     },
-    rewardedReady: () => !off && !!adModule(),
-    showRewarded: () => request('rewarded'),
+    rewardedReady: () => !off && !open && !!adModule(),
+    interstitialReady: () => !off && !open && !!adModule(),
+    adShowing: () => open,
+    async showRewarded(_p, onReward) {
+      const r = await request('rewarded');
+      if (r.finished) onReward?.();
+      return r.finished;
+    },
     async showInterstitial() {
-      await request('midgame');
+      return (await request('midgame')).started;
     },
   };
 }

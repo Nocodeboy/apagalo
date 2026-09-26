@@ -1,5 +1,6 @@
 # Coins, shop, upgrades, rewarded ads, interstitial caps and purchases with the test-double provider
-# (?fakeads=1: every ad lasts ~1 s and rewards, every purchase succeeds). Web build, in Spanish and English.
+# (?fakeads=1: every ad lasts ~1 s and rewards, every purchase succeeds; ?fakeads=pending: purchases wait for
+# payment until the next launch). Web build, in Spanish and English.
 # Usage: python3 tools/test_monetize.py [screenshots_dir]   (serve dist/ on :8765 first)
 import asyncio
 import json
@@ -17,8 +18,10 @@ fails = []
 # finish the running level: put every flame out (win) or run the clock down (time's up)
 WIN = '(() => { const a = window.__apagalo, s = a.sim; s.fire.fill(0); s.heat.fill(0); s.embers.length = 0; a.advance(1.5); })()'
 TIME_UP = '(() => { const a = window.__apagalo; a.sim.timeLeft = 0.05; a.advance(0.3); })()'
+# the interstitial caps allow one now (>= 2 level ends since the last one, >= 120 s since any full-screen ad)
+DUE = 'Object.assign(__apagalo.save.ads, { lastFullscreen: Date.now() - 121000, sinceInterstitial: 9 })'
 STATE = """(() => { const a = window.__apagalo, s = a.save, r = a.sim && a.sim.result;
-  return { mode: a.mode, coins: s.coins, up: s.upgrades, ads: s.ads, owned: s.owned, starter: s.starterOffered,
+  return { mode: a.mode, coins: s.coins, up: s.upgrades, ads: s.ads, owned: s.owned, starter: s.starterOffered, tokens: s.iapTokens,
     fake: window.__fakeads || null, result: r ? { win: r.win, stars: r.stars, saved: r.saved, reason: r.reason } : null,
     toast: (document.querySelector('#toast') || {}).innerText || '' } })()"""
 
@@ -64,6 +67,33 @@ async def leave_end(page, action):
     return len((await st(page))['fake']['interstitial']) - before
 
 
+async def go_and_win(page):
+    await page.click('[data-a=go]')
+    await page.wait_for_timeout(300)
+    await page.evaluate(WIN)
+    await end_screen(page)
+
+
+async def pick_level(page, i):
+    """From the title: Levels -> level i (0-based) -> its intro screen."""
+    await page.click('.title-screen [data-a=levels]')
+    await page.click(f'.lvl[data-i="{i}"]')
+    await page.wait_for_selector('[data-a=go]')
+
+
+async def intro_to_title(page):
+    await page.wait_for_selector('[data-a=go]')
+    await page.click('#screens > .screen:last-child [data-a=back]')  # intro -> levels
+    await page.wait_for_selector('.lvl')
+    await page.click('#screens > .screen:last-child [data-a=back]')  # levels -> title
+    try:
+        await page.wait_for_selector('.title-screen', timeout=8000)
+    except Exception:
+        await shot(page, 'debug-intro-to-title.png')
+        print('screens:', await page.evaluate("[...document.querySelectorAll('#screens > *')].map(n => n.className + ' | ' + n.innerText.slice(0, 80))"), 'mode:', (await st(page))['mode'])
+        raise
+
+
 async def time_up_and_decline(page):
     await page.evaluate(TIME_UP)
     await page.wait_for_selector('[data-a=decline]', timeout=5000)
@@ -101,6 +131,8 @@ async def main_flow(b, lang):
     check(s['result']['win'] and s['coins'] == n, f'win pays {n} coins ({s["result"]["stars"]} stars, {round(s["result"]["saved"] * 100)}% saved), balance {s["coins"]}')
     check((await page.inner_text('#end-coins')).replace(',', '').replace('.', '') == f'+{n}', f'count-up ends at +{n}')
     await shot(page, f'{lang}-02-end.png')
+    label = await page.inner_text('[data-a=double]')
+    check(('Anuncio' if lang == 'es' else 'Ad') in label and 'x2' in label, f'x2 button says it is an ad ("{label}")')
     # rewarded x2
     await page.click('[data-a=double]')
     await page.wait_for_timeout(1900)
@@ -120,16 +152,28 @@ async def main_flow(b, lang):
         await page.click('[data-up=hose]')
         s2 = await st(page)
         check(s2['up']['hose'] == 1, 'cannot buy what you cannot afford')
+    label = await page.inner_text('[data-a=free]')
+    check(('Anuncio' if lang == 'es' else 'Ad') in label and ('Ver' if lang == 'es' else 'Watch') in label, f'free coins button says it is an ad ("{label.strip()}")')
     for _ in range(3):
         await page.click('[data-a=free]')
         await page.wait_for_timeout(1500)
     s2 = await st(page)
     check(s2['coins'] == s['coins'] + 450 and s2['ads']['freeClaims'] == 3, 'free coins: 3 x 150 per day')
     check(not await page.query_selector('[data-a=free]'), 'no 4th free claim today')
+    # the phone's date changes: the per-day counter resets, the 24 h guard does not
+    await page.evaluate("__apagalo.save.ads.freeDay = '2000-01-01'")
+    await page.click('.shop-screen [data-a=back]')
+    await end_screen(page)
+    await page.click('.end-screen [data-a=shop]')
+    await page.wait_for_selector('.shop-screen')
+    check(not await page.query_selector('[data-a=free]'), 'date changed: still no more than 3 free claims in 24 h')
     await page.click('[data-p=coins_s]')
     await until(page, f"__apagalo.save.coins === {s2['coins'] + 1000}")
+    await page.wait_for_timeout(300)
     s3 = await st(page)
     check(s3['coins'] == s2['coins'] + 1000, 'coin pack S adds 1000')
+    unfinished = await page.evaluate("JSON.parse(localStorage.getItem('apagalo.fakeiap.unfinished') || '[]').length")
+    check(len(s3['tokens']) == 1 and s3['fake']['finished'] == ['coins_s'] and unfinished == 0, 'granted and saved, then consumed (token remembered)')
     await page.click('[data-up=power]')
     await page.click('[data-up=speed]')
     await page.click('[data-up=time]')
@@ -152,6 +196,8 @@ async def main_flow(b, lang):
     await page.evaluate(TIME_UP)
     await page.wait_for_selector('[data-a=continue]', timeout=5000)
     await shot(page, f'{lang}-05-continue.png')
+    label = await page.inner_text('[data-a=continue]')
+    check(('(anuncio)' if lang == 'es' else '(ad)') in label, f'+30 s button says it is an ad ("{label}")')
     await page.click('[data-a=continue]')
     await page.wait_for_timeout(1600)
     s = await st(page)
@@ -168,34 +214,23 @@ async def main_flow(b, lang):
     await leave_end(page, 'menu')
     check(not errs, f'no errors {errs}')
 
-    print(f'[{lang}] second session: interstitial caps, starter pack, no ads, daily without upgrades')
+    print(f'[{lang}] second session: interstitial only on Next with its caps, starter pack, no ads, daily without upgrades')
     await page.goto(BASE + '?fakeads=1')
     await page.wait_for_timeout(1500)
     await page.click('[data-a=play]')  # continue: level 2
     await page.wait_for_selector('[data-a=go]')
     await page.click('[data-a=go]')
     await page.wait_for_timeout(300)
-    await time_up_and_decline(page)  # end 4: since the last one 4, never shown
-    check(await leave_end(page, 'retry') == 1, 'interstitial after >=3 level ends, >=2 since the last one, >=120 s')
+    await time_up_and_decline(page)  # end 4
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'retry') == 0, 'Retry never shows an interstitial (it starts the level right away)')
     await time_up_and_decline(page)  # end 5
-    check(await leave_end(page, 'retry') == 0, 'no interstitial 1 level end after the last one')
-    await time_up_and_decline(page)  # end 6
-    check(await leave_end(page, 'retry') == 0, 'no interstitial within 120 s of the last one')
-    await page.evaluate('__apagalo.save.ads.lastInterstitial = Date.now() - 121000')
-    await time_up_and_decline(page)  # end 7
-    check(await leave_end(page, 'retry') == 1, 'interstitial again after 120 s and 2+ level ends')
-    # the +30 s ad counts as the ad of that transition
-    await page.evaluate('Object.assign(__apagalo.save.ads, { lastInterstitial: 0, sinceInterstitial: 9 })')
-    await page.evaluate(TIME_UP)
-    await page.wait_for_selector('[data-a=continue]', timeout=5000)
-    await page.click('[data-a=continue]')
-    await page.wait_for_timeout(1600)
-    await page.evaluate(TIME_UP)
-    await end_screen(page)
-    check(await leave_end(page, 'retry') == 0, 'no interstitial right after a +30 s ad in the same attempt')
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'menu') == 0, 'Menu never shows an interstitial')
     # second completed level: one-time starter pack offer
-    await page.evaluate(WIN)
-    await end_screen(page)
+    await page.click('[data-a=play]')
+    await page.wait_for_selector('[data-a=go]')
+    await go_and_win(page)
     await page.wait_for_selector('.offer', timeout=8000)
     await shot(page, f'{lang}-06-starter.png')
     coins = (await st(page))['coins']
@@ -203,7 +238,54 @@ async def main_flow(b, lang):
     await until(page, '__apagalo.save.owned.starter_pack')
     s = await st(page)
     check(s['owned']['starter_pack'] and s['coins'] == coins + 3000 and s['starter'], 'starter pack: +3000 coins, owned, offered once')
-    check(await leave_end(page, 'menu') == 0, 'no interstitial after an offer on the same end screen')
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'next') == 0, 'no interstitial after an offer on the same end screen')
+    # level 3: Next with the caps met
+    await go_and_win(page)
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'next') == 1, 'Next: interstitial after >=3 level ends, >=2 since the last one, >=120 s since any full-screen ad')
+    await page.wait_for_selector('[data-a=go]')
+    check((await st(page))['mode'] == 'intro', 'after the interstitial comes the level intro, not gameplay')
+    await go_and_win(page)  # level 4
+    await page.evaluate('__apagalo.save.ads.lastFullscreen = Date.now() - 121000')
+    check(await leave_end(page, 'next') == 0, 'no interstitial 1 level end after the last one')
+    await page.click('[data-a=go]')  # level 5: lose, retry, win
+    await page.wait_for_timeout(300)
+    await time_up_and_decline(page)
+    check(await leave_end(page, 'retry') == 0, 'Retry: no interstitial')
+    await page.wait_for_timeout(300)
+    await page.evaluate(WIN)
+    await end_screen(page)
+    await page.evaluate("Object.assign(__apagalo.save.ads, { lastFullscreen: Date.now() - 60000, sinceInterstitial: 9 })")
+    check(await leave_end(page, 'next') == 0, 'no interstitial within 120 s of the last one')
+    await intro_to_title(page)
+    # a rewarded ad watched in the shop opened from the end screen counts as the last full-screen ad
+    await pick_level(page, 2)
+    await go_and_win(page)
+    await page.evaluate(DUE + "; Object.assign(__apagalo.save.ads, { freeTimes: [], freeClaims: 0 })")
+    await page.click('.end-screen [data-a=shop]')
+    await page.wait_for_selector('.shop-screen [data-a=free]')
+    await page.click('[data-a=free]')
+    await page.wait_for_timeout(1500)
+    await page.click('.shop-screen [data-a=back]')
+    await end_screen(page)
+    check(await leave_end(page, 'next') == 0, 'no interstitial right after a rewarded ad (free coins in the shop)')
+    # the phone's clock went back (the last ad looks like it is in the future): due again, not blocked
+    await go_and_win(page)  # level 4
+    await page.evaluate("Object.assign(__apagalo.save.ads, { lastFullscreen: Date.now() + 3600000, sinceInterstitial: 9 })")
+    check(await leave_end(page, 'next') == 1, 'clock set back: the interstitial is due again')
+    # the +30 s ad counts as the ad of that transition
+    await page.click('[data-a=go]')  # level 5
+    await page.wait_for_timeout(300)
+    await page.evaluate(TIME_UP)
+    await page.wait_for_selector('[data-a=continue]', timeout=5000)
+    await page.click('[data-a=continue]')
+    await page.wait_for_timeout(1600)
+    await page.evaluate(WIN)
+    await end_screen(page)
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'next') == 0, 'no interstitial right after a +30 s ad in the same attempt')
+    await intro_to_title(page)
     # remove ads
     await page.click('.title-screen [data-a=shop]')
     await page.wait_for_selector('.shop-screen')
@@ -214,13 +296,11 @@ async def main_flow(b, lang):
     s = await st(page)
     check(s['owned']['remove_ads'] and s['coins'] == coins + 500, 'remove ads: owned and +500 coins')
     await page.click('.shop-screen [data-a=back]')
-    await page.evaluate('Object.assign(__apagalo.save.ads, { lastInterstitial: 0, sinceInterstitial: 9 })')
-    await page.click('[data-a=play]')
-    await page.wait_for_selector('[data-a=go]')
-    await page.click('[data-a=go]')
-    await page.wait_for_timeout(300)
-    await time_up_and_decline(page)
-    check(await leave_end(page, 'menu') == 0, 'no interstitials with remove ads')
+    await pick_level(page, 2)
+    await go_and_win(page)
+    await page.evaluate(DUE)
+    check(await leave_end(page, 'next') == 0, 'no interstitials with remove ads')
+    await intro_to_title(page)
     # daily: no upgrades, no continue, daily reward
     await page.click('[data-a=daily]')
     await page.wait_for_selector('[data-a=go]')
@@ -236,6 +316,19 @@ async def main_flow(b, lang):
     await end_screen(page)
     s = await st(page)
     check(s['coins'] == coins + 100, 'daily lost: 100 coins')
+    # reset progress: says what is lost and what is kept, on the first tap
+    await page.click('.end-screen [data-a=menu]')
+    await page.click('.title-screen [data-a=settings]')
+    await page.click('[data-a=reset]')
+    warn = await page.inner_text('.reset-warn')
+    words = ['monedas', 'mejoras', 'Sin anuncios'] if lang == 'es' else ['coins', 'upgrades', 'No ads']
+    check(all(w in warn for w in words) and (await st(page))['coins'] > 0, f'reset asks again, saying coins and upgrades go and "No ads" stays ("{warn}")')
+    await shot(page, f'{lang}-08-reset.png')
+    tokens = (await st(page))['tokens']
+    await page.click('[data-a=reset]')
+    await page.wait_for_selector('.title-screen')
+    s = await st(page)
+    check(s['coins'] == 0 and s['up']['hose'] == 0 and s['owned']['remove_ads'] and s['tokens'] == tokens, 'reset: coins and upgrades gone, "No ads" and the purchase record kept')
     check(not errs, f'no errors {errs}')
     await ctx.close()
 
@@ -292,6 +385,59 @@ async def other_modes(b):
     check(not errs, f'no errors {errs}')
     await ctx.close()
 
+    print('[en] purchase paid but not delivered (app closed before delivery): delivered once at launch')
+    init = "if (!sessionStorage.getItem('seeded')) { localStorage.setItem('apagalo.fakeiap.unfinished', JSON.stringify([{ id: 'coins_m', token: 'tok-recover-1' }])); sessionStorage.setItem('seeded', '1'); }"
+    ctx, page, errs = await new_page(b, 'en', '?fakeads=1', init=init)
+    await until(page, '__apagalo.save.coins === 6000')
+    s = await st(page)
+    toast = await page.inner_text('#toast')
+    check(s['coins'] == 6000 and s['tokens'] == ['tok-recover-1'] and 'delivered' in toast.lower(), f'coins_m delivered at launch: {s["coins"]} coins, "{toast.strip()}"')
+    await shot(page, 'en-10-delivered.png')
+    # the store still lists it (the consume did not go through): never granted twice
+    await page.evaluate("localStorage.setItem('apagalo.fakeiap.unfinished', JSON.stringify([{ id: 'coins_m', token: 'tok-recover-1' }]))")
+    await page.reload()
+    await page.wait_for_timeout(1500)
+    s = await st(page)
+    left = await page.evaluate("JSON.parse(localStorage.getItem('apagalo.fakeiap.unfinished') || '[]').length")
+    check(s['coins'] == 6000 and left == 0, f'listed again after a failed consume: not granted twice ({s["coins"]}), consumed now')
+    check(not errs, f'no errors {errs}')
+    await ctx.close()
+
+    print('[es] slow payment (pending): says so, and delivers it once the payment clears')
+    ctx, page, errs = await new_page(b, 'es', '?fakeads=pending')
+    await page.click('.title-screen [data-a=shop]')
+    await page.click('[data-p=coins_s]')
+    await until(page, "document.querySelector('#toast').innerText.toLowerCase().includes('pendiente')")
+    s = await st(page)
+    toast = await page.inner_text('#toast')
+    check(s['coins'] == 0 and 'pendiente' in toast.lower(), f'pending purchase: no coins yet, "{toast.strip()}"')
+    await shot(page, 'es-11-pending.png')
+    await page.goto(BASE + '?fakeads=1')  # next launch: the payment went through
+    await until(page, '__apagalo.save.coins === 1000')
+    s = await st(page)
+    toast = await page.inner_text('#toast')
+    check(s['coins'] == 1000 and 'recibida' in toast.lower(), f'delivered on the next launch: {s["coins"]} coins, "{toast.strip()}"')
+    check(not errs, f'no errors {errs}')
+    await ctx.close()
+
+    print('[en] daily reward: at most 3 in 24 h, whatever the date says')
+    old = {'v': 1, 'stars': {'plaza': 1}, 'best': {}, 'daily': {}, 'streak': {'count': 0, 'last': ''},
+           'settings': {'sfx': False, 'music': False, 'vibration': True, 'gfx': 'auto', 'autoTier': None, 'lang': 'en', 'stats': True},
+           'tutorialDone': True, 'firstOpen': False, 'seenTips': [], 'coins': 0}
+    init = (f"if (!sessionStorage.getItem('seeded')) {{ const s = {json.dumps(old)}; const n = Date.now(); s.dailyTimes = [n - 3e6, n - 2e6, n - 1e6];"
+            f" localStorage.setItem({json.dumps(KEY)}, JSON.stringify(s)); sessionStorage.setItem('seeded', '1'); }}")
+    ctx, page, errs = await new_page(b, 'en', '?fakeads=1', init=init)
+    await page.click('[data-a=daily]')
+    await page.wait_for_selector('[data-a=go]')
+    await go_and_win(page)
+    await page.wait_for_timeout(2600)
+    s = await st(page)
+    n = level_coins(s['result'])
+    times = await page.evaluate('__apagalo.save.dailyTimes.length')
+    check(s['result']['win'] and s['coins'] == n and times == 3, f'3 daily rewards in the last 24 h: this one pays like a replay ({s["coins"]} = {n}, not {150 + 50 * s["result"]["stars"]})')
+    check(not errs, f'no errors {errs}')
+    await ctx.close()
+
     print('[en] restore purchases: the store account owns "remove ads"')
     init = "localStorage.setItem('apagalo.fakeiap', JSON.stringify(['remove_ads']))"
     ctx, page, errs = await new_page(b, 'en', '?fakeads=1', init=init)
@@ -307,7 +453,7 @@ async def other_modes(b):
 
 
 async def layouts(b):
-    print('layouts: shop and end screen on a 320 px phone and at 640x360')
+    print('layouts: end screen, shop, +30 s offer and reset confirmation on a 320 px phone and at 640x360')
     for lang in ['es', 'en']:
         for vw in [(320, 568), (640, 360)]:
             ctx, page, _ = await new_page(b, lang, '?fakeads=1', viewport=vw)
@@ -322,7 +468,25 @@ async def layouts(b):
             await page.wait_for_selector('.shop-screen')
             await shot(page, f'{lang}-shop-{vw[0]}x{vw[1]}.png')
             over += await page.evaluate("[...document.querySelectorAll('.shop *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
-            check(over == 0, f'{lang} {vw[0]}x{vw[1]}: nothing wider than the screen')
+            # +30 s offer and the reset confirmation
+            await page.click('.shop-screen [data-a=back]')
+            await end_screen(page)
+            await page.click('.end-screen [data-a=retry]')
+            await page.wait_for_timeout(400)
+            await page.evaluate(TIME_UP)
+            await page.wait_for_selector('[data-a=continue]', timeout=5000)
+            await page.wait_for_timeout(400)
+            await shot(page, f'{lang}-continue-{vw[0]}x{vw[1]}.png')
+            over += await page.evaluate("[...document.querySelectorAll('.screen:last-child .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
+            btn = await page.evaluate("(() => { const b = document.querySelector('[data-a=continue]'); return b.scrollWidth <= b.clientWidth + 1 })()")
+            await page.click('[data-a=decline]')
+            await end_screen(page)
+            await page.click('.end-screen [data-a=menu]')
+            await page.click('.title-screen [data-a=settings]')
+            await page.click('[data-a=reset]')
+            await shot(page, f'{lang}-reset-{vw[0]}x{vw[1]}.png')
+            over += await page.evaluate("[...document.querySelectorAll('.screen:last-child .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
+            check(over == 0 and btn, f'{lang} {vw[0]}x{vw[1]}: nothing wider than the screen (end, shop, +30 s, reset)')
             await ctx.close()
 
 

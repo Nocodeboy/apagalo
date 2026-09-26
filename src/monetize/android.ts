@@ -14,7 +14,7 @@ import type {
 } from '@capacitor-community/admob';
 import type { NativePurchasesPlugin, PURCHASE_TYPE, Transaction } from '@capgo/native-purchases';
 import { PRODUCTS } from './types';
-import type { AdProvider, IapProvider, Product, ProductId, Providers } from './types';
+import type { AdProvider, IapProvider, PaidPurchase, Product, ProductId, Providers, PurchaseResult } from './types';
 
 // =====================================================================================================================
 // ADMOB CONFIG — the only block the owner edits. Before a release with real ads:
@@ -52,14 +52,22 @@ const CONSENT_INFO_TIMEOUT_MS = 12_000;
 const CONSENT_FORM_TIMEOUT_MS = 10 * 60_000; // the player is reading the form
 const SDK_INIT_TIMEOUT_MS = 15_000;
 const AD_LOAD_TIMEOUT_MS = 45_000;
-const AD_START_TIMEOUT_MS = 15_000; // show() called but the ad never appeared
+// An ad session ends when the ad closes. Without any sign of the ad (no Showed event, show() not answered)
+// it ends after AD_START_TIMEOUT_MS, and in any case after the *_MAX_MS below; but while the game's page is
+// hidden (the ad's own activity, or the Play Store opened from the ad, covers it) it keeps waiting, checking
+// every AD_RECHECK_MS, up to AD_HARD_MAX_MS. The game's own watchdog (src/monetize/index.ts) is longer.
+const AD_START_TIMEOUT_MS = 15_000;
 const REWARDED_MAX_MS = 5 * 60_000;
 const INTERSTITIAL_MAX_MS = 3 * 60_000;
+const AD_HARD_MAX_MS = 15 * 60_000;
+const AD_RECHECK_MS = 5_000;
 const REWARD_GRACE_MS = 500; // some networks report the reward right after the close event
 const CONSENT_RETRY_MS = 60_000;
 const CONSENT_RETRIES = 3;
 const STORE_TIMEOUT_MS = 25_000; // billing connection (up to ~11 s with retries) + query
-const PURCHASE_TIMEOUT_MS = 10 * 60_000; // the player may be adding a card or a payment method
+// The player may be adding a card or a payment method. If Play answers later than this, the purchase is not lost:
+// the game looks for unfinished purchases right after, and again when the app comes back to the foreground.
+const PURCHASE_TIMEOUT_MS = 10 * 60_000;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers
@@ -100,6 +108,15 @@ function errorText(e: unknown): string {
     return [code, message].filter((x) => typeof x === 'string' && x).join(': ') || 'error';
   }
   return String(e);
+}
+
+/** The game's page is covered (a full-screen ad activity, the Play Store) or the app is in the background. */
+function pageHidden(): boolean {
+  try {
+    return document.visibilityState === 'hidden';
+  } catch {
+    return false;
+  }
 }
 
 function log(...args: unknown[]) {
@@ -163,8 +180,14 @@ interface Slot {
 
 interface ShowSession {
   kind: AdKind;
+  /** the ad opened: Showed event, or a later event that implies it (reward, dismissed) */
   showed: boolean;
+  /** show() answered: for an interstitial, the SDK was told to show it (FailedToShow follows otherwise) */
+  called: boolean;
+  failed: boolean;
   rewarded: boolean;
+  /** Marks the reward as earned (once) and tells the game right away. */
+  reward(): void;
   /** Ends the session after `delayMs` (0 = now). */
   end(delayMs: number): void;
 }
@@ -256,16 +279,20 @@ function createAds(): AdProvider {
         if (session?.kind === kind) session.showed = true;
       });
       listen(plugin, ev.failedToShow, () => {
-        if (session?.kind === kind) session.end(0);
+        if (session?.kind !== kind) return;
+        session.failed = true;
+        session.end(0);
       });
       listen(plugin, ev.dismissed, () => {
-        if (session?.kind === kind) session.end(kind === 'rewarded' ? REWARD_GRACE_MS : 0);
+        if (session?.kind !== kind) return;
+        session.showed = true;
+        session.end(kind === 'rewarded' ? REWARD_GRACE_MS : 0);
       });
     };
     wire('rewarded', REWARDED_EVENTS);
     wire('interstitial', INTERSTITIAL_EVENTS);
     listen(plugin, REWARDED_EVENTS.reward, () => {
-      if (session?.kind === 'rewarded') session.rewarded = true;
+      if (session?.kind === 'rewarded') session.reward();
     });
   }
 
@@ -340,15 +367,35 @@ function createAds(): AdProvider {
     }
   }
 
-  /** Shows a loaded ad and resolves when it is closed. Resolves `rewarded` (only meaningful for rewarded ads). */
-  function runSession(kind: AdKind, show: () => Promise<unknown>, maxMs: number): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+  /**
+   * Shows a loaded ad and resolves when it is closed. `showed`: the ad was on screen; `rewarded`: the reward was
+   * earned (rewarded ads only; `onReward` is also called the moment it is earned).
+   */
+  function runSession(
+    kind: AdKind,
+    show: () => Promise<unknown>,
+    maxMs: number,
+    onReward?: () => void,
+  ): Promise<{ showed: boolean; rewarded: boolean }> {
+    return new Promise((resolve) => {
       const timers: ReturnType<typeof setTimeout>[] = [];
       let done = false;
       const s: ShowSession = {
         kind,
         showed: false,
+        called: false,
+        failed: false,
         rewarded: false,
+        reward() {
+          s.showed = true;
+          if (s.rewarded) return;
+          s.rewarded = true;
+          try {
+            onReward?.();
+          } catch {
+            /* the game's callback must not break the session */
+          }
+        },
         end(delayMs) {
           timers.push(setTimeout(finish, delayMs));
         },
@@ -358,16 +405,42 @@ function createAds(): AdProvider {
         done = true;
         for (const t of timers) clearTimeout(t);
         if (session === s) session = null;
-        resolve(s.rewarded);
+        resolve({ showed: s.showed || (s.called && !s.failed), rewarded: s.rewarded });
+      }
+      /** After `ms`, ends the session if `due()` holds; while the page is hidden it rechecks instead (up to AD_HARD_MAX_MS). */
+      function limit(ms: number, waited: number, due: () => boolean) {
+        timers.push(
+          setTimeout(() => {
+            if (done || !due()) return;
+            if (pageHidden() && waited + ms < AD_HARD_MAX_MS) limit(AD_RECHECK_MS, waited + ms, due);
+            else finish();
+          }, ms),
+        );
       }
       session = s;
-      timers.push(setTimeout(() => !s.showed && finish(), AD_START_TIMEOUT_MS));
-      timers.push(setTimeout(finish, maxMs));
-      void settle(show, maxMs).then((r) => {
-        if (!r.ok) return finish(); // not prepared, activity gone...
-        // showRewardVideoAd() resolves only when the reward is earned; showInterstitial() right after it opens.
-        if (kind === 'rewarded') s.rewarded = true;
-      });
+      // No sign of the ad yet: give up, unless the page is hidden (the ad most likely covers it and its Showed
+      // event is only late). Then the max limit, also deferred while an ad or the Play Store covers the game.
+      limit(AD_START_TIMEOUT_MS, 0, () => !(s.showed || s.called));
+      limit(maxMs, 0, () => true);
+      try {
+        Promise.resolve(show()).then(
+          () => {
+            s.called = true;
+            // showRewardVideoAd() resolves only when the reward is earned; showInterstitial() right after show()
+            if (kind === 'rewarded') s.reward();
+          },
+          () => {
+            // not prepared, activity gone...: the ad did not open
+            if (!s.showed) {
+              s.failed = true;
+              finish();
+            }
+          },
+        );
+      } catch {
+        s.failed = true;
+        finish();
+      }
     });
   }
 
@@ -387,7 +460,14 @@ function createAds(): AdProvider {
     rewardedReady() {
       return adState.sdkReady && slots.rewarded.state === 'ready' && !session;
     },
-    async showRewarded() {
+    interstitialReady() {
+      if (slots.interstitial.state === 'idle' && adState.sdkReady) scheduleReload('interstitial');
+      return adState.sdkReady && slots.interstitial.state === 'ready' && !session;
+    },
+    adShowing() {
+      return !!session;
+    },
+    async showRewarded(_p, onReward) {
       try {
         const plugin = admob();
         if (!plugin || !adState.sdkReady || slots.rewarded.state !== 'ready' || session) {
@@ -395,9 +475,9 @@ function createAds(): AdProvider {
           return false;
         }
         slots.rewarded.state = 'showing';
-        const earned = await runSession('rewarded', () => plugin.showRewardVideoAd(), REWARDED_MAX_MS);
+        const r = await runSession('rewarded', () => plugin.showRewardVideoAd(), REWARDED_MAX_MS, onReward);
         afterShow('rewarded');
-        return earned;
+        return r.rewarded;
       } catch {
         afterShow('rewarded');
         return false;
@@ -408,13 +488,15 @@ function createAds(): AdProvider {
         const plugin = admob();
         if (!plugin || !adState.sdkReady || slots.interstitial.state !== 'ready' || session) {
           if (slots.interstitial.state === 'idle') scheduleReload('interstitial');
-          return;
+          return false;
         }
         slots.interstitial.state = 'showing';
-        await runSession('interstitial', () => plugin.showInterstitial(), INTERSTITIAL_MAX_MS);
+        const r = await runSession('interstitial', () => plugin.showInterstitial(), INTERSTITIAL_MAX_MS);
         afterShow('interstitial');
+        return r.showed;
       } catch {
         afterShow('interstitial');
+        return false;
       }
     },
   };
@@ -449,10 +531,14 @@ const INAPP = 'inapp' as unknown as PURCHASE_TYPE;
 const PRODUCT_IDS = Object.keys(PRODUCTS) as ProductId[];
 const isProductId = (x: unknown): x is ProductId => typeof x === 'string' && Object.prototype.hasOwnProperty.call(PRODUCTS, x);
 
+/** The plugin rejects a purchase left waiting for a slow payment method with this message (no code). */
+const isPendingError = (e: unknown) => /pending/i.test(errorText(e));
+
 function createIap(): IapProvider {
   const store = () => nativePlugin<NativePurchasesPlugin>('NativePurchases');
 
-  // The plugin keeps a single billing connection that each call opens and closes, so calls must not overlap.
+  // The plugin keeps a single billing connection that each call opens and closes (a new call closes the previous
+  // one, losing its answer), so calls must not overlap.
   let queue: Promise<unknown> = Promise.resolve();
   function serial<T>(task: () => Promise<T>, fallback: T): Promise<T> {
     const run = queue.then(task).catch(() => fallback);
@@ -473,33 +559,10 @@ function createIap(): IapProvider {
     return (r.value?.purchases ?? []).filter((p) => p && p.purchaseState === '1' && !!p.purchaseToken);
   }
 
-  /** Consumables are consumed (can be bought again); non-consumables acknowledged (Play refunds them otherwise after 3 days). */
-  async function complete(p: Transaction, consumable: boolean): Promise<boolean> {
-    const s = store();
-    const purchaseToken = p.purchaseToken;
-    if (!s || !purchaseToken) return false;
-    if (!consumable && p.isAcknowledged) return true;
-    const r = await settle<unknown>(
-      () => (consumable ? s.consumePurchase({ purchaseToken }) : s.acknowledgePurchase({ purchaseToken })),
-      STORE_TIMEOUT_MS,
-    );
-    if (!r.ok) log(`${consumable ? 'consume' : 'acknowledge'} failed for ${p.productIdentifier} (${errorText(r.error)})`);
-    return r.ok;
-  }
-
-  async function restoreOwned(): Promise<ProductId[]> {
-    const list = await owned();
-    if (!list) return [];
-    const out: ProductId[] = [];
-    for (const p of list) {
-      const id = p.productIdentifier;
-      if (!isProductId(id) || PRODUCTS[id].consumable || out.includes(id)) continue;
-      if (!p.isAcknowledged) await complete(p, false);
-      out.push(id);
-    }
-    return out;
-  }
-
+  // Order of a purchase (Google's recommendation): Play reports it paid -> the game grants it and saves ->
+  // finish() consumes (coins) or acknowledges (the rest). If the app dies in between, unfinished() still lists it
+  // on the next launch or resume and the game delivers it then; the game remembers the tokens it granted, so a
+  // retried finish() never grants twice. A consumable is never consumed before it is granted.
   return {
     name: 'google-play',
     init() {
@@ -518,43 +581,84 @@ function createIap(): IapProvider {
             found.set(sp.identifier, { id: sp.identifier, price: sp.priceString || null });
           }
         }
-        // In the background: acknowledge non-consumables paid in an interrupted session so Play does not refund them.
-        void serial(restoreOwned, []);
         return PRODUCT_IDS.filter((id) => found.has(id)).map((id) => found.get(id)!);
       }, [] as Product[]);
     },
     purchase(id) {
-      if (!isProductId(id)) return Promise.resolve(false);
-      return serial(async () => {
+      if (!isProductId(id)) return Promise.resolve<PurchaseResult>({ status: 'failed' });
+      return serial<PurchaseResult>(async () => {
         const s = store();
-        if (!s) return false;
-        const consumable = PRODUCTS[id].consumable;
-        // Paid before but never finished (app closed during the purchase, a slow payment approved later):
-        // finish that one instead of charging again. Also covers a non-consumable the account already owns.
-        const prior = (await owned())?.find((p) => p.productIdentifier === id);
-        if (prior) return complete(prior, consumable);
-
-        // The plugin's own auto-consume/acknowledge is fire-and-forget, so both are done here and awaited.
+        if (!s) return { status: 'failed' };
+        // The plugin's own auto-consume/acknowledge is fire-and-forget and runs before the game grants anything,
+        // so both are off: the game calls finish() once the purchase is granted and saved.
         const r = await settle(
           () => s.purchaseProduct({ productIdentifier: id, productType: INAPP, isConsumable: false, autoAcknowledgePurchases: false }),
           PURCHASE_TIMEOUT_MS,
         );
         if (!r.ok) {
           const code = errorCode(r.error);
+          if (code === 'USER_CANCELED') return { status: 'cancelled' };
+          if (isPendingError(r.error)) return { status: 'pending' };
           if (code === 'ITEM_ALREADY_OWNED') {
+            // paid before and not finished: hand it over (the game grants it only if it never did)
             const again = (await owned())?.find((p) => p.productIdentifier === id);
-            return again ? complete(again, consumable) : false;
+            return again ? { status: 'paid', purchase: { id, token: again.purchaseToken! } } : { status: 'failed' };
           }
-          if (code !== 'USER_CANCELED') log(`purchase of ${id} not completed (${errorText(r.error)})`);
-          return false;
+          log(`purchase of ${id} not completed (${errorText(r.error)})`);
+          return { status: 'failed' };
         }
         const tx = r.value;
-        if (!tx || tx.purchaseState !== '1' || !tx.purchaseToken || (tx.productIdentifier && tx.productIdentifier !== id)) return false;
-        return complete(tx, consumable);
-      }, false);
+        if (tx?.purchaseState === '2') return { status: 'pending' };
+        if (!tx || tx.purchaseState !== '1' || !tx.purchaseToken || (tx.productIdentifier && tx.productIdentifier !== id)) return { status: 'failed' };
+        return { status: 'paid', purchase: { id, token: tx.purchaseToken } };
+      }, { status: 'failed' });
     },
     restore() {
-      return serial(restoreOwned, [] as ProductId[]);
+      // Only lists them: the game grants the missing ones, and unfinished()/finish() acknowledge them afterwards.
+      return serial(async () => {
+        const list = await owned();
+        if (!list) return [];
+        const out: ProductId[] = [];
+        for (const p of list) {
+          const id = p.productIdentifier;
+          if (isProductId(id) && !PRODUCTS[id].consumable && !out.includes(id)) out.push(id);
+        }
+        return out;
+      }, [] as ProductId[]);
+    },
+    unfinished() {
+      return serial<PaidPurchase[] | null>(async () => {
+        const list = await owned();
+        if (!list) return null;
+        const out: PaidPurchase[] = [];
+        for (const p of list) {
+          const id = p.productIdentifier;
+          if (isProductId(id) && (PRODUCTS[id].consumable || !p.isAcknowledged)) out.push({ id, token: p.purchaseToken! });
+        }
+        return out;
+      }, null);
+    },
+    finish(p) {
+      if (!isProductId(p.id) || !p.token) return Promise.resolve(false);
+      return serial(async () => {
+        const s = store();
+        if (!s) return false;
+        const consumable = PRODUCTS[p.id].consumable;
+        const purchaseToken = p.token;
+        const r = await settle<unknown>(
+          () => (consumable ? s.consumePurchase({ purchaseToken }) : s.acknowledgePurchase({ purchaseToken })),
+          STORE_TIMEOUT_MS,
+        );
+        if (r.ok) return true;
+        // No answer in time or an error: it may have gone through anyway (slow network). Ask Play what is left;
+        // if it is still there the game retries on the next launch or resume (without granting it again).
+        log(`${consumable ? 'consume' : 'acknowledge'} of ${p.id} not confirmed (${errorText(r.error)}); checking`);
+        const list = await owned();
+        if (!list) return false; // Play not reachable: retried later
+        const left = list.find((x) => x.purchaseToken === purchaseToken);
+        if (!left) return true; // consumed after all
+        return !consumable && !!left.isAcknowledged;
+      }, false);
     },
   };
 }

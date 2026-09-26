@@ -3,7 +3,7 @@ import { MAX_UPGRADE, UPGRADE_IDS, UPGRADE_STEP, upgradeCost, type UpgradeId, ty
 import { num, t } from '../i18n';
 import { PRODUCTS, type Product, type ProductId } from '../monetize/types';
 import { IC } from './icons';
-import { el, esc, overlay, show, toast } from './ui';
+import { adLabel, el, esc, overlay, show, toast } from './ui';
 
 const UP_ICON: Record<UpgradeId, string> = { hose: IC.reel, power: IC.gauge, speed: IC.boot, time: IC.clock };
 const PRODUCT_ICON: Record<ProductId, string> = { remove_ads: IC.noAds, starter_pack: IC.gift, coins_s: IC.coins, coins_m: IC.coins, coins_l: IC.coins };
@@ -57,7 +57,7 @@ export function shopScreen(o: ShopOpts) {
         IC.gift,
         t('freeCoins'),
         o.free.left > 0 ? t('freeCoinsD', { n: o.free.amount, left: o.free.left }) : t('freeTomorrow'),
-        o.free.left > 0 ? `<button class="btn water sm buy" data-a="free">${IC.ad}${t('watch')}</button>` : '',
+        o.free.left > 0 ? `<button class="btn water sm buy" data-a="free" aria-label="${esc(t('watchAria', { n: o.free.amount }))}">${IC.ad}${adLabel(t('watch'))}</button>` : '',
       )
     : '';
 

@@ -288,6 +288,10 @@ export interface EndOpts {
   onStar: (i: number) => void;
   onCoin: () => void;
 }
+/** Label of a small rewarded button: the action, with "Ad" / "Anuncio" written above it (not just the icon). */
+export function adLabel(action: string): string {
+  return `<span class="adlbl"><small>${esc(t('adWord'))}</small>${esc(action)}</span>`;
+}
 export function endScreen(o: EndOpts) {
   const r = o.r;
   const title = r.win ? t('win') : r.reason === 'time' ? t('loseTime') : t('loseControl');
@@ -315,7 +319,7 @@ export function endScreen(o: EndOpts) {
         ${o.footer ? `<div class="muted" style="text-align:center">${esc(o.footer)}</div>` : ''}
         <div class="coinbox">
           <div class="earn" aria-label="${t('coins')}">${IC.coin}<b id="end-coins">+${num(o.instant ? o.coins : 0)}</b></div>
-          ${o.canDouble ? `<button class="btn amber sm" data-a="double" aria-label="${t('doubleAria')}">${IC.ad}${t('double')}</button>` : ''}
+          ${o.canDouble ? `<button class="btn amber sm" data-a="double" aria-label="${t('doubleAria')}">${IC.ad}${adLabel(t('double'))}</button>` : ''}
           ${walletHtml(o.instant ? o.balance : o.balance - o.coins, 'end-balance')}
         </div>
         <div class="actions">
@@ -398,7 +402,7 @@ export function continueScreen(o: ContinueOpts) {
       <div class="panel-body">
         <h2 class="end-title lose">${t('loseTime')}</h2>
         <div class="tip">${IC.clock.replace('<svg', '<svg style="width:26px;height:26px;flex:none;color:#ffb21f"')}<p>${t('contTip', { n: o.secs })}</p></div>
-        <button class="btn big amber ui-font" data-a="continue" data-focus aria-label="${t('contYesAria', { n: o.secs })}">${IC.ad}${t('contYes', { n: o.secs })}</button>
+        <button class="btn big amber ui-font" data-a="continue" data-focus aria-label="${t('contYesAria', { n: o.secs })}">${IC.ad}${t('contYes', { n: o.secs })}<span class="adtag">(${t('contAd')})</span></button>
         <button class="btn ghost" data-a="decline">${t('contNo')}</button>
       </div>
     </div>
@@ -510,6 +514,9 @@ export function settingsScreen(o: SettingsOpts) {
     if (!armed) {
       armed = true;
       rb.textContent = t('resetConfirm');
+      // what goes and what stays, before the second tap
+      rb.closest('.actions')!.insertAdjacentHTML('afterend', `<p class="note reset-warn" role="alert">${esc(t('resetWarn'))}</p>`);
+      n.querySelector('.reset-warn')!.scrollIntoView({ block: 'nearest' });
       return;
     }
     o.onReset();

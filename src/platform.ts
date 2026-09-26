@@ -70,7 +70,7 @@ export const isCrazyGames = TARGET === 'crazygames';
 export const isAndroid = TARGET === 'android';
 
 interface CapApp {
-  addListener: (ev: 'backButton', cb: () => void) => unknown;
+  addListener: (ev: 'backButton' | 'resume', cb: () => void) => unknown;
   exitApp: () => Promise<void>;
 }
 function capApp(): CapApp | null {
@@ -85,6 +85,28 @@ export function onAndroidBack(handler: () => void) {
     capApp()?.addListener('backButton', handler);
   } catch {
     /* not running inside the app */
+  }
+}
+
+/**
+ * The app comes back to the foreground: Capacitor's App "resume" on Android (also after a full-screen ad or the
+ * Google Play purchase sheet closes) and, everywhere, the page becoming visible again. May fire twice for one return.
+ */
+export function onAppResume(handler: () => void) {
+  if (isAndroid) {
+    try {
+      const r = capApp()?.addListener('resume', handler);
+      void Promise.resolve(r).catch(() => undefined);
+    } catch {
+      /* not running inside the app */
+    }
+  }
+  try {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handler();
+    });
+  } catch {
+    /* no document (tests) */
   }
 }
 

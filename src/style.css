@@ -1258,6 +1258,28 @@ p {
   font-family: var(--ui);
   font-weight: 800;
 }
+/* rewarded buttons: "Ad" / "Anuncio" above the action */
+.adlbl {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+.adlbl small {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  opacity: 0.8;
+  margin-bottom: 1px;
+}
+.btn .adtag {
+  font-size: 0.62em;
+  opacity: 0.8;
+  margin-left: -4px;
+}
+.reset-warn {
+  color: #ffb8ae;
+  margin: 0;
+}
 .btn.sm {
   min-height: 44px;
   padding: 0 14px;
