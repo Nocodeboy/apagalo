@@ -3,7 +3,7 @@ import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDon
 import { audio, vibrate } from './audio';
 import { buyUpgrade, claimFreeCoins, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, upgradeOptions, type UpgradeId } from './economy';
 import { detectLang, getLang, setLang, t, tx } from './i18n';
-import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, restorePurchases, showRewarded, storeProducts } from './monetize';
+import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, openPrivacyOptions, privacyOptionsAvailable, restorePurchases, showRewarded, storeProducts } from './monetize';
 import type { ProductId } from './monetize/types';
 import { Input } from './input';
 import { Stage, type Tier } from './render/stage';
@@ -387,6 +387,7 @@ function showSettings() {
     vibration: st.vibration,
     stats: st.stats !== false,
     privacyUrl: PRIVACY_URL || undefined,
+    onAdChoices: privacyOptionsAvailable() ? () => void openPrivacyOptions() : undefined,
     version: typeof __VERSION__ !== 'undefined' ? __VERSION__ : '',
     gfx: st.gfx ?? 'auto',
     lang: getLang(),

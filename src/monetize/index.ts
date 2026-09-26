@@ -4,7 +4,7 @@
 import { track } from '../analytics';
 import { grantProduct, isNonConsumable } from '../economy';
 import * as store from '../storage';
-import { createAndroidProviders } from './android';
+import { androidPrivacyOptionsRequired, createAndroidProviders, showAndroidPrivacyOptions } from './android';
 import { createCrazyGamesAds } from './crazygames';
 import { createFakeProviders } from './fake';
 import type { Product, ProductId, Providers, RewardedPlacement } from './types';
@@ -192,4 +192,18 @@ export async function restorePurchases(): Promise<ProductId[]> {
   const missing = ids.filter((id) => isNonConsumable(id) && !s.owned[id]);
   for (const id of missing) grant(id, 'restore');
   return missing;
+}
+
+// ---------- ad consent ----------
+/** Google's EU consent rules: players in the EEA/UK must be able to change their ad choice later (Settings). */
+export function privacyOptionsAvailable(): boolean {
+  try {
+    return TARGET === 'android' && androidPrivacyOptionsRequired();
+  } catch {
+    return false;
+  }
+}
+
+export async function openPrivacyOptions(): Promise<void> {
+  if (TARGET === 'android') await showAndroidPrivacyOptions();
 }

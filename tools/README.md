@@ -36,3 +36,7 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 ## Prueba de monedas, tienda y anuncios (Python + Playwright, con `dist/` servido)
 
 `python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis, compras, restaurar), +30 s al acabarse el tiempo, topes del anuncio entre niveles, oferta de inicio, reto diario sin mejoras, anuncios y compras que fallan (`?fakeads=fail`), la web sin anuncios, una partida guardada de la 1.2.0 y la pantalla final y la tienda a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.
+
+## Negocio
+
+`python3 tools/revenue_model.py` recalcula los escenarios de ingresos de `docs/monetizacion.md` (ARPDAU, valor por jugador, retorno de la publicidad y coste por instalación máximo por país). Las hipótesis están arriba del script: cámbialas por datos reales y vuelve a ejecutarlo.

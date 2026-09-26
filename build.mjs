@@ -9,7 +9,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 // CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
 const CG_ADS = process.env.CG_ADS === '1';
 const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
@@ -163,6 +163,8 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
     ),
   );
   writeFileSync(`${out}/privacidad.html`, readFileSync('src/privacidad.html', 'utf8'));
+  // AdMob checks this file on the developer website of the Play listing (created once the AdMob account exists)
+  if (existsSync('assets/app-ads.txt')) copyFileSync('assets/app-ads.txt', `${out}/app-ads.txt`);
   // Página para captar testers de la prueba cerrada de Google Play (/testers)
   writeFileSync(`${out}/testers.html`, readFileSync('src/testers.html', 'utf8'));
   mkdirSync(`${out}/t`, { recursive: true });

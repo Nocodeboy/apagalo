@@ -452,6 +452,8 @@ export interface SettingsOpts {
   vibration: boolean;
   stats: boolean;
   privacyUrl?: string;
+  /** Android in the EEA/UK: reopen Google's ad consent form */
+  onAdChoices?: () => void;
   version?: string;
   gfx: 'auto' | 'high' | 'medium' | 'low';
   lang: 'es' | 'en';
@@ -477,6 +479,7 @@ export function settingsScreen(o: SettingsOpts) {
           <button class="btn ghost" data-a="back" data-focus>${IC.back}${t('back')}</button>
           <button class="btn ghost" data-a="reset" style="color:#ffb8ae">${t('reset')}</button>
         </div>
+        ${o.onAdChoices ? `<button class="btn ghost" data-a="adchoices" style="width:100%">${t('adChoices')}</button>` : ''}
         ${o.privacyUrl ? `<p class="muted" style="text-align:center;font-size:14px"><a href="${o.privacyUrl}" target="_blank" rel="noopener" style="color:#7fd6ff">${t('privacy')}</a> · v${o.version ?? ''}</p>` : ''}
       </div>
     </div>
@@ -512,6 +515,7 @@ export function settingsScreen(o: SettingsOpts) {
     o.onReset();
   });
   n.querySelector('[data-a=back]')!.addEventListener('click', o.onBack);
+  if (o.onAdChoices) n.querySelector('[data-a=adchoices]')!.addEventListener('click', o.onAdChoices);
   show(n);
 }
 

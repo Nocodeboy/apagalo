@@ -64,6 +64,7 @@ const S = {
   goalsNow: { es: 'Así vas', en: 'Right now' },
   stats: { es: 'Estadísticas anónimas', en: 'Anonymous stats' },
   privacy: { es: 'Privacidad', en: 'Privacy' },
+  adChoices: { es: 'Opciones de privacidad de los anuncios', en: 'Ad privacy options' },
   statsNote: { es: 'Cómo se juega, sin datos personales', en: 'How the game is played, no personal data' },
   dailyRank: { es: 'Mejor que el {p}% de los {n} jugadores de hoy', en: 'Better than {p}% of today’s {n} players' },
   dailyFirst: { es: '¡Eres de los primeros en jugar el reto de hoy!', en: 'You’re one of the first to play today’s challenge!' },

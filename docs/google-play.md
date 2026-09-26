@@ -4,8 +4,9 @@
 
 - **Nombre en la tienda:** ¡Apágalo! Bomberos
 - **Paquete:** `com.nocodeboy.apagalo` (no se puede cambiar nunca)
-- **Versión:** 1.2.0 (código 1) · Android 7.0 o superior (API 24) · objetivo Android 16 (API 36)
-- **Permisos:** solo internet
+- **Versión:** 1.2.0 (código 1) publicada en la prueba cerrada; 1.3.0 (código 2) preparada, con anuncios (AdMob) y compras (Google Play Billing) · Android 7.0 o superior (API 24) · objetivo Android 16 (API 36)
+- **Nombre de la app en el móvil:** «Put It Out!» (en español, «¡Apágalo!»)
+- **Permisos:** internet; desde la 1.3.0 también ID de publicidad (AD_ID) y facturación de Google Play (BILLING)
 - **Archivo para Play:** `apagalo-1.2.0.aab` (firmado con la clave de subida)
 - **APK para instalar a mano en tu móvil:** `apagalo-1.2.0.apk`
 
@@ -69,6 +70,8 @@ Cuanto más pueblo salves y más animales rescates, más estrellas.
 
 Controles sencillos: un pulgar para moverte y el otro para apuntar y echar agua.
 Sin anuncios y sin compras. Se puede jugar sin conexión.
+
+> A partir de la 1.3.0 esta frase deja de ser cierta: antes de publicar la 1.3.0 hay que cambiarla y actualizar las declaraciones de anuncios, ID de publicidad, seguridad de los datos y clasificación de contenido (lista completa en `docs/monetizacion.md` y `docs/android-monetizacion.md`). La ficha en inglés está en `docs/ficha-tienda-en.md`.
 
 **Categoría:** Juegos › Casual
 **Correo de contacto:** ghptiemblo@gmail.com · **Web:** https://apagalo.vercel.app
