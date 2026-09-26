@@ -1,14 +1,18 @@
 # Renders store/share assets from the real game: app icons, OG image, CrazyGames covers.
-# Usage: python3 tools/assets.py
+# Usage: python3 tools/assets.py [all|icons|og|covers]
+# The OG image and the CrazyGames covers are English ("PUT IT OUT!"): the web and the portal target tier-1 players.
+# GAME_LANG=es renders the Spanish title instead; PORT changes the local server port (default 8765).
 import asyncio, os
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-URL = 'http://127.0.0.1:8765/web/index.html'  # served: file:// blocks the self-hosted fonts
+LANG = os.environ.get('GAME_LANG', 'en')
+LOCALE = 'es-ES' if LANG == 'es' else 'en-US'
+URL = f"http://127.0.0.1:{os.environ.get('PORT', '8765')}/web/index.html"  # served: file:// blocks the self-hosted fonts
 OUT = f'{ROOT}/assets/'
 ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 
-SAVE = "localStorage.setItem('apagalo.v1', JSON.stringify({v:1,stars:{plaza:3,granja:3,gasolinera:3,poligono:3,castanar:3,sanjuan:3},best:{},daily:{},streak:{count:0,last:''},settings:{sfx:false,music:false,vibration:false,gfx:'high',autoTier:'high',lang:'es',stats:false},tutorialDone:true,firstOpen:false,seenTips:[]}))"
+SAVE = "localStorage.setItem('apagalo.v1', JSON.stringify({v:1,stars:{plaza:3,granja:3,gasolinera:3,poligono:3,castanar:3,sanjuan:3},best:{},daily:{},streak:{count:0,last:''},settings:{sfx:false,music:false,vibration:false,gfx:'high',autoTier:'high',lang:'%s',stats:false},tutorialDone:true,firstOpen:false,seenTips:[]}))" % LANG
 
 ICON_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ef4a3a"/><stop offset="1" stop-color="#b8231b"/></linearGradient></defs>
@@ -22,9 +26,11 @@ ICON_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 HIDE_UI = "document.head.insertAdjacentHTML('beforeend','<style>#hud,#nozzles,#icons,#floaters,#toast,.tut,.stick,#screens,.banner{display:none!important}</style>')"
 
 def title_html(size, tag=False, top='5%', shift=0):
-    tagline = '<p style="margin:14px 0 0;font-family:Baloo 2,sans-serif;font-weight:800;font-size:%dpx;color:#fff;text-shadow:0 3px 8px rgba(0,0,0,.7)">Coge la manguera. Salva el pueblo.</p>' % int(size * 0.3) if tag else ''
+    line = 'Coge la manguera. Salva el pueblo.' if LANG == 'es' else 'Grab the hose. Save the town.'
+    tagline = '<p style="margin:14px 0 0;font-family:Baloo 2,sans-serif;font-weight:800;font-size:%dpx;color:#fff;text-shadow:0 3px 8px rgba(0,0,0,.7)">%s</p>' % (int(size * 0.3), line) if tag else ''
+    name = '<span style="color:#ffb21f">¡</span>APÁGALO<span style="color:#ffb21f">!</span>' if LANG == 'es' else 'PUT IT OUT<span style="color:#ffb21f">!</span>'
     return f'''<div id="poster" style="position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;padding-top:{top};background:linear-gradient(180deg,rgba(13,21,40,.55) 0%,rgba(13,21,40,0) 34%)">
-<h1 style="font-family:Bungee,Impact,sans-serif;font-weight:400;font-size:{size}px;line-height:1;margin:0;color:#fff;letter-spacing:-.01em;transform:translateX({shift}px) rotate(-3deg);text-shadow:0 {size*0.06:.0f}px 0 #e23a2e,0 {size*0.11:.0f}px 0 #a8231b,0 {size*0.2:.0f}px {size*0.35:.0f}px rgba(0,0,0,.45)"><span style="color:#ffb21f">¡</span>APÁGALO<span style="color:#ffb21f">!</span></h1>
+<h1 style="font-family:Bungee,Impact,sans-serif;font-weight:400;font-size:{size}px;line-height:1;margin:0;color:#fff;letter-spacing:-.01em;transform:translateX({shift}px) rotate(-3deg);text-shadow:0 {size*0.06:.0f}px 0 #e23a2e,0 {size*0.11:.0f}px 0 #a8231b,0 {size*0.2:.0f}px {size*0.35:.0f}px rgba(0,0,0,.45)">{name}</h1>
 <div style="width:{size*4.2:.0f}px;height:{max(8,size*0.1):.0f}px;margin-top:{size*0.28:.0f}px;transform:translateX({shift}px) rotate(-3deg);background:linear-gradient(180deg,#cfd6df 0 25%,#f2e03a 25% 75%,#cfd6df 75% 100%);border-radius:4px"></div>
 {tagline}</div>'''
 
@@ -49,7 +55,7 @@ SCENE = '''(async (opts) => {
 
 async def shot(p, name, w, h, level, zoom, grow, bot, title_size=None, tag=False, top='5%', dz=0.0, shift=0):
     b = await p.chromium.launch(args=ARGS)
-    ctx = await b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1, has_touch=True, is_mobile=w < h, locale='es-ES')
+    ctx = await b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1, has_touch=True, is_mobile=w < h, locale=LOCALE)
     page = await ctx.new_page()
     await page.goto(URL); await page.wait_for_timeout(800)
     await page.evaluate(SAVE)
@@ -89,8 +95,11 @@ async def main():
             # CrazyGames puts labels over the top-left corner of the covers (about a third of the width by a
             # strip about 3:1 on the wide covers, taller on the square): the title stays out of it
             await shot(p, 'cg-cover-1920x1080.png', 1920, 1080, 0, 1.0, 7, 3.2, 150, top='3%', dz=-1.0, shift=220)
-            await shot(p, 'cg-cover-800x1200.png', 800, 1200, 0, 0.72, 7, 3.2, 104, top='10.5%', dz=-1.6)
-            await shot(p, 'cg-cover-800x800.png', 800, 800, 0, 0.8, 7, 3.2, 80, top='4%', dz=-1.2, shift=130)
+            await shot(p, 'cg-cover-800x1200.png', 800, 1200, 0, 0.72, 7, 3.2, 104, top='12%', dz=-1.6)
+            if LANG == 'es':
+                await shot(p, 'cg-cover-800x800.png', 800, 800, 0, 0.8, 7, 3.2, 80, top='4%', dz=-1.2, shift=130)
+            else:
+                await shot(p, 'cg-cover-800x800.png', 800, 800, 0, 0.8, 7, 3.2, 84, top='31%', dz=-1.2)
 
 if __name__ == '__main__':
     asyncio.run(main())

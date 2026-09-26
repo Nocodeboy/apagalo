@@ -1,17 +1,19 @@
 # Google Play assets from the real game: phone screenshots (1080x1920, with HUD) and the feature graphic (1024x500).
-# Usage: python3 tools/store_shots.py   (serve dist/ on :8765 first)
+# Usage: python3 tools/store_shots.py [all|shots|feature]   (serve dist/ on :8765 first, or set PORT)
+# GAME_LANG=en renders the English listing into assets/play-en/ (default: Spanish into assets/play/).
 import asyncio, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
 from playwright.async_api import async_playwright
+os.environ.setdefault('GAME_LANG', 'es')  # before importing assets: it reads the language at import time
 import assets as A  # reuses SAVE, SCENE and the title overlay from the cover renderer
 
-URL = 'http://127.0.0.1:8765/web/index.html'
-OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'assets', 'play') + os.sep
+URL = A.URL
+OUT = os.path.join(A.ROOT, 'assets', 'play' if A.LANG == 'es' else 'play-en') + os.sep
 HIDE = "document.head.insertAdjacentHTML('beforeend','<style>#toast,.tut,.stick,.banner,.fl.bad{display:none!important}</style>')"
 
 async def game_shot(p, name, level, pre, zoom=1.0, dz=0.0, bot_after=0.0):
     b = await p.chromium.launch(args=A.ARGS)
-    ctx = await b.new_context(viewport={'width': 540, 'height': 960}, device_scale_factor=2, has_touch=True, is_mobile=True, locale='es-ES')
+    ctx = await b.new_context(viewport={'width': 540, 'height': 960}, device_scale_factor=2, has_touch=True, is_mobile=True, locale=A.LOCALE)
     page = await ctx.new_page()
     await page.goto(URL); await page.wait_for_timeout(600)
     await page.evaluate(A.SAVE); await page.goto(URL); await page.wait_for_timeout(1500)
@@ -27,7 +29,7 @@ async def game_shot(p, name, level, pre, zoom=1.0, dz=0.0, bot_after=0.0):
 
 async def menu_shot(p, name, clicks):
     b = await p.chromium.launch(args=A.ARGS)
-    ctx = await b.new_context(viewport={'width': 540, 'height': 960}, device_scale_factor=2, has_touch=True, is_mobile=True, locale='es-ES')
+    ctx = await b.new_context(viewport={'width': 540, 'height': 960}, device_scale_factor=2, has_touch=True, is_mobile=True, locale=A.LOCALE)
     page = await ctx.new_page()
     await page.goto(URL); await page.wait_for_timeout(600)
     await page.evaluate(A.SAVE.replace('plaza:3,granja:3,gasolinera:3,poligono:3,castanar:3,sanjuan:3', 'plaza:3,granja:3,gasolinera:2,poligono:3,castanar:1'))
