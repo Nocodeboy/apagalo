@@ -42,6 +42,37 @@ android {
     }
 }
 
+// Release guard (docs/android-monetizacion.md): a release build (bundleRelease, assembleRelease) must not ship
+// Google's test ads. It fails if the manifest still has Google's test AdMob app id, or if the synced game was built
+// with USE_TEST_ADS: true (dist/android/ads-check.json, written by build.mjs and copied by `cap sync`).
+// Only for a test build that keeps the test ads on purpose: ./gradlew bundleRelease -PallowTestAds
+def adsManifest = file('src/main/AndroidManifest.xml')
+def adsCheckFile = file('src/main/assets/public/ads-check.json')
+def allowTestAds = project.hasProperty('allowTestAds')
+def checkReleaseAds = tasks.register('checkReleaseAds') {
+    doLast {
+        def testAppId = 'ca-app-pub-3940256099942544~3347511713'
+        def problems = []
+        if (adsManifest.text.contains(testAppId)) {
+            problems << "AndroidManifest.xml still has Google's test AdMob app id (${testAppId})"
+        }
+        if (!adsCheckFile.exists()) {
+            problems << "no ads-check.json in the synced game: run `npm run android:sync` (RELEASE=1 node build.mjs && npx cap sync android)"
+        } else if (new groovy.json.JsonSlurper().parse(adsCheckFile).testAds) {
+            problems << "the synced game was built with USE_TEST_ADS: true (src/monetize/android.ts)"
+        }
+        if (problems) {
+            def msg = "Release with test ads: " + problems.join('; ')
+            if (allowTestAds) {
+                logger.warn("WARNING (-PallowTestAds): ${msg}")
+            } else {
+                throw new GradleException(msg + ". See docs/android-monetizacion.md, or pass -PallowTestAds for a test build.")
+            }
+        }
+    }
+}
+tasks.matching { it.name == 'preReleaseBuild' }.configureEach { dependsOn checkReleaseAds }
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'

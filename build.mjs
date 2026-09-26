@@ -3,7 +3,8 @@
 //   dist/crazygames/     CrazyGames upload (zip): their SDK, analytics on, no external links
 //   dist/android/        web assets of the Android app (Capacitor): analytics on, native share, back button, AdMob and Play Billing
 //   dist/artifact.html   page content for the Claude artifact: analytics off (CSP), share link
-// Usage: node build.mjs [--dev]   (GAME_URL env overrides the public URL; CG_ADS=1 turns on CrazyGames ads)
+// Usage: node build.mjs [--dev]   (GAME_URL env overrides the public URL; CG_ADS=1 turns on CrazyGames ads;
+//        RELEASE=1 refuses to build the Android app with Google's test ads, see androidAdsCheck below)
 import { build } from 'esbuild';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -200,15 +201,41 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
 }
 
 // ---------- Android app (Capacitor wraps dist/android) ----------
+// Release guard (docs/android-monetizacion.md, «Antes de publicar»): the AdMob switch in src/monetize/android.ts
+// and the AdMob app id in the manifest must agree, and a release (RELEASE=1) must use the real ones.
+// android/app/build.gradle checks the same again for bundleRelease/assembleRelease through ads-check.json.
+const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
+function androidAdsCheck() {
+  const src = readFileSync('src/monetize/android.ts', 'utf8');
+  const sw = src.match(/^\s*USE_TEST_ADS:\s*(true|false)\s*,/m);
+  const manifest = readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
+  const app = manifest.match(/com\.google\.android\.gms\.ads\.APPLICATION_ID"\s+android:value="([^"]*)"/);
+  if (!sw || !app) return { error: 'cannot read USE_TEST_ADS in src/monetize/android.ts or the AdMob app id in AndroidManifest.xml' };
+  const testAds = sw[1] === 'true';
+  const testAppId = app[1] === TEST_APP_ID;
+  if (!testAds && testAppId) return { error: `USE_TEST_ADS is false but AndroidManifest.xml still has Google's test AdMob app id (${TEST_APP_ID}): paste your own app id (ca-app-pub-…~…)` };
+  if (process.env.RELEASE === '1' && testAds) return { error: 'RELEASE=1 with USE_TEST_ADS: true in src/monetize/android.ts: a release must use the real ad units' };
+  if (process.env.RELEASE === '1' && testAppId) return { error: `RELEASE=1 but AndroidManifest.xml still has Google's test AdMob app id (${TEST_APP_ID})` };
+  return { testAds, testAppId };
+}
 {
   const out = 'dist/android';
   rmSync(out, { recursive: true, force: true });
-  mkdirSync(out, { recursive: true });
-  const js = await bundle('android', GAME_URL);
-  writeFileSync(`${out}/index.html`, page({ js }));
-  copyFonts(out);
-  for (const f of Object.values(music)) copyFileSync(`assets/${f}`, `${out}/${f}`);
-  console.log('android/index.html', kb(readFileSync(`${out}/index.html`).length));
+  const ads = androidAdsCheck();
+  if (ads.error) {
+    // no dist/android: `cap sync` cannot copy a wrong build into the app
+    console.error(`android: NOT BUILT. ${ads.error}`);
+    process.exitCode = 1;
+  } else {
+    mkdirSync(out, { recursive: true });
+    const js = await bundle('android', GAME_URL);
+    writeFileSync(`${out}/index.html`, page({ js }));
+    copyFonts(out);
+    for (const f of Object.values(music)) copyFileSync(`assets/${f}`, `${out}/${f}`);
+    // read by android/app/build.gradle before a release build
+    writeFileSync(`${out}/ads-check.json`, JSON.stringify({ version: VERSION, testAds: ads.testAds, release: process.env.RELEASE === '1' }));
+    console.log('android/index.html', kb(readFileSync(`${out}/index.html`).length), ads.testAds ? '(TEST ads)' : '(real ads)');
+  }
 }
 
 // ---------- Claude artifact ----------
