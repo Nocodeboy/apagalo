@@ -16,7 +16,7 @@ Lo técnico (estructura del código, comandos, analítica, calidad gráfica) est
 |---|---|---|
 | Web | Publicada en https://apagalo.vercel.app (1.2.0), con analítica y la página `/testers` | Mover tráfico y mirar los datos |
 | Google Play | Prueba cerrada aprobada el 25 sept. Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers, añadir el grupo de LaunchReady y aguantar 14 días. Luego pedir producción |
-| CrazyGames | Borrador con la build validada | Revisión de calidad (jugar en la vista previa), ficha, portadas, vídeos, guardado del progreso y enviar |
+| CrazyGames | Borrador completo: build, revisión de calidad y ficha hechas | Rellenar los datos de cobro (Tipalti), aceptar términos y PEGI 12 y enviar |
 | GitHub | Repositorio https://github.com/Nocodeboy/apagalo (26 sept) | Subir aquí cada cambio |
 
 Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis` y `apagalo_niveles` en Supabase y aplicar los criterios de `concepto.md`.

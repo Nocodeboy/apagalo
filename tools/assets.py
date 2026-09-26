@@ -21,11 +21,11 @@ ICON_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 
 HIDE_UI = "document.head.insertAdjacentHTML('beforeend','<style>#hud,#nozzles,#icons,#floaters,#toast,.tut,.stick,#screens,.banner{display:none!important}</style>')"
 
-def title_html(size, tag=False, top='5%'):
+def title_html(size, tag=False, top='5%', shift=0):
     tagline = '<p style="margin:14px 0 0;font-family:Baloo 2,sans-serif;font-weight:800;font-size:%dpx;color:#fff;text-shadow:0 3px 8px rgba(0,0,0,.7)">Coge la manguera. Salva el pueblo.</p>' % int(size * 0.3) if tag else ''
     return f'''<div id="poster" style="position:fixed;inset:0;z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;padding-top:{top};background:linear-gradient(180deg,rgba(13,21,40,.55) 0%,rgba(13,21,40,0) 34%)">
-<h1 style="font-family:Bungee,Impact,sans-serif;font-weight:400;font-size:{size}px;line-height:1;margin:0;color:#fff;letter-spacing:-.01em;transform:rotate(-3deg);text-shadow:0 {size*0.06:.0f}px 0 #e23a2e,0 {size*0.11:.0f}px 0 #a8231b,0 {size*0.2:.0f}px {size*0.35:.0f}px rgba(0,0,0,.45)"><span style="color:#ffb21f">¡</span>APÁGALO<span style="color:#ffb21f">!</span></h1>
-<div style="width:{size*4.2:.0f}px;height:{max(8,size*0.1):.0f}px;margin-top:{size*0.28:.0f}px;transform:rotate(-3deg);background:linear-gradient(180deg,#cfd6df 0 25%,#f2e03a 25% 75%,#cfd6df 75% 100%);border-radius:4px"></div>
+<h1 style="font-family:Bungee,Impact,sans-serif;font-weight:400;font-size:{size}px;line-height:1;margin:0;color:#fff;letter-spacing:-.01em;transform:translateX({shift}px) rotate(-3deg);text-shadow:0 {size*0.06:.0f}px 0 #e23a2e,0 {size*0.11:.0f}px 0 #a8231b,0 {size*0.2:.0f}px {size*0.35:.0f}px rgba(0,0,0,.45)"><span style="color:#ffb21f">¡</span>APÁGALO<span style="color:#ffb21f">!</span></h1>
+<div style="width:{size*4.2:.0f}px;height:{max(8,size*0.1):.0f}px;margin-top:{size*0.28:.0f}px;transform:translateX({shift}px) rotate(-3deg);background:linear-gradient(180deg,#cfd6df 0 25%,#f2e03a 25% 75%,#cfd6df 75% 100%);border-radius:4px"></div>
 {tagline}</div>'''
 
 SCENE = '''(async (opts) => {
@@ -47,7 +47,7 @@ SCENE = '''(async (opts) => {
   return { burning: s.burning, best };
 })'''
 
-async def shot(p, name, w, h, level, zoom, grow, bot, title_size=None, tag=False, top='5%', dz=0.0):
+async def shot(p, name, w, h, level, zoom, grow, bot, title_size=None, tag=False, top='5%', dz=0.0, shift=0):
     b = await p.chromium.launch(args=ARGS)
     ctx = await b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=1, has_touch=True, is_mobile=w < h, locale='es-ES')
     page = await ctx.new_page()
@@ -61,7 +61,7 @@ async def shot(p, name, w, h, level, zoom, grow, bot, title_size=None, tag=False
     r = await page.evaluate(SCENE + '(%s)' % ('{zoom:%s,grow:%s,bot:%s,dz:%s}' % (zoom, grow, bot, dz)))
     await page.wait_for_timeout(4500)
     if title_size:
-        await page.evaluate("(h)=>document.body.insertAdjacentHTML('beforeend', h)", title_html(title_size, tag, top))
+        await page.evaluate("(h)=>document.body.insertAdjacentHTML('beforeend', h)", title_html(title_size, tag, top, shift))
         await page.wait_for_timeout(900)
     await page.screenshot(path=OUT + name)
     await b.close()
@@ -86,9 +86,11 @@ async def main():
         if which in ('all', 'og'):
             await shot(p, 'og.png', 1200, 630, 0, 1.0, 7, 3.2, 84, tag=True, top='3%', dz=-1.0)
         if which in ('all', 'covers'):
-            await shot(p, 'cg-cover-1920x1080.png', 1920, 1080, 0, 1.0, 7, 3.2, 150, top='3%', dz=-1.0)
-            await shot(p, 'cg-cover-800x1200.png', 800, 1200, 0, 0.72, 7, 3.2, 104, top='6%', dz=-1.6)
-            await shot(p, 'cg-cover-800x800.png', 800, 800, 0, 0.8, 7, 3.2, 96, top='4%', dz=-1.2)
+            # CrazyGames puts labels over the top-left corner of the covers (about a third of the width by a
+            # strip about 3:1 on the wide covers, taller on the square): the title stays out of it
+            await shot(p, 'cg-cover-1920x1080.png', 1920, 1080, 0, 1.0, 7, 3.2, 150, top='3%', dz=-1.0, shift=220)
+            await shot(p, 'cg-cover-800x1200.png', 800, 1200, 0, 0.72, 7, 3.2, 104, top='10.5%', dz=-1.6)
+            await shot(p, 'cg-cover-800x800.png', 800, 800, 0, 0.8, 7, 3.2, 80, top='4%', dz=-1.2, shift=130)
 
 if __name__ == '__main__':
     asyncio.run(main())

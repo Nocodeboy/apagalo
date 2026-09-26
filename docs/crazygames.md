@@ -4,12 +4,16 @@ Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos
 
 ## Estado (26 sept 2026)
 
-- Cuenta de desarrollador creada y juego en **borrador**, con la versión 1.2.0 subida y validada por su cargador.
-- Pendiente, en este orden:
-  1. **Revisión de calidad (QA tool)**: abrir la vista previa del borrador, pulsar **JUGAR** y jugar unos 20 segundos para que detecte `gameplayStart`. Luego *Continue* y marcar la autoevaluación (esa casilla la confirmas tú).
-  2. **Ficha**: textos de abajo, las 3 portadas y los 2 vídeos.
-  3. **Guardado del progreso**: activar la opción de guardar el progreso (*progress save*) en el envío, porque el juego guarda la partida con su módulo Data.
-  4. **Enviar a revisión** (Basic Launch). El botón final lo pulsas tú.
+- Juego en **borrador, listo para enviar** (paso 4 de 4). Hecho:
+  - Versión 1.2.0 subida (3 archivos en la raíz) con el aviso de privacidad para jugadores nuevos.
+  - Revisión de calidad superada: carga en 2,9 s, `gameplayStart`/`gameplayStop`, `loadingStart`/`loadingStop` y guardado en su nube detectados. Los 8 puntos de la lista marcados como «Yes».
+  - Ficha: categoría **Action**, etiquetas **3D, Top-Down, Hero, Skill, Mission**, descripción y controles (textos de abajo), 3 portadas y 2 vídeos. Guardado del progreso con el módulo Data. Sin enlaces a tiendas (la app de Android aún no es pública).
+- Falta, y lo haces tú:
+  1. **Datos de cobro**: Billing → Manage Payment Details (Tipalti). El portal avisa de que faltan antes de enviar.
+  2. En el paso 4, marcar las dos casillas: aceptar los términos del portal y confirmar que el juego es apto para mayores de 12 años (PEGI 12).
+  3. Pulsar **Submit for approval**.
+
+Las portadas llevan el título fuera de la esquina superior izquierda, porque CrazyGames pone ahí sus etiquetas (NEW, HOT…): en la horizontal está desplazado a la derecha, en la vertical más abajo y en la cuadrada más pequeño y a la derecha.
 
 ## Archivos
 

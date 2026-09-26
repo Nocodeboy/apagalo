@@ -6,7 +6,7 @@ Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y
 |---|---|
 | Web | https://apagalo.vercel.app (publicada) |
 | Google Play | Prueba cerrada «Prueba cerrada - Alpha» desde el 25 sept 2026 (12 testers × 14 días antes de pedir producción). Captación: https://apagalo.vercel.app/testers |
-| CrazyGames | Borrador subido, pendiente de la revisión de calidad y del envío |
+| CrazyGames | Borrador completo, listo para enviar a revisión (Basic Launch) |
 
 Estado detallado, siguientes pasos y dónde vive cada cosa (cuentas, carpetas, servicios): [docs/README.md](docs/README.md).
 
@@ -103,5 +103,5 @@ select * from apagalo_cohortes;  -- nuevos por día con D1 y D7
 ## Siguientes pasos
 
 1. Google Play: llegar a 12 testers (y añadir el grupo de LaunchReady), mantenerlos 14 días, recoger sus comentarios y pedir el acceso a producción (guía en `docs/testers.md`). Aprovechar para subir la 1.2.1 (`versionCode` 2) con los cambios que salgan de la prueba.
-2. CrazyGames: terminar la revisión de calidad y enviar a Basic Launch (`docs/crazygames.md`).
+2. CrazyGames: completar los datos de cobro y enviar a Basic Launch (`docs/crazygames.md`).
 3. Tras 7-14 días con tráfico, decidir con los criterios de `docs/concepto.md` mirando `apagalo_kpis` y `apagalo_niveles`.
