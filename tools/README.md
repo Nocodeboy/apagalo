@@ -8,7 +8,7 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 
 | Script | Qué hace | Uso |
 |---|---|---|
-| `bot.ts` | El bot juega cada nivel y los retos diarios en modo PRO y casual, y saca la tasa de victoria, el % salvado y las estrellas. Resultado de referencia en `docs/dificultad.md` | `npm run bot` (o `npx tsx tools/bot.ts [partidas] [nivel]`) |
+| `bot.ts` | El bot juega cada nivel y los retos diarios en modo PRO y casual, y saca la tasa de victoria, el % salvado y las estrellas. Con `--up` juega los niveles con mejoras: `max` (todas a 5), un nivel para todas (`--up=3`) o uno por línea (`--up=manguera,presión,velocidad,tiempo`, p. ej. `--up=5,0,0,0`). Resultados de referencia en `docs/dificultad.md` | `npm run bot` (o `npx tsx tools/bot.ts [partidas] [nivel] [--up=max]`) |
 | `daily-table.ts` | Regenera `src/sim/dailyTable.ts`, las semillas del reto diario que el bot ha comprobado que se pueden ganar. **Hay que ejecutarlo después de tocar la simulación** | `npm run daily-table` |
 | `sweep.ts` | Prueba combinaciones de parámetros de `TUNE` (simulación) y saca la tasa de victoria de cada una | `npx tsx tools/sweep.ts '[{"clave":valor}]' [partidas]` |
 | `trace.ts` | Traza una partida del bot PRO en un nivel (eventos y resultado), para depurar | `npx tsx tools/trace.ts [nivel]` |
@@ -30,5 +30,9 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 
 | Script | Qué comprueba |
 |---|---|
-| `test_cg_sdk.py` | Con un SDK simulado: la secuencia de llamadas (`init`, `loadingStart/Stop`, `gameplayStart/Stop`) y que no haya errores |
+| `test_cg_sdk.py` | Con un SDK simulado: la secuencia de llamadas (`init`, `loadingStart/Stop`, `gameplayStart/Stop`), que no haya errores y que no se pida ningún anuncio. Con `--ads` (tras compilar con `CG_ADS=1 node build.mjs`) comprueba el x2 con el anuncio con recompensa del SDK |
 | `test_cg_data.py` | El guardado en la nube de CrazyGames: la partida del portal gana al cargar, la partida local se copia la primera vez y el progreso nuevo se guarda |
+
+## Prueba de monedas, tienda y anuncios (Python + Playwright, con `dist/` servido)
+
+`python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis, compras, restaurar), +30 s al acabarse el tiempo, topes del anuncio entre niveles, oferta de inicio, reto diario sin mejoras, anuncios y compras que fallan (`?fakeads=fail`), la web sin anuncios, una partida guardada de la 1.2.0 y la pantalla final y la tienda a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.

@@ -1,10 +1,15 @@
 # Loads the CrazyGames build with a mocked SDK and checks the call sequence + no errors.
+# Ads are off by default (__CG_ADS__, Basic Launch): no ad request may reach the SDK.
+# With --ads (build made with CG_ADS=1) it checks the rewarded x2 through the SDK ad module instead.
 import asyncio
+import sys
 from playwright.async_api import async_playwright
 URL = 'http://127.0.0.1:8765/crazygames/index.html'
+ADS = '--ads' in sys.argv
 MOCK = """window.__cg=[];window.CrazyGames={SDK:{environment:'crazygames',init:async()=>{__cg.push('init')},data:{getItem:k=>null,setItem:(k,v)=>__cg.push('setItem')},game:{
 loadingStart:()=>__cg.push('loadingStart'),loadingStop:()=>__cg.push('loadingStop'),gameplayStart:()=>__cg.push('gameplayStart'),
-gameplayStop:()=>__cg.push('gameplayStop'),happytime:()=>__cg.push('happytime')}}};"""
+gameplayStop:()=>__cg.push('gameplayStop'),happytime:()=>__cg.push('happytime')},
+ad:{hasAdblock:async()=>false,requestAd:(type,cb)=>{__cg.push('requestAd:'+type);cb.adStarted&&cb.adStarted();setTimeout(()=>cb.adFinished&&cb.adFinished(),300)}}}};"""
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
@@ -22,10 +27,18 @@ async def main():
         if await page.query_selector('.lvl[data-i="0"]'): await page.click('.lvl[data-i="0"]'); await page.wait_for_timeout(300)
         if await page.query_selector('[data-a=go]'): await page.click('[data-a=go]'); await page.wait_for_timeout(500)
         await page.evaluate("window.__apagalo.bot(40)")
-        await page.wait_for_timeout(5000)
-        st = await page.evaluate("({cg: window.__cg, mode: window.__apagalo.mode, links: [...document.querySelectorAll('a[href^=http]')].map(a=>a.href), share: !!document.querySelector('[data-a=share]')})")
+        await page.wait_for_selector('.end-screen', timeout=30000)
+        await page.wait_for_timeout(2500)
+        if ADS and await page.query_selector('[data-a=double]'):
+            await page.click('[data-a=double]'); await page.wait_for_timeout(1200)
+        st = await page.evaluate("({cg: window.__cg, mode: window.__apagalo.mode, coins: window.__apagalo.save.coins, x2: !!document.querySelector('[data-a=double]'), links: [...document.querySelectorAll('a[href^=http]')].map(a=>a.href), share: !!document.querySelector('[data-a=share]')})")
         await page.screenshot(path='build/cg-end.png')
         print(st)
+        ad_calls = [c for c in st['cg'] if c.startswith('requestAd')]
+        if ADS:
+            print('ads ON:', 'OK' if ad_calls == ['requestAd:rewarded'] else 'FAIL', ad_calls)
+        else:
+            print('ads off:', 'OK' if not ad_calls and not st['x2'] else 'FAIL', 'ad calls', ad_calls, 'x2 button', st['x2'])
         print('errors', errs)
         print('external', sorted({u.split('/')[2] for u in reqs if u.startswith('http')}))
         await b.close()

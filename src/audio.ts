@@ -16,6 +16,8 @@ export class Audio {
   private crackleT = 0;
   sfxOn = true;
   musicOn = true;
+  /** silenced while an ad plays */
+  private muted = false;
   private tracks: Partial<Record<Exclude<Mode, 'none'>, string>> = {};
   private musicEl: HTMLAudioElement | null = null;
   private musicMode: Mode = 'none';
@@ -104,7 +106,7 @@ export class Audio {
       }, 40);
       this.musicEl = null;
     }
-    if (!src || !this.musicOn || !this.ctx) return;
+    if (!src || !this.musicOn || !this.ctx || this.muted) return;
     const el = new window.Audio(src);
     el.loop = true;
     el.volume = 0;
@@ -115,6 +117,17 @@ export class Audio {
       if (el.volume >= target) clearInterval(up);
     }, 60);
     this.musicEl = el;
+  }
+
+  /** Silences effects and music while an ad plays. */
+  mute(on: boolean) {
+    this.muted = on;
+    if (this.ctx) this.master.gain.value = on ? 0 : 0.9;
+    if (on) this.musicEl?.pause();
+    else if (this.musicOn) {
+      if (this.musicEl) this.musicEl.play().catch(() => undefined);
+      else this.music(this.musicMode, true);
+    }
   }
 
   duck(on: boolean) {
@@ -281,6 +294,11 @@ export class Audio {
         break;
       case 'click':
         this.tone(900, 0.05, 'triangle', 0.1);
+        break;
+      case 'coin':
+        if (!this.limit('coin', 0.06)) return;
+        this.tone(1480, 0.06, 'square', 0.04);
+        this.tone(1980, 0.12, 'triangle', 0.07, 0.05);
         break;
       case 'nozzle':
         this.tone(500, 0.05, 'square', 0.06);

@@ -23,4 +23,13 @@ export const IC = {
   paw: s('<ellipse cx="12" cy="15.5" rx="4.2" ry="3.6" fill="currentColor" stroke="none"/><circle cx="6.5" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="17.5" cy="10" r="1.9" fill="currentColor" stroke="none"/><circle cx="9.5" cy="6.5" r="1.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="6.5" r="1.8" fill="currentColor" stroke="none"/>'),
   rocket: s('<path d="M12 3c3 2 4.5 5 4.5 9l-2 3h-5l-2-3c0-4 1.5-7 4.5-9z"/><path d="M9.5 15l-2 4M14.5 15l2 4M12 16v5"/>'),
   wind: s('<path d="M12 3v18M12 3l-5 6M12 3l5 6"/>'),
+  // coin: two-tone, keeps its own colours
+  coin: '<svg viewBox="0 0 24 24" aria-hidden="true" class="coin"><circle cx="12" cy="12" r="10" fill="#ffb21f"/><circle cx="12" cy="12" r="10" fill="none" stroke="#c9810a" stroke-width="2"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#c9810a" stroke-width="1.6"/><path d="M12 16.6c-2 0-3.2-1.3-3.2-3 0-2 1.7-2.8 2-5 1.5 1 1.7 2 1.7 2.8.5-.4.8-1 .9-1.6 1 .9 1.8 2.1 1.8 3.8 0 1.7-1.2 3-3.2 3z" fill="#fff4d6"/></svg>',
+  ad: s('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/>'),
+  noAds: s('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.2v5.6l4.8-2.8z" fill="currentColor"/><path d="M4 21 20 3" stroke-width="2.6"/>'),
+  coins: s('<ellipse cx="9" cy="16" rx="6" ry="2.6"/><path d="M3 16v2.4c0 1.4 2.7 2.6 6 2.6s6-1.2 6-2.6V16"/><ellipse cx="15" cy="7.5" rx="6" ry="2.6"/><path d="M9 7.5v3c0 1.4 2.7 2.6 6 2.6s6-1.2 6-2.6v-3"/>'),
+  gift: s('<rect x="3.5" y="9" width="17" height="11" rx="1.5"/><path d="M2.5 9h19M12 9v11M12 9c-1-3-5-5-5-2.2S12 9 12 9zM12 9c1-3 5-5 5-2.2S12 9 12 9z"/>'),
+  reel: s('<circle cx="10" cy="12" r="7"/><circle cx="10" cy="12" r="3.4"/><circle cx="10" cy="12" r="0.8" fill="currentColor"/><path d="M17 12h4v5"/>'),
+  gauge: s('<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.2-5.2"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/>'),
+  boot: s('<path d="M7 3h6v8l6.5 3.2c1 .5 1.5 1.3 1.5 2.3V19H4v-3l3-2z"/><path d="M4 16h17M10 7h3M10 10h3"/>'),
 };

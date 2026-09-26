@@ -1,6 +1,9 @@
 import type { Lang, Txt } from './sim/types';
 
 const S = {
+  gameName: { es: '¡Apágalo!', en: 'Put It Out!' },
+  logo: { es: '¡APÁGALO!', en: 'PUT IT OUT!' },
+  pageTitle: { es: '¡Apágalo! · Juego de bomberos', en: 'Put It Out! Firefighter' },
   play: { es: 'JUGAR', en: 'PLAY' },
   continue: { es: 'CONTINUAR', en: 'CONTINUE' },
   levels: { es: 'Niveles', en: 'Levels' },
@@ -101,6 +104,52 @@ const S = {
   credits: { es: 'Hecho por @nocodeboy', en: 'Made by @nocodeboy' },
   privacyNote: { es: 'Guardamos estadísticas anónimas (desactívalas en Ajustes).', en: 'We collect anonymous stats (turn them off in Settings).' },
   privacyPolicy: { es: 'Política de privacidad', en: 'Privacy policy' },
+  // coins, shop and upgrades
+  shop: { es: 'Tienda', en: 'Shop' },
+  coins: { es: 'Monedas', en: 'Coins' },
+  coinsN: { es: '{n} monedas', en: '{n} coins' },
+  double: { es: 'x2', en: 'x2' },
+  doubleAria: { es: 'Mira un anuncio y duplica las monedas', en: 'Watch an ad to double your coins' },
+  upgrades: { es: 'Mejoras', en: 'Upgrades' },
+  up_hose: { es: 'Manguera larga', en: 'Longer hose' },
+  up_hose_d: { es: 'Llega más lejos del camión', en: 'Reach farther from the truck' },
+  up_power: { es: 'Más presión', en: 'Water pressure' },
+  up_power_d: { es: 'Chorro más fuerte y de más alcance', en: 'A stronger jet that reaches farther' },
+  up_speed: { es: 'Botas ligeras', en: 'Light boots' },
+  up_speed_d: { es: 'Corres más rápido', en: 'Run faster' },
+  up_time: { es: 'Más tiempo', en: 'Extra time' },
+  up_time_d: { es: 'Más segundos en cada nivel', en: 'More seconds on every level' },
+  upMax: { es: 'MÁX.', en: 'MAX' },
+  upBuy: { es: 'Mejorar {name} por {n} monedas', en: 'Upgrade {name} for {n} coins' },
+  upgraded: { es: '¡Mejorado!', en: 'Upgraded!' },
+  notEnough: { es: 'Te faltan monedas', en: 'Not enough coins' },
+  noUpgradesNote: { es: 'En el reto diario no cuentan las mejoras: es igual para todos.', en: 'Upgrades are off in the daily challenge, so it’s fair for everyone.' },
+  freeCoins: { es: 'Monedas gratis', en: 'Free coins' },
+  freeCoinsD: { es: '+{n} por anuncio · Quedan {left} hoy', en: '+{n} per ad · {left} left today' },
+  freeTomorrow: { es: 'Vuelve mañana a por más', en: 'Come back tomorrow for more' },
+  watch: { es: 'Ver', en: 'Watch' },
+  purchases: { es: 'Compras', en: 'Store' },
+  p_remove_ads: { es: 'Sin anuncios', en: 'No ads' },
+  p_remove_ads_d: { es: 'Quita los anuncios entre niveles y suma {n} monedas. Los de premio siguen siendo opcionales', en: 'Removes the ads between levels, plus {n} coins. Reward ads stay optional' },
+  p_starter_pack: { es: 'Pack de inicio', en: 'Starter pack' },
+  p_starter_pack_d: { es: '{n} monedas para empezar. Solo una vez', en: '{n} coins to get started. One time only' },
+  p_coins_s: { es: 'Bolsa de monedas', en: 'Bag of coins' },
+  p_coins_m: { es: 'Cofre de monedas', en: 'Chest of coins' },
+  p_coins_l: { es: 'Camión de monedas', en: 'Truckload of coins' },
+  restore: { es: 'Restaurar compras', en: 'Restore purchases' },
+  restored: { es: 'Compras restauradas', en: 'Purchases restored' },
+  restoreNone: { es: 'No hay compras que restaurar', en: 'Nothing to restore' },
+  buyOk: { es: '¡Gracias! Ya es tuyo', en: 'Thanks! It’s all yours' },
+  buyFail: { es: 'La compra no se ha completado', en: 'The purchase didn’t go through' },
+  adFail: { es: 'El anuncio no se ha completado. Prueba más tarde', en: 'The ad didn’t finish. Try again later' },
+  // rewarded continue and one-time offer
+  contTip: { es: 'Aún queda fuego. ¿Quieres {n} segundos más?', en: 'The fire is still burning. Want {n} more seconds?' },
+  contYes: { es: '+{n} s', en: '+{n} s' },
+  contYesAria: { es: 'Mira un anuncio y consigue {n} segundos más', en: 'Watch an ad for {n} more seconds' },
+  contNo: { es: 'No, gracias', en: 'No thanks' },
+  contGo: { es: '¡+{n} s! A por ello', en: '+{n} s! Go, go, go!' },
+  offerTitle: { es: 'Oferta de bienvenida', en: 'Welcome offer' },
+  offerNo: { es: 'Ahora no', en: 'Not now' },
 } satisfies Record<string, Txt>;
 
 export type Key = keyof typeof S;
@@ -116,6 +165,10 @@ export function getLang(): Lang {
 export function detectLang(): Lang {
   const n = (navigator.language || 'es').toLowerCase();
   return n.startsWith('es') || n.startsWith('ca') || n.startsWith('gl') || n.startsWith('eu') ? 'es' : 'en';
+}
+/** Whole numbers in the player's language (1,370 / 1.370). */
+export function num(n: number): string {
+  return n.toLocaleString(lang);
 }
 export function t(k: Key, vars?: Record<string, string | number>): string {
   let s = S[k][lang];

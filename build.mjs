@@ -1,15 +1,17 @@
-// Builds three targets from the same source:
+// Builds four targets from the same source:
 //   dist/web/            public site (Vercel): analytics on, share link, OG image, PWA manifest, privacy page
 //   dist/crazygames/     CrazyGames upload (zip): their SDK, analytics on, no external links
-//   dist/android/        web assets of the Android app (Capacitor): analytics on, native share, back button
+//   dist/android/        web assets of the Android app (Capacitor): analytics on, native share, back button, AdMob and Play Billing
 //   dist/artifact.html   page content for the Claude artifact: analytics off (CSP), share link
-// Usage: node build.mjs [--dev]   (GAME_URL env overrides the public URL)
+// Usage: node build.mjs [--dev]   (GAME_URL env overrides the public URL; CG_ADS=1 turns on CrazyGames ads)
 import { build } from 'esbuild';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
 const VERSION = '1.2.0';
+// CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
+const CG_ADS = process.env.CG_ADS === '1';
 const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
 const ANALYTICS = { url: 'https://exlupbihqexeeyxwmveh.supabase.co', key: 'sb_publishable_oxNSon03m-m9eUhIb50usg_3EPRLg7u' };
 const music = {};
@@ -41,7 +43,7 @@ function copyFonts(out) {
   for (const [, , src, f] of FONT_FILES) copyFileSync(src, `${out}/fonts/${f}`);
 }
 const body = `<div id="app">
-<canvas id="c" aria-label="¡Apágalo!"></canvas>
+<canvas id="c" aria-label="Put It Out!"></canvas>
 <div id="touch"></div>
 <div id="icons"></div>
 <div id="floaters"></div>
@@ -54,7 +56,9 @@ const body = `<div id="app">
 <div id="toast" aria-live="polite"></div>
 <div id="screens"></div>
 </div>`;
-const DESC_ES = 'Eres bombero: coge la manguera y apaga incendios que se extienden con el viento en 6 escenarios y un reto diario. Gratis, en el navegador y en el móvil.';
+// English first (the target market is tier-1 countries); the game switches the tab title to Spanish for Spanish players
+const TITLE = 'Put It Out! Firefighter';
+const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind across 6 scenarios and a new daily challenge. Free, in your browser and on your phone.';
 
 async function bundle(target, gameUrl) {
   const res = await build({
@@ -71,21 +75,22 @@ async function bundle(target, gameUrl) {
       __VERSION__: JSON.stringify(VERSION),
       __GAME_URL__: JSON.stringify(gameUrl),
       __ANALYTICS__: JSON.stringify(target === 'artifact' ? null : ANALYTICS),
+      __CG_ADS__: JSON.stringify(target === 'crazygames' && CG_ADS),
       __PRIVACY_URL__: JSON.stringify(target === 'artifact' ? '' : target === 'web' ? '/privacidad' : `${GAME_URL}/privacidad`),
     },
   });
   return res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 }
 
-function page({ js, headExtra = '', lang = 'es', fontTags = fontsLocal }) {
+function page({ js, headExtra = '', lang = 'en', fontTags = fontsLocal }) {
   return `<!doctype html>
 <html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#162341">
-<title>¡Apágalo! · Juego de bomberos</title>
-<meta name="description" content="${DESC_ES}">
+<title>${TITLE}</title>
+<meta name="description" content="${DESC}">
 ${headExtra}
 ${fontTags}
 <style>${css}</style>
@@ -116,19 +121,20 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="¡Apágalo!">
-<meta property="og:title" content="¡Apágalo! · Juego de bomberos">
-<meta property="og:description" content="${DESC_ES}">
+<meta property="og:site_name" content="Put It Out!">
+<meta property="og:title" content="${TITLE}">
+<meta property="og:description" content="${DESC}">
 <meta property="og:url" content="${GAME_URL}/">
 <meta property="og:image" content="${og}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:locale" content="es_ES">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@nocodeboy">
 <meta name="twitter:creator" content="@nocodeboy">
-<meta name="twitter:title" content="¡Apágalo! · Juego de bomberos">
-<meta name="twitter:description" content="${DESC_ES}">
+<meta name="twitter:title" content="${TITLE}">
+<meta name="twitter:description" content="${DESC}">
 <meta name="twitter:image" content="${og}">`;
   writeFileSync(`${out}/index.html`, page({ js, headExtra: head }));
   copyFonts(out);
@@ -138,15 +144,15 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
     `${out}/manifest.webmanifest`,
     JSON.stringify(
       {
-        name: '¡Apágalo!',
-        short_name: '¡Apágalo!',
-        description: DESC_ES,
+        name: TITLE,
+        short_name: 'Put It Out!',
+        description: DESC,
         start_url: '/',
         display: 'fullscreen',
         orientation: 'any',
         background_color: '#162341',
         theme_color: '#162341',
-        lang: 'es',
+        lang: 'en',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
@@ -188,7 +194,7 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
   for (const f of Object.values(music)) copyFileSync(`assets/${f}`, `${out}/${f}`);
   rmSync('dist/apagalo-crazygames.zip', { force: true });
   execSync(`cd ${out} && zip -qr ../apagalo-crazygames.zip .`);
-  console.log('crazygames zip', kb(readFileSync('dist/apagalo-crazygames.zip').length));
+  console.log('crazygames zip', kb(readFileSync('dist/apagalo-crazygames.zip').length), CG_ADS ? '(ads ON)' : '(ads off)');
 }
 
 // ---------- Android app (Capacitor wraps dist/android) ----------
@@ -206,8 +212,8 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
 // ---------- Claude artifact ----------
 {
   const js = await bundle('artifact', GAME_URL);
-  const artifact = `<title>¡Apágalo!</title>
-<meta name="description" content="${DESC_ES}">
+  const artifact = `<title>${TITLE}</title>
+<meta name="description" content="${DESC}">
 ${fonts}
 <style>${css}</style>
 ${body}

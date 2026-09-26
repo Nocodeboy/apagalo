@@ -1,7 +1,10 @@
-import { initAnalytics, setAnalyticsEnabled, submitDaily, track } from './analytics';
+import { initAnalytics, localeProps, setAnalyticsEnabled, submitDaily, track } from './analytics';
 import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDone, onAndroidBack, platformInit } from './platform';
 import { audio, vibrate } from './audio';
+import { buyUpgrade, claimFreeCoins, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, upgradeOptions, type UpgradeId } from './economy';
 import { detectLang, getLang, setLang, t, tx } from './i18n';
+import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, restorePurchases, showRewarded, storeProducts } from './monetize';
+import type { ProductId } from './monetize/types';
 import { Input } from './input';
 import { Stage, type Tier } from './render/stage';
 import { Bot, SKILL_PRO } from './sim/bot';
@@ -10,11 +13,12 @@ import { DAILY_SALTS } from './sim/dailyTable';
 import { LEVELS } from './sim/levels';
 import { MATS } from './sim/materials';
 import { RESCUE_TYPES } from './sim/parse';
-import { NOZZLES, type LevelDef, type SimEvent, type SimInput } from './sim/types';
+import type { Lang, LevelDef, SimEvent, SimInput } from './sim/types';
 import { Sim, SIM_DT, type Result } from './sim/world';
 import * as store from './storage';
 import type { Settings } from './storage';
 import { Minimap } from './ui/minimap';
+import { shopScreen, starterOffer } from './ui/shop';
 import {
   $,
   banner,
@@ -23,6 +27,7 @@ import {
   setStarLostHandler,
   clearFloaters,
   clearScreens,
+  continueScreen,
   el,
   endScreen,
   floater,
@@ -49,8 +54,10 @@ const TARGET_CG = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'crazygame
 const PRIVACY_URL = typeof __PRIVACY_URL__ !== 'undefined' ? __PRIVACY_URL__ : '';
 const GAME_URL = typeof __GAME_URL__ !== 'undefined' ? __GAME_URL__ : '';
 let dailyRank: { players: number; below: number } | null = null;
+/** Seconds added by the rewarded continue when time runs out. */
+const CONTINUE_SECS = 30;
 
-type Mode = 'attract' | 'intro' | 'play' | 'paused' | 'end';
+type Mode = 'attract' | 'intro' | 'play' | 'paused' | 'offer' | 'end';
 
 const canvas = $<HTMLCanvasElement>('#c');
 const stage = new Stage(canvas);
@@ -76,9 +83,14 @@ let minimap: Minimap | null = null;
 let playStart = 0;
 let wakeLock: { release: () => Promise<void> } | null = null;
 const flags = { flares: 0, overheat: 0, hose: false, rocket: false };
+/** rewarded +30 s in this attempt: offered once, and whether the player took it */
+let continueState: 'none' | 'offered' | 'taken' = 'none';
+/** an ad is on screen: the loop and the audio are paused */
+let adBusy = false;
+const firstSession = save.firstOpen;
 
 // ---------- boot ----------
-setLang(save.settings.lang ?? detectLang());
+applyLang(save.settings.lang ?? detectLang());
 audio.setSfx(save.settings.sfx);
 audio.musicOn = save.settings.music;
 try {
@@ -98,7 +110,7 @@ platformInit().finally(() => {
   // CrazyGames: progress lives in the SDK Data module (synced to the player's account)
   const kv = cloudStore();
   if (kv && store.useCloud(kv)) {
-    setLang(save.settings.lang ?? detectLang());
+    applyLang(save.settings.lang ?? detectLang());
     audio.setSfx(save.settings.sfx);
     audio.musicOn = save.settings.music;
     stage.setTier(effectiveTier());
@@ -114,13 +126,18 @@ platformInit().finally(() => {
   };
   requestAnimationFrame(done);
   setTimeout(done, 400);
+  // ads and store after the portal SDK is ready; restored purchases may change the balance
+  initMonetize({ firstSession, onPause: adPause }).then(() => {
+    if (document.querySelector('#screens .title-screen')) showTitle();
+    else refreshShop();
+  });
 });
 if (save.firstOpen) {
-  track('first_open', { lang: getLang() });
+  track('first_open', { lang: getLang(), ...localeProps() });
   save.firstOpen = false;
   store.save();
 }
-track('session_start', { stars: store.totalStars() });
+track('session_start', { stars: store.totalStars(), ...localeProps() });
 initHud();
 setStarLostHandler(() => {
   audio.play('starLost');
@@ -128,13 +145,15 @@ setStarLostHandler(() => {
 });
 input.onPause = pauseGame;
 input.onNozzle = setNozzle;
-// Android back: pause while playing, otherwise the screen's own back/resume/menu button; on the title, leave
+// Android back: pause while playing, otherwise the top screen's own back/resume/menu button; on the title, leave
 onAndroidBack(() => {
+  if (adBusy) return;
   if (mode === 'play') {
     pauseGame();
     return;
   }
-  const btn = document.querySelector<HTMLElement>('#screens [data-a=back], #screens [data-a=resume], #screens [data-a=menu]');
+  const top = document.querySelector('#screens > .screen:last-child');
+  const btn = top?.querySelector<HTMLElement>('[data-a=back], [data-a=resume], [data-a=decline], [data-a=menu]');
   if (btn) btn.click();
   else if (mode === 'attract') exitApp(); // title screen
 });
@@ -155,6 +174,19 @@ showTitle();
 requestAnimationFrame(frame);
 
 // ---------- helpers ----------
+/** Language, plus the texts outside the screens (tab title, canvas label). */
+function applyLang(l: Lang) {
+  setLang(l);
+  document.title = t('pageTitle');
+  canvas.setAttribute('aria-label', t('gameName'));
+}
+/** Around every ad: silence, stop the loop and tell the portal the game is not being played. */
+function adPause(on: boolean) {
+  adBusy = on;
+  audio.mute(on);
+  if (on) gameplayStop();
+  last = performance.now();
+}
 function initHud() {
   buildHud(pauseGame, setNozzle);
   minimap = new Minimap($<HTMLCanvasElement>('#minimap'));
@@ -231,6 +263,7 @@ function showTitle() {
     dailyNum: d.num,
     dailyDone: done,
     streak: save.streak.last === d.key || isYesterday(save.streak.last) ? save.streak.count : 0,
+    coins: save.coins,
     // CrazyGames: games that collect their own data must show a privacy notice to new players
     privacyUrl: TARGET_CG && PRIVACY_URL && save.settings.stats !== false && !anyStars ? PRIVACY_URL : undefined,
     onPlay: () => {
@@ -251,7 +284,75 @@ function showTitle() {
       audio.play('click');
       showSettings();
     },
+    onShop: () => {
+      audio.play('click');
+      showShop('title');
+    },
   });
+}
+
+// ---------- shop ----------
+let shopFrom: 'title' | 'end' = 'title';
+
+function showShop(from: 'title' | 'end') {
+  shopFrom = from;
+  track('shop_open', { from });
+  renderShop();
+  if (canReward() && freeCoinsLeft(save, dayKey()) > 0) adOffered('free_coins');
+}
+
+function renderShop() {
+  const today = dayKey();
+  shopScreen({
+    coins: save.coins,
+    upgrades: save.upgrades,
+    free: canReward() ? { left: freeCoinsLeft(save, today), amount: FREE_COINS } : null,
+    products: hasStore() ? storeProducts().filter((p) => !(isNonConsumable(p.id) && save.owned[p.id])) : null,
+    onUpgrade: (id: UpgradeId) => {
+      const cost = buyUpgrade(save, id);
+      if (!cost) return;
+      store.save();
+      track('coins_spend', { item: `up_${id}`, n: cost });
+      track('upgrade', { id, lvl: save.upgrades[id] });
+      audio.play('star', save.upgrades[id] - 1);
+      toast(t('upgraded'), 'good', 1400);
+      renderShop();
+    },
+    onFree: async () => {
+      if (await showRewarded('free_coins')) {
+        const n = claimFreeCoins(save, today);
+        store.save();
+        track('coins_earn', { src: 'free', n });
+        audio.play('coin');
+        toast(`+${n}`, 'good', 1400);
+      } else toast(t('adFail'), 'warn');
+      refreshShop();
+    },
+    onBuy: async (id: ProductId) => {
+      const n = await buy(id);
+      if (n === null) toast(t('buyFail'), 'warn');
+      else {
+        audio.play('coin');
+        toast(t('buyOk'), 'good');
+      }
+      refreshShop();
+    },
+    onRestore: async () => {
+      const ids = await restorePurchases();
+      toast(ids.length ? t('restored') : t('restoreNone'), ids.length ? 'good' : '');
+      refreshShop();
+    },
+    onBack: () => {
+      audio.play('click');
+      if (shopFrom === 'end' && sim?.result) renderEnd(true);
+      else showTitle();
+    },
+  });
+}
+
+/** After an ad or a purchase: redraw the shop if the player is still on it. */
+function refreshShop() {
+  if (document.querySelector('#screens .shop-screen')) renderShop();
 }
 
 function isYesterday(key: string): boolean {
@@ -306,8 +407,8 @@ function showSettings() {
         stage.setTier(effectiveTier());
         fps.t = fps.n = fps.slow = fps.fast = 0;
       } else if (k === 'lang') {
-        st.lang = v as 'es' | 'en';
-        setLang(st.lang);
+        st.lang = v as Lang;
+        applyLang(st.lang);
         initHud();
         store.save();
         showSettings();
@@ -343,6 +444,7 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   flags.overheat = 0;
   flags.hose = false;
   flags.rocket = false;
+  continueState = 'none';
   timeScale = slowTarget = 1;
   slowHold = 0;
   minimap?.setSim(sim);
@@ -354,15 +456,21 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   }
 }
 
+/** Levels are played with the player's upgrades (never the daily: its ranking is shared). */
+function levelOpts() {
+  return upgradeOptions(save.upgrades);
+}
+
 function openLevel(i: number) {
   const L = LEVELS[i];
   current = { kind: 'level', index: i };
-  prepare(L);
+  prepare(L, levelOpts());
   introScreen({
     def: L,
     eyebrow: `${t('level')} ${L.num}`,
     title: tx(L.name),
     tip: tx(L.tip),
+    time: sim!.timeLeft,
     wind: L.wind,
     hasRescues: sim!.rescuees.length > 0,
     onGo: () => startPlay(),
@@ -376,23 +484,25 @@ function openLevel(i: number) {
 
 function quickStart(i: number) {
   current = { kind: 'level', index: i };
-  prepare(LEVELS[i]);
+  prepare(LEVELS[i], levelOpts());
   startPlay();
 }
 
 function openDaily() {
   const d = todayDaily();
   current = { kind: 'daily', daily: d };
-  prepare(d.def, d.opts, !!d.def.night);
+  prepare(d.def, d.opts, !!d.def.night); // no upgrades: same challenge for everyone
   const rec = save.daily[d.key];
   introScreen({
     def: d.def,
     eyebrow: `${t('daily')} · ${tx(LEVELS.find((l) => l.theme === d.def.theme)!.name)}`,
     title: t('dailyTitle', { n: d.num }),
     tip: rec ? t('dailyPlayed', { s: rec.score.toLocaleString() }) : `${tx(d.mod.label)} · ${tx(LEVELS.find((l) => l.theme === d.def.theme)!.tip)}`,
+    time: sim!.timeLeft,
     wind: d.opts.windOverride ?? d.def.wind,
     hasRescues: sim!.rescuees.length > 0,
     extra: `<span class="pill">⚡ ${tx(d.mod.label)}</span>`,
+    note: hasUpgrades(save.upgrades) ? t('noUpgradesNote') : undefined,
     onGo: () => startPlay(),
     onBack: () => {
       audio.play('click');
@@ -478,7 +588,7 @@ function pauseGame() {
 function retry() {
   if (!current) return;
   if (current.kind === 'level') {
-    prepare(LEVELS[current.index]);
+    prepare(LEVELS[current.index], levelOpts());
   } else {
     prepare(current.daily.def, current.daily.opts, !!current.daily.def.night);
   }
@@ -512,7 +622,7 @@ function buildInput(s: Sim): SimInput {
   if (rec.driver) return rec.driver.update();
   const p = s.player;
   const inp: SimInput = { mx: input.moveX, mz: input.moveY, ax: 0, az: 0, aimDist: 0, spray: input.spray, nozzle: input.nozzle };
-  const nz = NOZZLES[input.nozzle];
+  const maxR = s.nozzleRange(input.nozzle);
   if (input.mode === 'mouse') {
     if (input.mouseX >= 0) {
       const g = stage.toGround(input.mouseX, input.mouseY);
@@ -531,7 +641,7 @@ function buildInput(s: Sim): SimInput {
     let ax = input.aimMag > 0 ? input.aimX : p.aimX;
     let az = input.aimMag > 0 ? input.aimY : p.aimZ;
     // aim assist: snap range (and gently the angle) to the flames in the cone
-    const tgt = s.findAimTarget(ax, az, nz.maxR, Math.cos((24 * Math.PI) / 180));
+    const tgt = s.findAimTarget(ax, az, maxR, Math.cos((24 * Math.PI) / 180));
     if (tgt) {
       const dx = tgt.x - p.x;
       const dz = tgt.z - p.z;
@@ -545,7 +655,7 @@ function buildInput(s: Sim): SimInput {
     } else {
       inp.ax = ax;
       inp.az = az;
-      inp.aimDist = nz.maxR * (input.aimMag > 0 ? 0.45 + 0.55 * input.aimMag : 1);
+      inp.aimDist = maxR * (input.aimMag > 0 ? 0.45 + 0.55 * input.aimMag : 1);
     }
   }
   return inp;
@@ -668,18 +778,61 @@ function handleEvent(ev: SimEvent) {
       break;
     case 'lose':
       audio.play('lose');
-      finishSoon();
+      if (canContinue()) offerContinue();
+      else finishSoon();
       break;
   }
 }
 
-function finishSoon() {
+/** Time ran out in a level (never the daily: its ranking is shared) and a rewarded ad is ready. */
+function canContinue(): boolean {
+  return current?.kind === 'level' && continueState === 'none' && sim?.result?.reason === 'time' && canReward();
+}
+
+function offerContinue() {
+  const s = sim!;
+  continueState = 'offered';
+  mode = 'offer';
+  gameplayStop();
+  input.enabled = false;
+  input.reset();
+  audio.loops(false, 0, 0, 0);
+  adOffered('continue_time');
+  continueScreen({
+    eyebrow: `${t('level')} ${s.def.num} · ${tx(s.def.name)}`,
+    secs: CONTINUE_SECS,
+    onYes: async () => {
+      const ok = await showRewarded('continue_time');
+      if (ok && sim === s && s.continueWithTime(CONTINUE_SECS)) {
+        continueState = 'taken';
+        clearScreens();
+        mode = 'play';
+        gameplayStart();
+        input.enabled = true;
+        input.reset();
+        acc = 0;
+        toast(t('contGo', { n: CONTINUE_SECS }), 'good');
+        return;
+      }
+      if (!ok) toast(t('adFail'), 'warn');
+      if (sim === s) finishSoon(true);
+    },
+    onNo: () => {
+      audio.play('click');
+      finishSoon(true);
+    },
+  });
+}
+
+/** The level is over: save it now and show the end screen after the banner (right away after the continue offer). */
+function finishSoon(afterOffer = false) {
   const s = sim!;
   const r = s.result;
-  endTimer = 2.3;
+  endTimer = afterOffer ? 0.5 : 2.3;
   mode = 'end';
   gameplayStop();
   commitResult();
+  if (afterOffer) clearScreens();
   if (r?.win) {
     banner(t('bannerWin'), 'win');
     if (!stage.reducedMotion) {
@@ -689,7 +842,7 @@ function finishSoon() {
       stage.zoomTarget = 0.82;
     }
   } else {
-    banner(r?.reason === 'time' ? t('bannerTime') : t('bannerLost'), 'lose');
+    if (!afterOffer) banner(r?.reason === 'time' ? t('bannerTime') : t('bannerLost'), 'lose');
     const fc = fireCentroid(s);
     if (fc && !stage.reducedMotion) {
       stage.focus = fc;
@@ -707,7 +860,7 @@ function shareFor(r: Result): string {
     const v = r.saved * 5 - i;
     return v >= 1 ? '🟩' : v > 0.5 ? '🟨' : v > 0 ? '🟧' : '⬛';
   }).join('');
-  const head = current?.kind === 'daily' ? `¡Apágalo! 🚒 ${t('dailyTitle', { n: current.daily.num })}` : `¡Apágalo! 🚒 ${t('level')} ${sim!.def.num} · ${tx(sim!.def.name)}`;
+  const head = `${t('gameName')} 🚒 ${current?.kind === 'daily' ? t('dailyTitle', { n: current.daily.num }) : `${t('level')} ${sim!.def.num} · ${tx(sim!.def.name)}`}`;
   const animals = r.rescueTotal ? ` · 🐾 ${r.rescueTotal - r.fled}/${r.rescueTotal}` : '';
   const rank = current?.kind === 'daily' && dailyRank && dailyRank.players > 1 ? ` · 🏆 Top ${Math.max(1, 100 - rankPct(dailyRank))}%` : '';
   return `${head}\n${stars} ${Math.round(r.saved * 100)}% ${t('saved').toLowerCase()} · ⏱ ${fmtTime(r.timeUsed)}${animals}\n${blocks}${rank}${GAME_URL ? '\n' + GAME_URL : ''}`;
@@ -724,6 +877,11 @@ interface EndInfo {
   footer?: string;
   hasNext: boolean;
   unlockedNext: number | null;
+  /** coins earned (doubled after the rewarded x2) */
+  coins: number;
+  doubled: boolean;
+  /** the player already saw an ad or an offer on this end screen: no interstitial when leaving */
+  adSeen: boolean;
 }
 let endInfo: EndInfo | null = null;
 
@@ -736,7 +894,9 @@ function commitResult() {
   const s = sim!;
   const r = s.result!;
   const dur = Math.round((performance.now() - playStart) / 1000);
-  const info: EndInfo = { best: 0, newBest: false, eyebrow: '', hasNext: false, unlockedNext: null };
+  // a +30 s ad in this attempt counts as this transition's ad: never an interstitial right after it
+  const info: EndInfo = { best: 0, newBest: false, eyebrow: '', hasNext: false, unlockedNext: null, coins: levelCoins(r), doubled: false, adSeen: continueState === 'taken' };
+  const cont: { cont?: boolean } = continueState === 'taken' ? { cont: true } : {};
   if (current?.kind === 'level') {
     const id = s.def.id;
     const idx = current.index;
@@ -753,11 +913,12 @@ function commitResult() {
     info.best = save.best[id] ?? 0;
     info.hasNext = idx < LEVELS.length - 1;
     if (nextWasLocked && unlocked(idx + 1)) info.unlockedNext = idx + 2;
-    track(r.win ? 'level_complete' : 'level_fail', { level: id, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur });
+    track(r.win ? 'level_complete' : 'level_fail', { level: id, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur, ...cont });
   } else if (current?.kind === 'daily') {
     const d = current.daily;
     info.eyebrow = t('dailyTitle', { n: d.num });
     const prev = save.daily[d.key];
+    if (!prev) info.coins = dailyCoins(r); // today's daily reward, once; replays pay like a level
     if (!prev || r.score > prev.score) {
       info.newBest = !!prev && r.win;
       save.daily[d.key] = { score: r.score, stars: r.stars, saved: r.saved, time: r.timeUsed, win: r.win };
@@ -778,14 +939,16 @@ function commitResult() {
     });
     track(r.win ? 'daily_complete' : 'daily_fail', { num: d.num, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), mod: d.mod.key, dur });
   }
+  save.coins += info.coins;
+  track('coins_earn', { src: current?.kind ?? 'level', n: info.coins });
+  noteLevelEnd();
   store.save();
   endInfo = info;
 }
 
 function showEnd() {
-  const s = sim!;
-  const r = s.result!;
-  const info = endInfo ?? { best: 0, newBest: false, eyebrow: '', hasNext: false, unlockedNext: null };
+  const r = sim!.result!;
+  const info = endInfo!;
   mode = 'end';
   gameplayStop();
   if (r.win && r.stars === 3) happytime();
@@ -803,6 +966,17 @@ function showEnd() {
       }
     }, 1700);
   }
+  renderEnd(false);
+  maybeStarterOffer();
+}
+
+/** End screen. `instant` when coming back from the shop: no animations and nothing granted again. */
+function renderEnd(instant: boolean) {
+  const s = sim!;
+  const r = s.result!;
+  const info = endInfo!;
+  const canDouble = !info.doubled && info.coins > 0 && canReward();
+  if (canDouble && !instant) adOffered('double_coins');
   endScreen({
     r,
     eyebrow: info.eyebrow,
@@ -812,25 +986,85 @@ function showEnd() {
     footer: info.footer,
     shareText: () => shareFor(r),
     extraHtml: current?.kind === 'daily' ? `<div id="end-rank" class="rank"${dailyRank ? '' : ' hidden'}>${dailyRank ? rankText(dailyRank) : ''}</div>` : '',
-    onNext: () => {
+    coins: info.coins,
+    balance: save.coins,
+    canDouble,
+    instant,
+    onNext: () =>
+      leaveEnd(() => {
+        if (current?.kind === 'level') openLevel(current.index + 1);
+      }),
+    onRetry: () => leaveEnd(retry),
+    onMenu: () =>
+      leaveEnd(() => {
+        startAttract();
+        showTitle();
+      }),
+    onShop: () => {
       audio.play('click');
-      if (current?.kind === 'level') openLevel(current.index + 1);
+      showShop('end');
     },
-    onRetry: () => {
-      audio.play('click');
-      retry();
-    },
-    onMenu: () => {
-      audio.play('click');
-      startAttract();
-      showTitle();
+    onDouble: async () => {
+      info.adSeen = true;
+      if (!(await showRewarded('double_coins'))) {
+        toast(t('adFail'), 'warn');
+        return null;
+      }
+      save.coins += info.coins;
+      track('coins_earn', { src: 'x2', n: info.coins });
+      info.coins *= 2;
+      info.doubled = true;
+      store.save();
+      return { coins: info.coins, balance: save.coins };
     },
     onShared: () => track('share', { level: s.def.id, stars: r.stars }),
     onStar: (i) => {
       audio.play('star', i);
       if (save.settings.vibration) vibrate(15);
     },
+    onCoin: () => audio.play('coin'),
   });
+}
+
+let leaving = false;
+/** Next / Retry / Menu from the end screen, with the interstitial in between when it is due. */
+async function leaveEnd(go: () => void) {
+  if (leaving || adBusy) return;
+  leaving = true;
+  audio.play('click');
+  if (!endInfo?.adSeen) await maybeInterstitial();
+  leaving = false;
+  go();
+}
+
+/** One-time starter pack offer over the end screen, after the player's 2nd completed level (store only). */
+function maybeStarterOffer() {
+  const info = endInfo!;
+  const product = storeProducts().find((p) => p.id === 'starter_pack');
+  const completed = LEVELS.filter((L) => save.stars[L.id]).length;
+  if (current?.kind !== 'level' || !sim?.result?.win || completed < 2 || save.starterOffered || save.owned.starter_pack || !product?.price) return;
+  const price = product.price;
+  setTimeout(() => {
+    // still on this end screen, with nothing on top of it
+    if (endInfo !== info || adBusy || !document.querySelector('#screens > .end-screen:last-child')) return;
+    save.starterOffered = true;
+    store.save();
+    info.adSeen = true;
+    track('offer_show', { id: 'starter_pack' });
+    starterOffer({
+      price,
+      onBuy: async () => {
+        const n = await buy('starter_pack');
+        if (n === null) toast(t('buyFail'), 'warn');
+        else {
+          audio.play('coin');
+          toast(t('buyOk'), 'good');
+        }
+        if (endInfo === info && mode === 'end') renderEnd(true);
+      },
+      onClose: () => audio.play('click'),
+    });
+  }, 2600);
 }
 
 // ---------- main loop ----------
@@ -910,7 +1144,7 @@ function frame(now: number) {
   last = now;
   if (dt > 0.1) dt = 0.1;
   if (dt < 0) dt = 0;
-  if (rec.manual) return;
+  if (rec.manual || adBusy) return;
   adaptQuality(raw);
   tick(dt);
 }
@@ -1028,6 +1262,10 @@ void RESCUE_TYPES;
   },
   get input() {
     return input;
+  },
+  /** live save (coins, upgrades, ad counters) */
+  get save() {
+    return save;
   },
   get info() {
     const r = stage.renderer.info;

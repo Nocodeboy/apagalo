@@ -82,6 +82,11 @@ export interface SimOptions {
   hoseDelta?: number;
   windOverride?: { angle: number; strength: number };
   extraFires?: number[];
+  /** Upgrades (see src/economy.ts): multipliers on water power, nozzle reach and run speed, and extra seconds. */
+  powerMul?: number;
+  reachMul?: number;
+  speedMul?: number;
+  timeDelta?: number;
 }
 
 export class Sim {
@@ -121,6 +126,9 @@ export class Sim {
   hoseLen: number;
   foamLeft: number;
   foamMax: number;
+  readonly powerMul: number;
+  readonly reachMul: number;
+  readonly speedMul: number;
   windAngle = 0;
   windStrength = 0;
   windX = 0;
@@ -191,8 +199,11 @@ export class Sim {
     for (const i of p.burning) this.fire[i] = 0.7;
     for (const i of opts.extraFires ?? []) this.fire[i] = 0.7;
 
-    this.timeLeft = def.time;
+    this.timeLeft = def.time + (opts.timeDelta ?? 0);
     this.hoseLen = def.hose + (opts.hoseDelta ?? 0);
+    this.powerMul = opts.powerMul ?? 1;
+    this.reachMul = opts.reachMul ?? 1;
+    this.speedMul = opts.speedMul ?? 1;
     this.foamMax = def.foam ?? 0;
     this.foamLeft = this.foamMax;
     const w = opts.windOverride ?? def.wind;
@@ -314,6 +325,20 @@ export class Sim {
     return false;
   }
 
+  /** Maximum reach of a nozzle, including the pressure upgrade. */
+  nozzleRange(n: 0 | 1 | 2): number {
+    return NOZZLES[n].maxR * this.reachMul;
+  }
+
+  /** Rewarded continue: reopens a level that just ran out of time, with `sec` seconds on the clock. */
+  continueWithTime(sec: number): boolean {
+    if (this.state !== 'lost' || this.result?.reason !== 'time') return false;
+    this.state = 'play';
+    this.result = null;
+    this.timeLeft = sec;
+    return true;
+  }
+
   /** Aim assist: distance to the best burning cell inside a cone. */
   findAimTarget(dirX: number, dirZ: number, maxR: number, coneCos = 0.93): { d: number; x: number; z: number } | null {
     const p = this.player;
@@ -395,7 +420,7 @@ export class Sim {
       } else p.nozzle = inp.nozzle;
     }
     const nz = NOZZLES[p.nozzle];
-    const sp = SPEED * (p.spraying ? nz.slow : 1);
+    const sp = SPEED * this.speedMul * (p.spraying ? nz.slow : 1);
     const k = 1 - Math.exp(-14 * dt);
     p.vx += (mx * sp - p.vx) * k;
     p.vz += (mz * sp - p.vz) * k;
@@ -538,7 +563,8 @@ export class Sim {
     while (this.emitAcc >= 1) {
       this.emitAcc -= 1;
       const ang = baseAng + (this.rng.next() - 0.5) * 2 * nz.spread;
-      let d = p.aimDist > 0 ? Math.min(nz.maxR, Math.max(nz.minR, p.aimDist)) : nz.maxR;
+      const maxR = nz.maxR * this.reachMul;
+      let d = p.aimDist > 0 ? Math.min(maxR, Math.max(nz.minR, p.aimDist)) : maxR;
       d *= p.nozzle === 1 ? this.rng.range(0.4, 1.0) : this.rng.range(0.95, 1.05);
       const vh = nz.vh * (p.nozzle === 1 ? this.rng.range(0.8, 1.1) : 1);
       const y0 = 1.05;
@@ -546,7 +572,7 @@ export class Sim {
       const vy = (GRAV * T * T * 0.5 - y0) / T;
       const c = Math.cos(ang);
       const s = Math.sin(ang);
-      this.drops.push({ x: p.x + c * 0.55, y: y0, z: p.z + s * 0.55, vx: c * vh, vy, vz: s * vh, pow: nz.pow, kind: p.nozzle });
+      this.drops.push({ x: p.x + c * 0.55, y: y0, z: p.z + s * 0.55, vx: c * vh, vy, vz: s * vh, pow: nz.pow * this.powerMul, kind: p.nozzle });
     }
   }
 

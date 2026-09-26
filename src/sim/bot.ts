@@ -1,6 +1,6 @@
 import { MATS } from './materials';
 import { RESCUE_TYPES } from './parse';
-import { NOZZLES, type SimInput } from './types';
+import type { SimInput } from './types';
 import type { Sim } from './world';
 
 export interface BotSkill {
@@ -372,7 +372,7 @@ export class Bot {
         const z = Math.floor(g.cell / W) + 0.5;
         const oil = MATS[s.mat[g.cell]].oil;
         const noz: 0 | 1 | 2 = oil && s.foamLeft > 0 ? 2 : fogging ? 1 : 0;
-        const range = NOZZLES[noz].maxR - 0.8;
+        const range = s.nozzleRange(noz) - 0.8;
         const d = Math.hypot(x - p.x, z - p.z);
         if (s.fire[g.cell] <= 0) {
           this.t = 0;

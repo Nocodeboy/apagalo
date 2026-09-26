@@ -1,3 +1,4 @@
+import type { Owned, UpgradeLevels } from './economy';
 import type { Lang } from './sim/types';
 
 export interface Settings {
@@ -20,6 +21,17 @@ export interface DailyRecord {
   time: number;
   win: boolean;
 }
+/** Ad frequency bookkeeping (see src/monetize/index.ts). */
+export interface AdCounters {
+  /** day (yyyy-mm-dd) of the free-coins claims and how many were claimed that day */
+  freeDay: string;
+  freeClaims: number;
+  /** Date.now() of the last interstitial */
+  lastInterstitial: number;
+  /** level ends in total and since the last interstitial */
+  levelEnds: number;
+  sinceInterstitial: number;
+}
 export interface Save {
   v: 1;
   stars: Record<string, number>;
@@ -30,6 +42,13 @@ export interface Save {
   tutorialDone: boolean;
   firstOpen: boolean;
   seenTips: string[];
+  coins: number;
+  upgrades: UpgradeLevels;
+  /** non-consumable purchases */
+  owned: Owned;
+  ads: AdCounters;
+  /** the one-time starter pack offer was shown */
+  starterOffered: boolean;
 }
 
 const KEY = 'apagalo.v1';
@@ -45,6 +64,25 @@ function fresh(): Save {
     tutorialDone: false,
     firstOpen: true,
     seenTips: [],
+    coins: 0,
+    upgrades: { hose: 0, power: 0, speed: 0, time: 0 },
+    owned: { remove_ads: false, starter_pack: false },
+    ads: { freeDay: '', freeClaims: 0, lastInterstitial: 0, levelEnds: 0, sinceInterstitial: 0 },
+    starterOffered: false,
+  };
+}
+
+/** Fills in what older saves (or the portal copy from an older version) do not have. */
+function normalize(s: Partial<Save>): Save {
+  const f = fresh();
+  return {
+    ...f,
+    ...s,
+    settings: { ...f.settings, ...s.settings },
+    upgrades: { ...f.upgrades, ...s.upgrades },
+    owned: { ...f.owned, ...s.owned },
+    ads: { ...f.ads, ...s.ads },
+    coins: Number.isFinite(s.coins) ? Math.max(0, Math.floor(s.coins!)) : 0,
   };
 }
 
@@ -53,10 +91,7 @@ let mem: Save = fresh();
 export function load(): Save {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const s = JSON.parse(raw) as Save;
-      mem = { ...fresh(), ...s, settings: { ...fresh().settings, ...s.settings } };
-    }
+    if (raw) mem = normalize(JSON.parse(raw) as Partial<Save>);
   } catch {
     /* private mode or blocked storage: keep in memory */
   }
@@ -85,12 +120,10 @@ export function useCloud(kv: KV): boolean {
   }
   if (raw) {
     try {
-      const s = JSON.parse(raw) as Save;
+      const merged = normalize(JSON.parse(raw) as Partial<Save>);
       const before = JSON.stringify(mem);
-      const settings = { ...fresh().settings, ...s.settings };
-      const merged = { ...fresh(), ...s };
       Object.assign(mem, merged, { settings: mem.settings });
-      Object.assign(mem.settings, settings);
+      Object.assign(mem.settings, merged.settings);
       try {
         localStorage.setItem(KEY, JSON.stringify(mem));
       } catch {
@@ -123,11 +156,10 @@ export function data(): Save {
   return mem;
 }
 
+/** Clears the progress (stars, records, coins, upgrades). Settings, purchases and ad counters stay. */
 export function reset() {
-  const settings = mem.settings;
-  mem = fresh();
-  mem.settings = settings;
-  mem.firstOpen = false;
+  const { settings, owned, ads, starterOffered } = mem;
+  mem = { ...fresh(), settings, owned, ads, starterOffered, firstOpen: false };
   save();
 }
 

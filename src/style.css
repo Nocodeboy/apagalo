@@ -1197,3 +1197,277 @@ p {
   box-shadow: 0 3px 0 #b8a820;
   animation: pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
+
+/* ---------- coins, shop and offers ---------- */
+.logo h1.long {
+  font-size: clamp(44px, 14vw, 96px);
+}
+@media (max-height: 520px) {
+  .logo h1.long {
+    font-size: 48px;
+  }
+}
+.wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 6px 0 8px;
+  border-radius: 99px;
+  background: rgba(13, 21, 40, 0.82);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), inset 0 0 0 2px rgba(255, 178, 31, 0.35);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.wallet svg.coin {
+  width: 26px;
+  height: 26px;
+}
+.wallet .plus {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: 0 2px 0 var(--amber-d);
+}
+.wallet:active {
+  transform: translateY(2px);
+}
+.wallet.static {
+  padding-right: 12px;
+}
+.title-screen > .wallet {
+  position: absolute;
+  top: calc(12px + var(--safe-t));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 1;
+}
+@media (max-aspect-ratio: 1/1) {
+  .logo {
+    margin-top: max(4vh, 48px);
+  }
+}
+/* big button whose label has lowercase units ("+30 s"): Bungee only has capitals */
+.btn.big.ui-font {
+  font-family: var(--ui);
+  font-weight: 800;
+}
+.btn.sm {
+  min-height: 44px;
+  padding: 0 14px;
+  gap: 6px;
+  font-size: 18px;
+  border-radius: 14px;
+}
+.btn.sm svg {
+  width: 22px;
+  height: 22px;
+}
+.btn.sm svg.coin {
+  width: 20px;
+  height: 20px;
+}
+.btn[disabled] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.coinbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  background: var(--navy-2);
+  border-radius: 12px;
+  padding: 8px 10px 8px 12px;
+}
+.coinbox .earn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-family: var(--display);
+  font-size: 26px;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+}
+.coinbox .earn svg {
+  width: 28px;
+  height: 28px;
+}
+.coinbox .wallet {
+  gap: 4px;
+  padding: 0 5px 0 6px;
+  font-size: 16px;
+  min-height: 38px;
+}
+.coinbox .wallet svg.coin,
+.coinbox .wallet .plus {
+  width: 22px;
+  height: 22px;
+}
+.note {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* end screen in two columns on short landscape screens (phones sideways), so the coins and Next stay in view */
+.end-col {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+@media (max-height: 520px) and (min-aspect-ratio: 4/3) {
+  .end-screen .panel {
+    width: min(760px, 100%);
+  }
+  .end-screen .panel-body {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .end-col {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .end-screen .end-title {
+    font-size: 30px;
+  }
+  .end-screen .bigstars {
+    font-size: 44px;
+  }
+  .end-screen .bigstars span:nth-child(2) {
+    font-size: 54px;
+  }
+}
+
+/* shop */
+.shop .panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--navy);
+  padding-bottom: 10px;
+}
+.shop .panel-body {
+  gap: 10px;
+}
+.shop .eyebrow {
+  margin-top: 4px;
+}
+.shop-row {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  background: var(--navy-2);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+.shop-row .ico svg {
+  width: 30px;
+  height: 30px;
+  color: var(--amber);
+}
+.shop-row .info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+.shop-row .info b {
+  font-size: 17px;
+}
+.shop-row .info small {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a9b6cf;
+}
+.lvl-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.pips i {
+  width: 14px;
+  height: 7px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.pips i.on {
+  background: var(--amber);
+}
+.lvl-line .val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--amber);
+}
+.shop-row .buy {
+  min-width: 88px;
+}
+.shop-row .buy.poor {
+  filter: grayscale(0.7);
+  opacity: 0.7;
+}
+.maxed {
+  min-width: 88px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--good);
+}
+.linkbtn {
+  align-self: center;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: #7fd6ff;
+  text-decoration: underline;
+}
+@media (max-width: 360px) {
+  .shop .panel-body,
+  .shop .panel-head {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .shop-row {
+    grid-template-columns: 28px 1fr auto;
+    gap: 8px;
+  }
+  .shop-row .ico svg {
+    width: 26px;
+    height: 26px;
+  }
+  .shop-row .buy,
+  .maxed {
+    min-width: 0;
+  }
+}
+
+/* one-time offer */
+.offer-coins {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-size: 46px;
+  color: var(--amber);
+  text-shadow: 0 4px 0 var(--amber-d);
+}
+.offer-coins svg {
+  width: 52px;
+  height: 52px;
+}

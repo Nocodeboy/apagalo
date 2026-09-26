@@ -45,6 +45,17 @@ export function installId(): string {
   return install;
 }
 
+/** Device language and time zone: tell tier-1 players apart (approximate region) without personal data. */
+export function localeProps(): Props {
+  let tz = '';
+  try {
+    tz = Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+  } catch {
+    /* old browsers */
+  }
+  return { loc: navigator.language || '', tz };
+}
+
 export function initAnalytics() {
   session = Math.random().toString(36).slice(2, 12);
   started = Date.now();
@@ -80,9 +91,10 @@ export function track(event: string, props: Props = {}) {
   if (queue.length >= 20) flush();
 }
 
-// local files / dev servers never report (keeps tests and screenshots out of the numbers)
+// local files / dev servers and test sessions with fake ads never report (keeps tests and screenshots out of the numbers)
 // (the Android app is also served from https://localhost, but it is a real player)
-const LOCAL = TARGET !== 'android' && (location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname));
+const LOCAL =
+  TARGET !== 'android' && (location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || /[?&]fakeads=/.test(location.search));
 
 function flush(beacon = false) {
   if (!CFG || TARGET === 'artifact' || LOCAL || !queue.length) {

@@ -1,4 +1,4 @@
-import { t, tx } from '../i18n';
+import { num, t, tx } from '../i18n';
 import type { Label } from '../render/view';
 import type { Stage } from '../render/stage';
 import { THEMES } from '../render/themes';
@@ -14,7 +14,38 @@ export function el(html: string): HTMLElement {
   return d.firstElementChild as HTMLElement;
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const counting = new WeakMap<HTMLElement, object>();
+/** Animates a number in `node` from `from` to `to` (coins). `prefix` goes before it, e.g. "+". */
+export function countUp(node: HTMLElement, from: number, to: number, ms: number, prefix = '', onTick?: () => void) {
+  const token = {};
+  counting.set(node, token);
+  if (ms <= 0 || reducedMotion() || from === to) {
+    node.textContent = prefix + num(to);
+    return;
+  }
+  const t0 = performance.now();
+  let lastTick = 0;
+  const step = (now: number) => {
+    if (counting.get(node) !== token) return; // a newer count took over
+    const k = Math.min(1, (now - t0) / ms);
+    node.textContent = prefix + num(Math.round(from + (to - from) * (1 - (1 - k) * (1 - k))));
+    if (onTick && now - lastTick > 70 && k < 1) {
+      lastTick = now;
+      onTick();
+    }
+    if (k < 1 && node.isConnected) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/** Coin balance pill; as a button it opens the shop. */
+export function walletHtml(coins: number, id = '') {
+  return `<button class="wallet" data-a="shop" aria-label="${t('shop')}">${IC.coin}<b${id ? ` id="${id}"` : ''}>${num(coins)}</b><span class="plus">+</span></button>`;
+}
 
 export function fmtTime(sec: number): string {
   const s = Math.max(0, Math.ceil(sec));
@@ -36,6 +67,11 @@ export function clearScreens() {
 
 export function show(node: HTMLElement) {
   clearScreens();
+  overlay(node);
+}
+
+/** Puts a screen on top of the current one (popups); remove the node to close it. */
+export function overlay(node: HTMLElement) {
   screens().appendChild(node);
   const first = node.querySelector<HTMLElement>('[data-focus]');
   first?.focus({ preventScroll: true });
@@ -53,18 +89,22 @@ export interface TitleOpts {
   dailyNum: number;
   dailyDone: boolean;
   streak: number;
+  coins: number;
   onPlay: () => void;
   onLevels: () => void;
   onDaily: () => void;
   onSettings: () => void;
+  onShop: () => void;
   /** Privacy notice for new players (CrazyGames asks for it when the game collects its own stats). */
   privacyUrl?: string;
 }
 export function titleScreen(o: TitleOpts) {
+  const logo = t('logo');
   const n = el(`
   <div class="screen title-screen">
+    ${walletHtml(o.coins)}
     <div class="logo">
-      <h1><span class="ex">¡</span>APÁGALO<span class="ex">!</span></h1>
+      <h1 class="${logo.length > 9 ? 'long' : ''}">${esc(logo).replace(/[¡!]/g, (c) => `<span class="ex">${c}</span>`)}</h1>
       <div class="tape"></div>
       <p>${t('tagline')}</p>
     </div>
@@ -82,6 +122,7 @@ export function titleScreen(o: TitleOpts) {
   n.querySelector('[data-a=levels]')!.addEventListener('click', o.onLevels);
   n.querySelector('[data-a=daily]')!.addEventListener('click', o.onDaily);
   n.querySelector('[data-a=settings]')!.addEventListener('click', o.onSettings);
+  n.querySelector('[data-a=shop]')!.addEventListener('click', o.onShop);
   show(n);
 }
 
@@ -144,9 +185,12 @@ export interface IntroOpts {
   eyebrow: string;
   title: string;
   tip: string;
+  /** seconds on the clock (the level's time plus upgrades) */
+  time: number;
   wind: { angle: number; strength: number };
   hasRescues: boolean;
   extra?: string;
+  note?: string;
   onGo: () => void;
   onBack: () => void;
 }
@@ -159,7 +203,8 @@ export function introScreen(o: IntroOpts) {
       <div class="panel-body">
         <div class="tip">${IC.flame.replace('<svg', '<svg style="width:26px;height:26px;flex:none;color:#ffb21f"')}<p>${esc(o.tip)}</p></div>
         ${goalsHtml(o.def, o.hasRescues)}
-        <div class="meta"><span class="pill">${IC.clock}${fmtTime(o.def.time)}</span>${windPill(o.wind.angle, o.wind.strength)}${o.extra ?? ''}</div>
+        <div class="meta"><span class="pill">${IC.clock}${fmtTime(o.time)}</span>${windPill(o.wind.angle, o.wind.strength)}${o.extra ?? ''}</div>
+        ${o.note ? `<p class="muted note">${esc(o.note)}</p>` : ''}
         <div class="actions">
           <button class="btn ghost" data-a="back" aria-label="${t('back')}" style="flex:0 0 60px;padding:0">${IC.back}</button>
           <button class="btn big" data-a="go" data-focus style="flex:1 1 160px">${t('go')}</button>
@@ -226,21 +271,33 @@ export interface EndOpts {
   shareText: string | (() => string);
   extraHtml?: string;
   footer?: string;
+  /** coins earned at this level end (already in `balance`) */
+  coins: number;
+  balance: number;
+  /** offer the rewarded x2 */
+  canDouble: boolean;
+  /** shown again after the shop: no animations */
+  instant?: boolean;
   onNext: () => void;
   onRetry: () => void;
   onMenu: () => void;
+  onShop: () => void;
+  /** watches the ad; resolves with the new totals, or null if there was no reward */
+  onDouble: () => Promise<{ coins: number; balance: number } | null>;
   onShared: () => void;
   onStar: (i: number) => void;
+  onCoin: () => void;
 }
 export function endScreen(o: EndOpts) {
   const r = o.r;
   const title = r.win ? t('win') : r.reason === 'time' ? t('loseTime') : t('loseControl');
   const n = el(`
-  <div class="screen dim">
+  <div class="screen dim end-screen">
     <div class="panel">
       <div class="tape"></div>
       <div class="panel-head" style="text-align:center"><div class="eyebrow">${esc(o.eyebrow)}</div></div>
       <div class="panel-body">
+        <div class="end-col">
         <h2 class="end-title ${r.win ? 'win' : 'lose'}">${title}</h2>
         <div class="bigstars"><span>★</span><span>★</span><span>★</span></div>
         ${r.win ? '' : `<div class="tip"><p>${t('loseTip')}</p></div>`}
@@ -251,9 +308,16 @@ export function endScreen(o: EndOpts) {
           <div class="stat"><div class="k">${t('statCombo')}</div><div class="v">x${r.maxCombo}</div></div>
           ${r.win ? `<div class="stat wide"><div class="k">${t('statScore')}</div><div class="v">${r.score.toLocaleString()}</div></div>` : ''}
         </div>
+        </div>
+        <div class="end-col">
         ${o.newBest && r.win ? `<div class="newbest">${t('newBest')}</div>` : o.best > 0 ? `<div class="muted" style="text-align:center">${t('best')}: ${o.best.toLocaleString()}</div>` : ''}
         ${o.extraHtml ?? ''}
         ${o.footer ? `<div class="muted" style="text-align:center">${esc(o.footer)}</div>` : ''}
+        <div class="coinbox">
+          <div class="earn" aria-label="${t('coins')}">${IC.coin}<b id="end-coins">+${num(o.instant ? o.coins : 0)}</b></div>
+          ${o.canDouble ? `<button class="btn amber sm" data-a="double" aria-label="${t('doubleAria')}">${IC.ad}${t('double')}</button>` : ''}
+          ${walletHtml(o.instant ? o.balance : o.balance - o.coins, 'end-balance')}
+        </div>
         <div class="actions">
           ${
             r.win && o.hasNext
@@ -268,6 +332,7 @@ export function endScreen(o: EndOpts) {
           ${r.win && o.hasNext ? `<button class="btn water" data-a="share" style="flex:1 1 120px">${IC.share}${t('share')}</button>` : ''}
           <button class="btn ghost" data-a="menu" aria-label="${t('menu')}" style="${r.win && o.hasNext ? 'flex:0 0 60px;padding:0' : 'flex:1 1 100%'}">${IC.home}${r.win && o.hasNext ? '' : t('menu')}</button>
         </div>
+        </div>
       </div>
     </div>
   </div>`);
@@ -275,20 +340,76 @@ export function endScreen(o: EndOpts) {
   n.querySelector('[data-a=retry]')!.addEventListener('click', o.onRetry);
   n.querySelector('[data-a=menu]')!.addEventListener('click', o.onMenu);
   n.querySelector('[data-a=share]')?.addEventListener('click', () => {
-    shareText(typeof o.shareText === 'function' ? o.shareText() : o.shareText, n.querySelector('.panel-body')!);
+    shareText(typeof o.shareText === 'function' ? o.shareText() : o.shareText, n.querySelector('.end-col:last-child')!);
     o.onShared();
+  });
+  n.querySelector('[data-a=shop]')!.addEventListener('click', o.onShop);
+  const earned = n.querySelector<HTMLElement>('#end-coins')!;
+  const balance = n.querySelector<HTMLElement>('#end-balance')!;
+  const dbl = n.querySelector<HTMLButtonElement>('[data-a=double]');
+  let doubled = false;
+  dbl?.addEventListener('click', async () => {
+    dbl.disabled = true;
+    const res = await o.onDouble();
+    if (!res) {
+      dbl.disabled = false;
+      return;
+    }
+    doubled = true;
+    dbl.remove();
+    countUp(earned, o.coins, res.coins, 700, '+', o.onCoin);
+    countUp(balance, res.balance - res.coins + o.coins, res.balance, 700);
   });
   show(n);
   const stars = n.querySelectorAll<HTMLElement>('.bigstars span');
   stars.forEach((s, i) => {
-    setTimeout(() => {
+    const on = () => {
       s.classList.add('show');
-      if (i < r.stars) {
-        s.classList.add('on');
-        o.onStar(i);
-      }
-    }, 350 + i * 380);
+      if (i < r.stars) s.classList.add('on');
+    };
+    if (o.instant) on();
+    else
+      setTimeout(() => {
+        on();
+        if (i < r.stars) o.onStar(i);
+      }, 350 + i * 380);
   });
+  if (!o.instant)
+    setTimeout(() => {
+      if (doubled) return;
+      countUp(earned, 0, o.coins, 700, '+', o.onCoin);
+      countUp(balance, o.balance - o.coins, o.balance, 700);
+    }, 350 + 3 * 380);
+}
+
+export interface ContinueOpts {
+  eyebrow: string;
+  secs: number;
+  onYes: () => void;
+  onNo: () => void;
+}
+/** Time ran out: rewarded "+30 s" or give up. */
+export function continueScreen(o: ContinueOpts) {
+  const n = el(`
+  <div class="screen dim">
+    <div class="panel">
+      <div class="tape"></div>
+      <div class="panel-head" style="text-align:center"><div class="eyebrow">${esc(o.eyebrow)}</div></div>
+      <div class="panel-body">
+        <h2 class="end-title lose">${t('loseTime')}</h2>
+        <div class="tip">${IC.clock.replace('<svg', '<svg style="width:26px;height:26px;flex:none;color:#ffb21f"')}<p>${t('contTip', { n: o.secs })}</p></div>
+        <button class="btn big amber ui-font" data-a="continue" data-focus aria-label="${t('contYesAria', { n: o.secs })}">${IC.ad}${t('contYes', { n: o.secs })}</button>
+        <button class="btn ghost" data-a="decline">${t('contNo')}</button>
+      </div>
+    </div>
+  </div>`);
+  const btns = n.querySelectorAll<HTMLButtonElement>('button');
+  n.querySelector('[data-a=continue]')!.addEventListener('click', () => {
+    btns.forEach((b) => (b.disabled = true));
+    o.onYes();
+  });
+  n.querySelector('[data-a=decline]')!.addEventListener('click', o.onNo);
+  show(n);
 }
 
 export function shareText(text: string, host: HTMLElement) {
@@ -296,7 +417,7 @@ export function shareText(text: string, host: HTMLElement) {
   const cap = (window as unknown as { Capacitor?: { Plugins?: { Share?: { share: (o: { text: string; dialogTitle?: string }) => Promise<unknown> } } } }).Capacitor;
   const nativeShare = cap?.Plugins?.Share;
   if (nativeShare) {
-    nativeShare.share({ text, dialogTitle: '¡Apágalo!' }).catch(() => undefined);
+    nativeShare.share({ text, dialogTitle: t('gameName') }).catch(() => undefined);
     return;
   }
   if (typeof navigator.share === 'function' && matchMedia('(pointer: coarse)').matches) {

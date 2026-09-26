@@ -1,6 +1,6 @@
-# ¡Apágalo!
+# ¡Apágalo! (Put It Out!)
 
-Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene 6 escenarios y un reto diario. Funciona en web y en móvil, en español y en inglés.
+Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene 6 escenarios, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
 
 | Dónde | Estado |
 |---|---|
@@ -20,9 +20,16 @@ src/sim/        Simulación pura (sin 3D): fuego, viento, brasas, agua, reglas, 
   dailyTable.ts   semillas verificadas por el bot (generado; no editar)
   bot.ts          bot que juega (dificultad, demo del menú, validación del diario)
 src/render/     Three.js: suelo con quemado/mojado dinámico, modelos, llamas, humo, agua, manguera
-src/ui/         HUD, pantallas, avisos e iconos sobre el mundo
+src/ui/         HUD, pantallas, avisos e iconos sobre el mundo (shop.ts: tienda y oferta de inicio)
 src/audio.ts    efectos sintetizados con WebAudio y reproductor de música
 src/main.ts     flujo del juego y bucle principal
+src/economy.ts  monedas por partida, mejoras (coste y efecto) y lo que da cada compra
+src/monetize/   anuncios y compras (ver «Monetización»)
+  types.ts        contrato común: AdProvider, IapProvider, lugares de anuncio y catálogo de productos
+  index.ts        elige el proveedor según la versión, topes de anuncios, pausa y analítica
+  android.ts      AdMob (con consentimiento UMP) y Google Play Billing
+  crazygames.ts   anuncios del SDK v3 de CrazyGames (desactivados por defecto)
+  fake.ts         proveedor de prueba para los tests (?fakeads=1)
 src/platform.ts diferencias por plataforma (SDK de CrazyGames, Capacitor en Android, web)
 src/storage.ts  partida guardada (localStorage y, en CrazyGames, su módulo Data en la nube)
 src/analytics.ts eventos a Supabase
@@ -45,22 +52,23 @@ npm install
 npm run build          # compila todas las versiones en dist/ (ver abajo)
 npm run typecheck      # comprueba los tipos
 npm run serve          # sirve dist/ en http://127.0.0.1:8765 (abre /web/)
-npm run bot            # tasa de victoria por nivel (bot PRO y casual)
+npm run bot            # tasa de victoria por nivel (bot PRO y casual); con mejoras: npx tsx tools/bot.ts 10 --up=max
 npm run daily-table    # regenera las semillas del reto diario; obligatorio tras tocar la simulación
 npm run deploy:web     # compila y publica la web en Vercel
 npm run android:sync   # compila y copia el juego dentro del proyecto Android
+CG_ADS=1 node build.mjs  # igual que build, con anuncios en CrazyGames (solo a partir del Full Launch)
 ```
 
 `node build.mjs` genera cuatro versiones desde el mismo código:
 
 | Versión | Carpeta | Diferencias |
 |---|---|---|
-| Web pública | `dist/web/` | Analítica activa, botón de compartir con enlace, metadatos para redes, manifiesto PWA, página de privacidad, fuentes alojadas en la propia web |
-| CrazyGames | `dist/crazygames/` → `dist/apagalo-crazygames.zip` | SDK de CrazyGames, sin enlaces externos, todo dentro del zip |
-| Android | `dist/android/` | Lo empaqueta Capacitor (ver abajo): compartir nativo y botón atrás del sistema |
+| Web pública | `dist/web/` | Analítica activa, botón de compartir con enlace, metadatos para redes en inglés, manifiesto PWA, página de privacidad, fuentes alojadas en la propia web. Sin anuncios ni compras |
+| CrazyGames | `dist/crazygames/` → `dist/apagalo-crazygames.zip` | SDK de CrazyGames, sin enlaces externos, todo dentro del zip. Anuncios del SDK solo si se compila con `CG_ADS=1` |
+| Android | `dist/android/` | Lo empaqueta Capacitor (ver abajo): compartir nativo, botón atrás del sistema, anuncios de AdMob y compras de Google Play |
 | Artefacto de Claude | `dist/artifact.html` | Sin analítica |
 
-Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abierto como archivo (`file://`) las fuentes no cargan. En local la analítica no envía nada.
+Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abierto como archivo (`file://`) las fuentes no cargan. En local la analítica no envía nada. Con `?fakeads=1` (http://127.0.0.1:8765/web/?fakeads=1) se prueban los anuncios y la tienda sin SDK (ver «Monetización»).
 
 ## Publicación
 
@@ -86,11 +94,38 @@ Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo
 
 Por defecto está en **Automática**: los móviles empiezan en calidad media y los ordenadores en alta. Cada 2,5 s el juego mide los fotogramas; si baja de ~40 fps dos veces seguidas, reduce la resolución, las sombras, las luces del fuego y las partículas. Si en calidad media va sobrado (≥ 55 fps) sube una vez a alta. El nivel elegido se recuerda en ese dispositivo. En pantallas de 120 Hz dibuja a 60 fps para no gastar el doble de batería. En Ajustes se puede fijar a mano (Alta / Media / Ahorro).
 
+## Monedas, mejoras y tienda
+
+Cada partida da monedas, ganes o pierdas: 50 + 50 por estrella + hasta 50 según el % salvado (de 50 a 250). El primer resultado del día en el reto diario da 100 si pierdes y 200, 250 o 300 según las estrellas; si lo repites, paga como un nivel. Con las monedas se compran mejoras en la tienda (título o pantalla final): manguera más larga, más presión, botas y más tiempo, 5 niveles cada una a 200/500/1.000/2.000/4.000 monedas. El reto diario no aplica mejoras para que la clasificación sea justa. Efectos y equilibrio medido con el bot: `docs/dificultad.md`.
+
+Como referencia, una victoria con 3 estrellas da unas 250 monedas: comprar todas las mejoras (30.800) lleva unas 120 victorias así (más partidas jugando normal, menos con el x2 y las monedas gratis).
+
+## Monetización
+
+El juego solo habla con el contrato de `src/monetize/types.ts` (`AdProvider` e `IapProvider`); `src/monetize/index.ts` elige el proveedor según la versión:
+
+| Versión | Anuncios | Compras |
+|---|---|---|
+| Android | AdMob, con el consentimiento de Google (UMP) en el EEE y el Reino Unido | Google Play Billing |
+| CrazyGames | SDK de CrazyGames, solo si se compila con `CG_ADS=1` (define `__CG_ADS__`, falso por defecto: CrazyGames no permite anuncios en el Basic Launch; ver `docs/crazygames.md`) | No |
+| Web | No, de momento | No |
+| Web y CrazyGames en local (127.0.0.1 o localhost) con `?fakeads=1` | Falsos: duran ~1 s y siempre dan la recompensa (`?fakeads=fail`: siempre fallan) | Falsas: siempre salen bien |
+
+Si no hay anuncio con recompensa listo, sus botones no aparecen; si no hay tienda, tampoco la sección de compras. Mientras se ve un anuncio el juego se para y se silencia, y si un anuncio o una compra fallan el juego sigue sin bloquearse.
+
+- **Con recompensa** (siempre los elige el jugador): +30 s cuando se acaba el tiempo (una vez por intento y nunca en el reto diario), x2 de monedas en la pantalla final (una vez) y +150 monedas gratis en la tienda (3 al día).
+- **Entre niveles**: al salir de la pantalla final (Siguiente, Reintentar o Menú). Solo si hay al menos 3 niveles terminados en total, 2 desde el último anuncio y 120 s desde el último; nunca en la primera sesión, nunca si se ha comprado «Sin anuncios» y nunca en la misma transición que un anuncio con recompensa (x2 o +30 s en ese intento) o que la oferta de inicio. Los topes son constantes al principio de `src/monetize/index.ts`.
+- **Compras** (solo Android): «Sin anuncios» (+500 monedas), pack de inicio (3.000 monedas, una sola vez; además se ofrece en una ventana tras completar el segundo nivel) y packs de 1.000, 6.000 y 14.000 monedas. Los precios los da la tienda y un producto que la tienda no devuelve no se muestra. «Restaurar compras» recupera lo comprado; lo que no se consume se concede una sola vez por partida guardada.
+
+Prueba de punta a punta: `python3 tools/test_monetize.py` (con `dist/` servido), en español y en inglés.
+
 ## Analítica
 
 `src/analytics.ts` manda los eventos por lotes a Supabase (proyecto Tools-NoCode) a través de dos funciones: `apagalo_track` (eventos) y `apagalo_submit_daily` (resultado del reto diario, que devuelve en qué puesto quedas). Las tablas `apagalo_events` y `apagalo_daily_scores` tienen RLS sin políticas: la clave pública no puede leerlas ni escribir en ellas directamente, solo llamar a esas funciones, que validan los datos.
 
-Eventos: `first_open`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
+Eventos: `first_open`, `session_start`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). `first_open` y `session_start` llevan además el idioma del dispositivo (`loc`, p. ej. `en-US`) y su zona horaria (`tz`, p. ej. `America/New_York`), que dan la región aproximada. El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
+
+Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}`, `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_fail {id}` y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
 
 Consultas listas en Supabase:
 

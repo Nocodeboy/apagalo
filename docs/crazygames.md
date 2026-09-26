@@ -1,4 +1,4 @@
-# ¡Apágalo! en CrazyGames
+# ¡Apágalo! (Put It Out!) en CrazyGames
 
 Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos de la ficha, requisitos técnicos y cómo actualizarlo.
 
@@ -30,8 +30,8 @@ Se generan con el código (`npm run build`, `tools/assets.py` y `tools/video.py`
 
 ## Ficha (en inglés, que es el idioma principal del portal)
 
-**Name:** ¡Apágalo! Firefighter
-(Si prefieres un nombre solo en inglés para el mercado internacional: *Put It Out! Firefighter*. El juego se muestra en inglés o español según el idioma del navegador.)
+**Name:** Put It Out! Firefighter
+(Antes «¡Apágalo! Firefighter»: hay que cambiarlo en la ficha. Dentro del juego el título es «PUT IT OUT!» para navegadores en inglés y «¡APÁGALO!» para los que están en español, así que coincide con la ficha para el público del portal, que es sobre todo angloparlante.)
 
 **Short description:**
 Grab the hose and stop the fire before it spreads through town!
@@ -65,11 +65,30 @@ Eres el bombero del pueblo. La manguera va atada al camión, el viento cambia y 
 - **Un clic hasta jugar**: la primera vez, el botón JUGAR lleva directo al nivel 1 con el tutorial, sin pasar por el selector de niveles.
 - Si el SDK no carga o está desactivado, el juego funciona igual (todas las llamadas están protegidas).
 - Sin enlaces externos: el botón de compartir y el enlace a la política de privacidad no existen en esta versión. Sin pantalla completa propia (la pone el portal).
-- Sin anuncios propios ni compras.
+- Sin anuncios mientras dure el Basic Launch (ver «Anuncios» más abajo) y sin compras.
 - Todo el contenido está dentro del zip (fuentes incluidas dentro de `index.html`, porque el cargador de CrazyGames no conserva subcarpetas). La única petición externa es el propio SDK de CrazyGames.
 - Tamaño muy por debajo de los límites (3,5 MB frente a 50 MB iniciales / 250 MB totales; 3 archivos frente a 1.500).
 - Idiomas: inglés y español, según el idioma del navegador.
 - Contenido apto para todos los públicos: fuego de dibujos, sin violencia ni sangre.
+
+## Anuncios (apagados hasta el Full Launch)
+
+CrazyGames no permite anuncios durante el Basic Launch (su SDK devuelve el error `adsDisabledBasicLaunch`). Por eso la versión de CrazyGames se compila **sin anuncios** por defecto: la constante `__CG_ADS__` de `build.mjs` es falsa y el juego no llama nunca a `CrazyGames.SDK.ad`. `tools/test_cg_sdk.py` lo comprueba.
+
+Cuando el juego pase al **Full Launch**:
+
+1. Compila con anuncios: `CG_ADS=1 node build.mjs` (la consola dice `crazygames zip ... (ads ON)`).
+2. Comprueba con el SDK simulado: `python3 tools/test_cg_sdk.py --ads` (con `dist/` servido) tiene que decir `ads ON: OK`.
+3. Sube `dist/apagalo-crazygames.zip` como una versión nueva.
+
+Qué hace entonces (`src/monetize/crazygames.ts`, SDK v3):
+
+- Anuncios con recompensa (`requestAd('rewarded')`): +30 s cuando se acaba el tiempo, x2 de monedas al acabar y monedas gratis en la tienda. Solo se da la recompensa si el SDK llama a `adFinished`.
+- Anuncio entre niveles (`requestAd('midgame')`) al salir de la pantalla final, con los topes del juego (3 niveles terminados, 2 desde el último, 120 s, nunca en la primera sesión). CrazyGames aplica además su propio mínimo de unos 3 minutos entre midgames (`adCooldown`).
+- Mientras dura el anuncio el juego se silencia, se para y llama a `gameplayStop`, como pide el portal. Si hay bloqueador de anuncios o el SDK dice que el juego sigue en Basic Launch, los botones de anuncio desaparecen el resto de la sesión. Si el SDK no empieza el anuncio en 15 s, el juego sigue sin recompensa.
+- No hay compras en CrazyGames: la sección de compras de la tienda no aparece.
+
+Antes de activarlos, revisa el +30 s: las normas de anuncios de CrazyGames no permiten ofrecer «seguir jugando» con un anuncio cada vez que se pierde (análisis en `docs/monetizacion.md`). Ahora se ofrece una vez por intento y solo cuando se acaba el tiempo, y nunca va seguido del anuncio entre niveles en la misma transición.
 
 ## Una decisión que es tuya: la analítica propia
 
