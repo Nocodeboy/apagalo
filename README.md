@@ -135,6 +135,9 @@ Consultas listas en Supabase:
 select * from apagalo_kpis;      -- jugadores, % que sigue al minuto 1, % que completa el nivel 1, sesión media, D1
 select * from apagalo_niveles;   -- embudo por nivel: empiezan, ganan, pierden, estrellas, % salvado, tiempo
 select * from apagalo_cohortes;  -- nuevos por día con D1 y D7
+select * from apagalo_regiones;   -- jugadores y D1/D7 por grupo de países (EE. UU., resto de primer nivel, España, resto), desde la 1.3.0
+select * from apagalo_paises;     -- lo mismo por país (del idioma del dispositivo)
+select * from apagalo_monetizacion; -- por día y plataforma: anuncios ofrecidos y vistos, recompensas, intersticiales, tienda, mejoras y compras
 ```
 
 ## Siguientes pasos
