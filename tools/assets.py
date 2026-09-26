@@ -3,7 +3,7 @@
 import asyncio, os
 from playwright.async_api import async_playwright
 
-ROOT = '/home/claude/apagalo'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 URL = 'http://127.0.0.1:8765/web/index.html'  # served: file:// blocks the self-hosted fonts
 OUT = f'{ROOT}/assets/'
 ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']

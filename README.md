@@ -8,6 +8,8 @@ Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y
 | Google Play | Prueba cerrada «Prueba cerrada - Alpha» desde el 25 sept 2026 (12 testers × 14 días antes de pedir producción). Captación: https://apagalo.vercel.app/testers |
 | CrazyGames | Borrador subido, pendiente de la revisión de calidad y del envío |
 
+Estado detallado, siguientes pasos y dónde vive cada cosa (cuentas, carpetas, servicios): [docs/README.md](docs/README.md).
+
 ## Estructura
 
 ```
@@ -26,10 +28,8 @@ src/storage.ts  partida guardada (localStorage y, en CrazyGames, su módulo Data
 src/analytics.ts eventos a Supabase
 src/privacidad.html, src/testers.html   páginas /privacidad y /testers de la web
 android/        proyecto Android (Capacitor 8)
-tools/          bot.ts (dificultad), sweep.ts, trace.ts, daily-table.ts, assets.py (iconos y portadas),
-                store_shots.py (capturas de Play), video.py y render.sh (vídeos), testers_assets.py,
-                _cgtest.py y _cgdata_test.py (pruebas del SDK de CrazyGames con Playwright)
-docs/           concepto.md (criterios de muerte), crazygames.md, google-play.md, testers.md
+tools/          bot de dificultad, imágenes y vídeos, pruebas del SDK de CrazyGames (ver tools/README.md)
+docs/           concepto, dificultad, Google Play, testers y CrazyGames (índice en docs/README.md)
 assets/         música, iconos, og.png, portadas de CrazyGames, gráficos de Play (play/),
                 iconos de Android (android/) e imágenes de la página de testers (testers/)
 ```
@@ -38,14 +38,17 @@ No están en el repositorio (ver `.gitignore`): `node_modules/`, las salidas gen
 
 ## Comandos
 
+Requisitos: Node 22 o superior. Para las herramientas de imágenes y vídeo, además, Python 3 con Playwright y ffmpeg (detalles en `tools/README.md`). Para la app de Android, el SDK de Android con Java 21.
+
 ```bash
 npm install
-node build.mjs                 # compila todas las versiones (ver abajo)
-npx tsc --noEmit -p .          # comprobar tipos
-npx tsx tools/bot.ts 10        # tasa de victoria por nivel (bot PRO y casual)
-npx tsx tools/daily-table.ts   # regenerar las semillas del reto diario tras tocar la simulación
-python3 tools/assets.py        # iconos, imagen para redes (og.png) y portadas de CrazyGames
-tools/render.sh x              # vídeo promocional vertical (repetir hasta que no queden clips; luego: tools/render.sh x encode)
+npm run build          # compila todas las versiones en dist/ (ver abajo)
+npm run typecheck      # comprueba los tipos
+npm run serve          # sirve dist/ en http://127.0.0.1:8765 (abre /web/)
+npm run bot            # tasa de victoria por nivel (bot PRO y casual)
+npm run daily-table    # regenera las semillas del reto diario; obligatorio tras tocar la simulación
+npm run deploy:web     # compila y publica la web en Vercel
+npm run android:sync   # compila y copia el juego dentro del proyecto Android
 ```
 
 `node build.mjs` genera cuatro versiones desde el mismo código:
@@ -57,31 +60,22 @@ tools/render.sh x              # vídeo promocional vertical (repetir hasta que 
 | Android | `dist/android/` | Lo empaqueta Capacitor (ver abajo): compartir nativo y botón atrás del sistema |
 | Artefacto de Claude | `dist/artifact.html` | Sin analítica |
 
-Para probarlo en local, sirve `dist/` con cualquier servidor estático (por ejemplo `python3 -m http.server -d dist` y abre `/web/`). Abierto como archivo (`file://`) las fuentes no cargan. En local la analítica no envía nada.
+Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abierto como archivo (`file://`) las fuentes no cargan. En local la analítica no envía nada.
 
 ## Publicación
 
-La web está en **https://apagalo.vercel.app** (proyecto `apagalo` de Vercel). Para publicar una versión nueva:
+**Web** (https://apagalo.vercel.app, proyecto `apagalo` de Vercel): `npm run deploy:web`. La primera vez en cada ordenador hay que enlazar la carpeta: `cd dist/web && npx vercel@latest link --project apagalo`.
+
+**CrazyGames**: sube `dist/apagalo-crazygames.zip`. Estado, ficha y pasos en `docs/crazygames.md`.
+
+**Google Play**: la app es el mismo juego empaquetado con Capacitor 8 (carpeta `android/`, paquete `com.nocodeboy.apagalo`, objetivo Android 16 / API 36). Tiene pantalla completa, la pantalla siempre encendida, el botón atrás del sistema integrado (pausa, vuelve o sale desde el título) y compartir con el menú nativo.
 
 ```bash
-node build.mjs
-cd dist/web
-npx vercel@latest link --project apagalo   # solo la primera vez en cada ordenador
-npx vercel@latest deploy --prod
+npm run android:sync                      # copia dist/android dentro del proyecto Android
+cd android && ./gradlew bundleRelease     # android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-La ficha y el paquete de CrazyGames están en `docs/crazygames.md`.
-
-## App de Android (Google Play)
-
-La app es el mismo juego empaquetado con Capacitor 8 (carpeta `android/`, paquete `com.nocodeboy.apagalo`, objetivo Android 16 / API 36). Pantalla completa, pantalla siempre encendida, botón atrás del sistema integrado (pausa / vuelve / sale desde el título) y compartir con el menú nativo.
-
-```bash
-node build.mjs && npx cap sync android          # copia dist/android dentro del proyecto Android
-cd android && ./gradlew bundleRelease           # app/build/outputs/bundle/release/app-release.aab
-```
-
-Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo-upload.jks` (no van en el código: están en la carpeta `NO-COMPARTIR`). Antes de cada subida, sube `versionCode` y `versionName` en `android/app/build.gradle`. La ficha, las respuestas de Play Console y el estado están en `docs/google-play.md`.
+Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo-upload.jks`. No van en el repositorio: están en la carpeta `NO-COMPARTIR`. Antes de cada subida, sube `versionCode` y `versionName` en `android/app/build.gradle` y `VERSION` en `build.mjs`. Los pasos completos, la ficha y las respuestas de Play Console están en `docs/google-play.md`.
 
 ## Controles
 
@@ -108,6 +102,6 @@ select * from apagalo_cohortes;  -- nuevos por día con D1 y D7
 
 ## Siguientes pasos
 
-1. Google Play: mantener ≥ 12 testers durante 14 días, recoger sus comentarios y pedir el acceso a producción (guía en `docs/testers.md`). Aprovechar para subir la 1.2.1 (`versionCode` 2) con los cambios que salgan de la prueba.
+1. Google Play: llegar a 12 testers (y añadir el grupo de LaunchReady), mantenerlos 14 días, recoger sus comentarios y pedir el acceso a producción (guía en `docs/testers.md`). Aprovechar para subir la 1.2.1 (`versionCode` 2) con los cambios que salgan de la prueba.
 2. CrazyGames: terminar la revisión de calidad y enviar a Basic Launch (`docs/crazygames.md`).
 3. Tras 7-14 días con tráfico, decidir con los criterios de `docs/concepto.md` mirando `apagalo_kpis` y `apagalo_niveles`.

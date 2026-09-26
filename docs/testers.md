@@ -16,6 +16,20 @@ Grupo: cualquiera puede unirse; los miembros no ven los correos de los demás; s
 
 Los comentarios llegan a tu correo, a X o como comentario privado en Google Play. **Guárdalos todos** (una captura o una línea en una nota con la fecha): te los van a preguntar al pedir producción.
 
+## Estado (26 sept 2026)
+
+- Prueba cerrada aprobada el 25 sept a las 21:13. El grupo tiene **6 miembros contando contigo**: faltan al menos 6 más (mejor 12-14 para tener margen).
+- **LaunchReady** (app de intercambio de testers), a medias:
+  1. Añadir su grupo a la prueba cerrada. Lo tienes que hacer tú, desde un ordenador (en el móvil no aparece la opción): Play Console → Probar y publicar → Pruebas → Prueba cerrada → «Prueba cerrada - Alpha» → Gestionar canal → pestaña **Testers** → en «Grupos de Google», escribe `testers-for-hummout@googlegroups.com` junto al grupo que ya está, pulsa Intro y luego **Guardar**.
+  2. Rellenar su formulario:
+
+| Campo | Valor |
+|---|---|
+| Play URL | https://play.google.com/store/apps/details?id=com.nocodeboy.apagalo |
+| App Display Name | ¡Apágalo! Bomberos |
+| Logo | https://apagalo.vercel.app/icon-512.png |
+| Opt-in link | https://play.google.com/apps/testing/com.nocodeboy.apagalo |
+
 ## Dónde buscar testers (de más a menos fiable)
 
 1. **Tu gente directa** (familia, amigos, Kuestiona, El Tiemblo). Pocos pero fiables: aguantan los 14 días. Mensaje de WhatsApp abajo.
@@ -35,6 +49,12 @@ Apunta a **18-20 personas** para que te sobren si alguien se borra.
 | Día 7 | Recordatorio en el grupo y en X |
 | Día 14 con ≥ 12 testers | Panel de control → Solicitar acceso a producción |
 
+## Problemas frecuentes (lo que aprendimos el primer día)
+
+- El 90 % de los problemas es **la cuenta de Google**: el tester se une al grupo con una cuenta (la de Chrome o la del Gmail) y su Play Store usa otra. Resultado: «Elemento no encontrado». Solución: cambiar la cuenta en la Play Store, o instalar desde Chrome en modo «Sitio web de escritorio» → Instalar → elegir el móvil.
+- Si la página del grupo no muestra «Unirse al grupo», es que no han iniciado sesión. Plan B: «Unirme por correo» (enviar un correo a apagalo-testers+subscribe@googlegroups.com y responder al de confirmación).
+- Google aprobó la prueba cerrada en unos 20 minutos (25 sept, 21:13).
+
 ## Textos
 
 ### Post en X (español)
@@ -48,12 +68,6 @@ Apunta a **18-20 personas** para que te sobren si alguien se borra.
 > Gratis, sin anuncios. Os cuento cómo va el proceso por aquí 👇
 
 (Un segundo tuit en el hilo con el vídeo `apagalo-promo-x.mp4` funciona muy bien para que se vea el juego.)
-
-### Lo que aprendimos el primer día
-
-- El 90 % de los problemas es **la cuenta de Google**: el tester se une al grupo con una cuenta (la de Chrome o la del Gmail) y su Play Store usa otra. Resultado: «Elemento no encontrado». Solución: cambiar la cuenta en la Play Store, o instalar desde Chrome en modo «Sitio web de escritorio» → Instalar → elegir el móvil.
-- Si la página del grupo no muestra «Unirse al grupo», es que no han iniciado sesión. Plan B: «Unirme por correo» (enviar un correo a apagalo-testers+subscribe@googlegroups.com y responder al de confirmación).
-- Google aprobó la prueba cerrada en unos 20 minutos (25 sept, 21:13).
 
 ### WhatsApp final (explica todo)
 

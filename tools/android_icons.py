@@ -1,7 +1,8 @@
 # Renders the Android launcher icon sources (adaptive foreground/background, legacy icon, splash) for @capacitor/assets.
-import asyncio
+import asyncio, os
 from playwright.async_api import async_playwright
-OUT = '/home/claude/apagalo/assets/android/'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, 'assets', 'android') + os.sep
 FLAME = '''<path d="M256 96c38 40 62 76 62 118 0 22-8 40-20 54 6-30-4-54-24-72 2 34-14 56-36 70-20 12-34 30-34 54 0 12 3 23 9 32-40-14-64-50-64-92 0-60 44-86 60-128 4 24 14 40 30 50 4-34 14-62 17-86z" fill="#ffb21f"/>
 <path d="M256 170c20 22 34 44 34 70 0 32-24 56-54 56-26 0-46-20-46-46 0-30 24-44 32-70 8 12 16 18 26 22 4-12 6-22 8-32z" fill="#fff2a0"/>
 <path d="M332 214c26 30 40 54 40 76a40 40 0 0 1-80 0c0-22 14-46 40-76z" fill="#3fb6ff" stroke="#fff" stroke-width="10"/>'''

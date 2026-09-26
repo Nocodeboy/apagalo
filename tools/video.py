@@ -7,7 +7,7 @@
 import asyncio, os, shutil, subprocess, sys
 from playwright.async_api import async_playwright
 
-ROOT = '/home/claude/apagalo'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 URL = 'http://127.0.0.1:8765/web/index.html'  # served: file:// blocks the self-hosted fonts
 FR = f'{ROOT}/build/video/frames'
 OUT = f'{ROOT}/build/video/apagalo-promo-x.mp4'
@@ -260,9 +260,13 @@ def encode(profile='x'):
     seq, n = gather()
     dur = n / FPS
     if profile != 'x':
-        cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', f'{seq}/%05d.png', '-vf', f'scale={SIZE[0]}:{SIZE[1]}:flags=lanczos,format=yuv420p',
-               '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-profile:v', 'high', '-movflags', '+faststart', OUT]
-        subprocess.run(cmd, check=True)
+        # CrazyGames: no audio and under their 10 MB upload limit -> two passes at a target bitrate (~8.8 MB)
+        kbps = int(8.8e6 * 8 / dur / 1000)
+        base = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', f'{seq}/%05d.png', '-vf', f'scale={SIZE[0]}:{SIZE[1]}:flags=lanczos,format=yuv420p',
+                '-an', '-c:v', 'libx264', '-preset', 'slow', '-b:v', f'{kbps}k', '-profile:v', 'high']
+        log = f'{ROOT}/build/video/x264-{profile}'
+        subprocess.run(base + ['-pass', '1', '-passlogfile', log, '-f', 'mp4', os.devnull], check=True)
+        subprocess.run(base + ['-pass', '2', '-passlogfile', log, '-movflags', '+faststart', OUT], check=True)
         print('video', OUT, f'{dur:.2f}s', f'{os.path.getsize(OUT) / 1e6:.1f} MB')
         return
     music = f'{ROOT}/assets/music-game.mp3'

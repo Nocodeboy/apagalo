@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 import assets as A  # reuses SAVE, SCENE and the title overlay from the cover renderer
 
 URL = 'http://127.0.0.1:8765/web/index.html'
-OUT = '/home/claude/apagalo/assets/play/'
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'assets', 'play') + os.sep
 HIDE = "document.head.insertAdjacentHTML('beforeend','<style>#toast,.tut,.stick,.banner,.fl.bad{display:none!important}</style>')"
 
 async def game_shot(p, name, level, pre, zoom=1.0, dz=0.0, bot_after=0.0):

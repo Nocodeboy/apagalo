@@ -9,18 +9,32 @@
 - **Archivo para Play:** `apagalo-1.2.0.aab` (firmado con la clave de subida)
 - **APK para instalar a mano en tu móvil:** `apagalo-1.2.0.apk`
 
-## Estado (25 sept 2026)
+## Estado (26 sept 2026)
 
-- App creada en Play Console (cuenta NoCodeBuilder) y **publicada en prueba interna** con la lista «Testers Torre Diaria». Enlace para instalarla: https://play.google.com/apps/internaltest/4701507287428617045
-- Completado: ficha (textos, icono, gráfico destacado y 6 capturas), categoría Casual, contacto, política de privacidad, anuncios (no), acceso (sin restricciones), clasificación de contenido (IARC), público 13+, seguridad de los datos, ID de publicidad (no), app gubernamental (no), funciones financieras y de salud (ninguna).
-- Mientras la app no pase una revisión, los testers internos la ven con el nombre provisional «com.nocodeboy.apagalo (unreviewed)».
-- Siguiente paso para publicarla en abierto: **prueba cerrada** con al menos 12 testers durante 14 días (requisito de Google para cuentas personales). Esa versión sí pasa revisión y activa el nombre y la ficha.
-- Prueba cerrada «Prueba cerrada - Alpha» **enviada a revisión el 25 sept 2026 (20:55)** junto con la ficha completa (16 cambios): 177 países, versión 1.2.0 con notas en español e inglés. Testers: el grupo apagalo-testers@googlegroups.com (cualquiera puede unirse; solo el propietario publica; los miembros no se ven entre sí). Comentarios: https://apagalo.vercel.app/testers. Captación: textos en `docs/testers.md`.
-- Enlace de la prueba cerrada para testers (funciona cuando Google la apruebe): https://play.google.com/apps/testing/com.nocodeboy.apagalo
+- Cuenta de Play Console: NoCodeBuilder (personal). Ficha completa y aprobada: textos, icono, gráfico destacado, 6 capturas, categoría Casual, contacto, privacidad, clasificación de contenido (IARC), público 13+, seguridad de los datos y demás declaraciones (respuestas abajo).
+- **Prueba cerrada «Prueba cerrada - Alpha»**: versión 1.2.0, 177 países. Enviada a revisión el 25 sept a las 20:55 y **aprobada a las 21:13**.
+  - Testers: el grupo de Google apagalo-testers@googlegroups.com. Cualquiera puede unirse; solo tú publicas; los miembros no se ven entre sí.
+  - Enlace para aceptar la prueba: https://play.google.com/apps/testing/com.nocodeboy.apagalo
+  - Ficha en Play: https://play.google.com/store/apps/details?id=com.nocodeboy.apagalo
+  - Página para captar testers: https://apagalo.vercel.app/testers. Textos, calendario y problemas frecuentes en `docs/testers.md`.
+  - Requisito para publicar en abierto: **12 testers apuntados sin interrupción durante 14 días**. El plazo cuenta desde que hay 12 a la vez; después se pide el acceso a producción desde el panel.
+- **Prueba interna** (la primera, sigue activa): lista «Testers Torre Diaria», enlace https://play.google.com/apps/internaltest/4701507287428617045.
+- Pendiente: añadir el grupo de LaunchReady a la prueba cerrada (ver `docs/testers.md`), llegar a 12 testers y subir una 1.2.1 (`versionCode` 2) con los cambios que salgan de la prueba.
+
+## Archivos
+
+Se generan con el código (ver «Compilar una versión nueva»). En la carpeta del portátil están en `publicacion\google-play\`: `apagalo-1.2.0.aab` (lo que se sube a Play), `apagalo-1.2.0.apk` (para instalar a mano), `icon-512.png`, `feature-1024x500.png` y `capturas\` (6 capturas de 1080×1920). Las imágenes salen de `assets/play/` (`tools/store_shots.py`).
+
+## Compilar una versión nueva
+
+1. Sube `versionCode` (entero, +1 cada vez) y `versionName` en `android/app/build.gradle`, y `VERSION` en `build.mjs`.
+2. Copia la clave de firma a su sitio: `keystore.properties` → `android/keystore.properties` y `apagalo-upload.jks` → `android/keystore/apagalo-upload.jks` (están en `NO-COMPARTIR`; Git no los sube).
+3. `npm run android:sync` y después `cd android && ./gradlew bundleRelease` (en Windows, `gradlew.bat bundleRelease`). El archivo sale en `android/app/build/outputs/bundle/release/app-release.aab`.
+4. En Play Console → Prueba cerrada → Crear versión, sube el `.aab`, escribe las notas (español e inglés) y envíala a revisión.
 
 ## Clave de subida (guárdala: sin ella no puedes subir actualizaciones)
 
-- Archivo: `apagalo-upload.jks` (carpeta `NO-COMPARTIR`)
+- Archivo: `apagalo-upload.jks` (carpeta `NO-COMPARTIR`, fuera del repositorio)
 - Alias: `apagalo-upload`
 - Contraseña: en `keystore.properties`, en la misma carpeta
 - Huella SHA-256: `A0:F7:13:A0:8E:9F:9D:EE:21:82:E7:48:2B:03:9F:3C:18:CC:41:18:38:A9:B1:D0:A1:7D:BC:4B:1C:F2:19:03`

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Renders clips one by one while there is time left in this call (budget in seconds, default 250 to start a new clip).
-cd /home/claude/apagalo
+cd "$(dirname "$0")/.."
 T0=$(date +%s); BUDGET=${2:-250}
 while true; do
   tools/render.sh $1 >> build/video/render-$1.log 2>&1

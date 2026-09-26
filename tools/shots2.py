@@ -1,8 +1,9 @@
 # Scenario screenshots using the in-page test hook to fast-forward.
-import asyncio, sys, json
+import asyncio, sys, json, os
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/apagalo/dist/web/index.html'
-OUT = '/home/claude/apagalo/shots/'
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+URL = 'http://127.0.0.1:8765/web/index.html'  # serve dist/ first (npm run serve)
+OUT = os.path.join(ROOT, 'shots') + os.sep
 ARGS = ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
 
 async def scenario(p, name, w, h, touch, steps, lang='es-ES'):
