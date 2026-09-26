@@ -1,3 +1,11 @@
+import { CASTANAR } from './campaign/castanar';
+import { FINALE } from './campaign/finale';
+import { GASOLINERA } from './campaign/gasolinera';
+import { GRANJA } from './campaign/granja';
+import { PLAZA } from './campaign/plaza';
+import { POLIGONO } from './campaign/poligono';
+import { SANJUAN } from './campaign/sanjuan';
+import { L } from './leveldef';
 import { MB } from './mapbuilder';
 import type { LevelDef } from './types';
 
@@ -279,11 +287,8 @@ function sanjuan() {
   return b.done();
 }
 
-function L(d: Omit<LevelDef, 'map' | 'fires'>, m: { map: string[]; fires: Record<number, string> }): LevelDef {
-  return { ...d, map: m.map, fires: m.fires };
-}
-
-export const LEVELS: LevelDef[] = [
+/** The 6 original levels, one per scenario. They teach one mechanic each and are also the maps of the daily challenge. */
+export const BASE_LEVELS: LevelDef[] = [
   L(
     {
       id: 'plaza',
@@ -387,3 +392,25 @@ export const LEVELS: LevelDef[] = [
     sanjuan(),
   ),
 ];
+
+// ---------------- Campaign: 6 originals + 10 more per scenario + the finale = 67 ----------------
+// Levels 7-66 go in 10 blocks of 6, one level of each scenario per block and rising difficulty block by block;
+// the scenario order rotates every block so the player never gets two levels of the same place in a row.
+// Level k of a scenario (index k in its file) belongs to block k. A scenario file with fewer than 10 levels
+// just leaves gaps, so the game works while the campaign is being written.
+const SCENARIOS: LevelDef[][] = [PLAZA, GRANJA, GASOLINERA, POLIGONO, CASTANAR, SANJUAN];
+export const CAMPAIGN_BLOCKS = 10;
+
+function campaign(): LevelDef[] {
+  const out: LevelDef[] = [...BASE_LEVELS];
+  for (let k = 0; k < CAMPAIGN_BLOCKS; k++)
+    for (let j = 0; j < SCENARIOS.length; j++) {
+      const lvl = SCENARIOS[(j + k) % SCENARIOS.length][k];
+      if (lvl) out.push(lvl);
+    }
+  out.push(...FINALE);
+  return out.map((d, i) => ({ ...d, num: i + 1 }));
+}
+
+/** Every level in play order; `num` is the position (1-based). Ids never change once released: saves use them. */
+export const LEVELS: LevelDef[] = campaign();

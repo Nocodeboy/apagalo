@@ -1,4 +1,4 @@
-import { LEVELS } from './levels';
+import { BASE_LEVELS } from './levels';
 import { MATS } from './materials';
 import { parseLevel } from './parse';
 import { hashString, Rng } from './rng';
@@ -43,7 +43,7 @@ export function makeDaily(d = new Date(), salt = 0): Daily {
   const key = dayKey(d);
   const num = dailyNumber(d);
   const rng = new Rng(hashString('apagalo-' + key + (salt ? '#' + salt : '')));
-  const base = LEVELS[Math.floor(rng.next() * LEVELS.length)];
+  const base = BASE_LEVELS[Math.floor(rng.next() * BASE_LEVELS.length)];
   let mod = rng.pick(MODS);
   if (mod.key === 'night' && base.night) mod = MODS[0];
   const def: LevelDef = JSON.parse(JSON.stringify(base));
