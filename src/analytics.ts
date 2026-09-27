@@ -1,5 +1,5 @@
-// Anonymous game analytics -> Supabase (Tools-NoCode). Writes only through the SECURITY DEFINER
-// functions apagalo_track / apagalo_submit_daily; the tables are not readable with the public key.
+// Anonymous game analytics -> Supabase (project nocodeboy-games, shared by all the studio's games). Writes only
+// through the SECURITY DEFINER functions track / submit_daily; the tables are not readable with the public key.
 
 type Props = Record<string, string | number | boolean | null>;
 
@@ -8,6 +8,7 @@ declare const __VERSION__: string;
 declare const __TARGET__: string;
 
 const CFG = typeof __ANALYTICS__ !== 'undefined' ? __ANALYTICS__ : null;
+const GAME = 'apagalo';
 const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'dev';
 const TARGET = typeof __TARGET__ !== 'undefined' ? __TARGET__ : 'web';
 
@@ -103,10 +104,10 @@ function flush(beacon = false) {
   }
   const batch = queue.splice(0, 50);
   try {
-    fetch(`${CFG.url}/rest/v1/rpc/apagalo_track`, {
+    fetch(`${CFG.url}/rest/v1/rpc/track`, {
       method: 'POST',
       headers: { apikey: CFG.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_install: install, p_session: session, p_version: VERSION, p_platform: platform(), p_events: batch }),
+      body: JSON.stringify({ p_game: GAME, p_install: install, p_session: session, p_version: VERSION, p_platform: platform(), p_events: batch }),
       keepalive: beacon,
     }).catch(() => {
       // offline: put the events back for the next try
@@ -121,10 +122,10 @@ function flush(beacon = false) {
 export async function submitDaily(day: string, num: number, score: number, stars: number, saved: number, time: number): Promise<{ players: number; below: number } | null> {
   if (!CFG || TARGET === 'artifact' || LOCAL || !enabled) return null;
   try {
-    const r = await fetch(`${CFG.url}/rest/v1/rpc/apagalo_submit_daily`, {
+    const r = await fetch(`${CFG.url}/rest/v1/rpc/submit_daily`, {
       method: 'POST',
       headers: { apikey: CFG.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_install: install, p_day: day, p_num: num, p_score: score, p_stars: stars, p_saved: saved, p_time: time }),
+      body: JSON.stringify({ p_game: GAME, p_install: install, p_day: day, p_num: num, p_score: score, p_stars: stars, p_result: saved, p_time: time }),
     });
     if (!r.ok) return null;
     const j = (await r.json()) as { players: number; below: number };

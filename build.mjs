@@ -14,7 +14,8 @@ const VERSION = '1.3.0';
 // CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
 const CG_ADS = process.env.CG_ADS === '1';
 const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
-const ANALYTICS = { url: 'https://exlupbihqexeeyxwmveh.supabase.co', key: 'sb_publishable_oxNSon03m-m9eUhIb50usg_3EPRLg7u' };
+// Supabase project shared by the studio's games (nocodeboy-games); the publishable key is public by design.
+const ANALYTICS = { url: 'https://xshxfaospajlgwrnivvq.supabase.co', key: 'sb_publishable_GfwGUNaIh924_4oNIIqoZw_ellp8wGm' };
 const music = {};
 for (const k of ['menu', 'game']) if (existsSync(`assets/music-${k}.mp3`)) music[k] = `music-${k}.mp3`;
 
