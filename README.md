@@ -10,6 +10,8 @@ Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y
 
 Estado detallado, siguientes pasos y dónde vive cada cosa (cuentas, carpetas, servicios): [docs/README.md](docs/README.md).
 
+Forma parte del estudio de juegos de @nocodeboy, junto con *¡Marchando!* y *¡Pastoréalo!*, que salen de este mismo motor. Este repositorio es solo *¡Apágalo!*. Lo común a todos los juegos (catálogo, proceso, motor y lo aprendido) está en el repositorio privado `Nocodeboy/nocodeboy-games`, y cada juego tiene el suyo.
+
 ## Estructura
 
 ```
