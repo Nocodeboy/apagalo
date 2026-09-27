@@ -284,7 +284,7 @@ Lo que dice la tabla:
 - **Lo que pide Google Ads.** En campañas de instalaciones con CPI objetivo, presupuesto diario de al menos 50 veces el CPI objetivo; 10 veces si se optimiza a una acción. No hay que tocar la campaña antes de 100 conversiones ni cambiar presupuesto o CPI más de un 20 % de golpe ([Google Ads][gads-bp]; [consejos][gads-tips]). Con un CPI de 1,68 $ son 84 $ al día, unos 2.200 € al mes. 100-300 € es el 5-14 % de eso: la campaña no sale del aprendizaje.
 - **Qué hacer con el dinero: tandas de medición, no campaña continua.** Unas 300 instalaciones cuestan unos 450 € a 1,68 $ (dos o tres meses de presupuesto juntos). Con 300 instalaciones, el intervalo de confianza del 95 % es de unos ±5 puntos en un D1 del 32 % y de ±3 puntos en un D7 del 8 % (cálculo binomial). Con menos no se puede decidir nada.
 - **Dónde.** Un solo grupo de países en inglés de primer nivel: EE. UU., Canadá, Reino Unido y Australia. Anuncios con los vídeos de juego que ya salen de `tools/video.py`.
-- **Cómo atribuir sin otro SDK.** Leer el Play Install Referrer en `first_open` y guardar `utm_source` y `utm_campaign` en Supabase junto con el país (fase 1 de la estrategia). Así se calculan D1/D7 y el LTV por origen en `apagalo_cohortes`. Optimizar a compras o a ROAS en Google Ads exige mandarle eventos de dentro de la app (Firebase/GA4 o una plataforma de atribución): no compensa con este presupuesto.
+- **Cómo atribuir sin otro SDK.** Leer el Play Install Referrer en `first_open` y guardar `utm_source` y `utm_campaign` en Supabase junto con el país (fase 1 de la estrategia). Así se calculan D1/D7 y el LTV por origen en la vista `cohortes`. Optimizar a compras o a ROAS en Google Ads exige mandarle eventos de dentro de la app (Firebase/GA4 o una plataforma de atribución): no compensa con este presupuesto.
 - **Tráfico sin coste hacia jugadores de primer nivel.** CrazyGames dice tener más de 50 millones de jugadores al mes, con mucho peso de EE. UU. y otros países de primer nivel ([CrazyGames FAQ][cg-faq]). La ficha de Play en inglés (fase 0) y los vídeos del juego en redes completan el orgánico.
 
 ## KPIs y reglas para parar o escalar
@@ -295,9 +295,9 @@ Se miden en Android, por cohortes de al menos 300 instalaciones, separando país
 
 | KPI | Mínimo para seguir | Para escalar con publicidad | Dónde se mide |
 |---|---:|---:|---|
-| D1 | ≥ 30 % | ≥ 35 % | `apagalo_cohortes` |
-| D7 | ≥ 8 % | ≥ 12 % | `apagalo_cohortes` |
-| D30 | ≥ 2,5 % | ≥ 4,5 % | `apagalo_cohortes` |
+| D1 | ≥ 30 % | ≥ 35 % | Vista `cohortes` |
+| D7 | ≥ 8 % | ≥ 12 % | Vista `cohortes` |
+| D30 | ≥ 2,5 % | ≥ 4,5 % | Vista `cohortes` |
 | Juego al día por jugador activo | ≥ 12 min | ≥ 20 min | `session_end` |
 | % de jugadores activos que ve al menos un bonificado al día | ≥ 25 % | ≥ 40 % | eventos de anuncio (a añadir) |
 | Bonificados por jugador activo | 1,5-2,5 | — | AdMob |

@@ -41,7 +41,7 @@
 
 ### Fase 1: medir bien (1 día)
 
-- Guardar en el primer evento el idioma del dispositivo y su zona horaria, que dan el país aproximado sin datos personales, y añadir la región a las vistas de Supabase (`apagalo_kpis` por región). Hay que actualizar la política de privacidad.
+- Guardar en el primer evento el idioma del dispositivo y su zona horaria, que dan el país aproximado sin datos personales, y añadir la región a las vistas de Supabase (vistas `regiones` y `paises`). Hay que actualizar la política de privacidad.
 - En CrazyGames, mirar el panel por país cuando haya tráfico del Basic Launch. Es la primera lectura real de jugadores de primer nivel.
 
 ### Fase 2: profundidad híbrido-casual (2-4 semanas)

@@ -27,7 +27,7 @@ Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arranc
 | CrazyGames | Borrador completo: build, revisión de calidad y ficha hechas | Rellenar los datos de cobro (Tipalti), aceptar términos y PEGI 12 y enviar |
 | GitHub | Repositorio https://github.com/Nocodeboy/apagalo (26 sept). El estudio está en `Nocodeboy/nocodeboy-games` (privado) | Subir aquí cada cambio de *¡Apágalo!*. Los otros juegos tienen su propio repositorio privado (`Nocodeboy/marchando`, `Nocodeboy/pastorealo`) |
 
-Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis` y `apagalo_niveles` en Supabase y aplicar los criterios de `concepto.md`.
+Decisión pendiente (después de 7-14 días con jugadores): mirar las vistas `kpis` y `niveles` (juego `apagalo`) en Supabase y aplicar los criterios de `concepto.md`.
 
 ## Dónde vive cada cosa
 
@@ -37,7 +37,7 @@ Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis`
 | Archivos para publicar (zip, vídeos, `.aab`, imágenes) | `Documentos\Juego 4\publicacion` en el portátil. Se pueden regenerar desde el código |
 | Clave de firma de Android | `Documentos\Juego 4\NO-COMPARTIR` en el portátil. Guarda una copia fuera del ordenador |
 | Web | Vercel, proyecto `apagalo` |
-| Analítica | Supabase, proyecto Tools-NoCode (tablas y vistas `apagalo_*`) |
+| Analítica | Supabase, proyecto `nocodeboy-games` del estudio (tablas y vistas comunes con la columna `game`/`juego`). Las versiones instaladas hasta la 1.3.0 envían a los `apagalo_*` de Tools-NoCode, que lo reenvían allí |
 | Google Play | Play Console, cuenta NoCodeBuilder |
 | Testers | Grupo de Google `apagalo-testers` (https://groups.google.com/g/apagalo-testers) |
 | CrazyGames | Portal de desarrolladores de CrazyGames, con tu cuenta |
