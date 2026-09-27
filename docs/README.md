@@ -16,7 +16,7 @@
 
 Lo técnico (estructura del código, comandos, analítica, calidad gráfica) está en el [README principal](../README.md), y las herramientas en [tools/README.md](../tools/README.md).
 
-Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arrancar un juego nuevo, infraestructura y el resumen de lo aprendido aquí) está en [nocodeboy-games](https://github.com/Nocodeboy/nocodeboy-games). Los documentos de esta carpeta siguen siendo la referencia completa de cada tema.
+Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arrancar un juego nuevo, infraestructura y el resumen de lo aprendido aquí) está en el repositorio privado `Nocodeboy/nocodeboy-games`. Los documentos de esta carpeta siguen siendo la referencia completa de cada tema.
 
 ## Estado general (26 sept 2026)
 
@@ -25,7 +25,7 @@ Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arranc
 | Web | Publicada en https://apagalo.vercel.app (1.2.0), con analítica y la página `/testers` | Mover tráfico y mirar los datos |
 | Google Play | Prueba cerrada aprobada el 25 sept. Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers, añadir el grupo de LaunchReady y aguantar 14 días. Luego pedir producción |
 | CrazyGames | Borrador completo: build, revisión de calidad y ficha hechas | Rellenar los datos de cobro (Tipalti), aceptar términos y PEGI 12 y enviar |
-| GitHub | Repositorio https://github.com/Nocodeboy/apagalo (26 sept), dentro del estudio [nocodeboy-games](https://github.com/Nocodeboy/nocodeboy-games) | Subir aquí cada cambio de *¡Apágalo!*. Los otros juegos tienen su propio repositorio |
+| GitHub | Repositorio https://github.com/Nocodeboy/apagalo (26 sept). El estudio está en `Nocodeboy/nocodeboy-games` (privado) | Subir aquí cada cambio de *¡Apágalo!*. Los otros juegos tienen su propio repositorio privado (`Nocodeboy/marchando`, `Nocodeboy/pastorealo`) |
 
 Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis` y `apagalo_niveles` en Supabase y aplicar los criterios de `concepto.md`.
 
