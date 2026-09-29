@@ -18,11 +18,11 @@ Lo técnico (estructura del código, comandos, analítica, calidad gráfica) est
 
 ## Estado general (29 sept 2026)
 
-La **1.3.0** está lista en el código y sin publicar en ningún sitio: nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles.
+La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles. Está publicada en la web (29 sept); en Google Play y CrazyGames sigue la 1.2.0.
 
 | Canal | Publicado | Siguiente paso |
 |---|---|---|
-| Web | 1.2.0 en https://apagalo.vercel.app, con analítica y la página `/testers` | Publicar la 1.3.0 (sin anuncios en la web) |
+| Web | 1.3.0 en https://apagalo.vercel.app (29 sept), sin anuncios, con analítica y la página `/testers` | Probarla y mirar en Supabase si los niveles nuevos suben la retención |
 | Google Play | 1.2.0 en prueba cerrada (aprobada el 25 sept). Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers y añadir el grupo de LaunchReady. Antes de subir la 1.3.0: cuenta de AdMob, productos y declaraciones (`android-monetizacion.md`) |
 | CrazyGames | Borrador completo con la 1.2.0 (build, revisión de calidad y ficha) | Cambiar a «Put It Out! Firefighter» con la 1.3.0 y las portadas en inglés, repetir la revisión de calidad, rellenar el cobro (Tipalti) y enviar |
 | GitHub | https://github.com/Nocodeboy/apagalo | Subir cada cambio con el `.bat` que se deja en `Juego 4` |
