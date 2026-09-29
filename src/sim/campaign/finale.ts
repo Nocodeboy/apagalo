@@ -102,8 +102,10 @@ export const FINALE: LevelDef[] = [
       ],
       fireworks: { count: 8, first: 35, every: 22 },
       stars: [0.66, 0.75],
-      minSaved: 0.56,
+      minSaved: 0.5,
       night: true,
+      // the last big fire gets the two events that make it harder (no bucket brigade to help)
+      wantEvents: ['gust', 'leak'],
       under: '_',
     },
     finale(),

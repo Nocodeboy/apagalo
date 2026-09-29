@@ -10,7 +10,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
-const VERSION = '1.3.0';
+const VERSION = '2.0.0';
 // CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
 const CG_ADS = process.env.CG_ADS === '1';
 const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
@@ -60,7 +60,7 @@ const body = `<div id="app">
 </div>`;
 // English first (the target market is tier-1 countries); the game switches the tab title to Spanish for Spanish players
 const TITLE = 'Put It Out! Firefighter';
-const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind in 67 levels across 6 places, plus a new daily challenge. Free, in your browser and on your phone.';
+const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind in 97 levels across 9 places, from the docks to downtown, with power-ups, surprise events, your own crew and a new daily challenge. Free, in your browser and on your phone.';
 
 async function bundle(target, gameUrl) {
   const res = await build({

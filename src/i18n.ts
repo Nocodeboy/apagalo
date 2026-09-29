@@ -171,11 +171,74 @@ const S = {
   contGo: { es: '¡+{n} s! A por ello', en: '+{n} s! Go, go, go!' },
   offerTitle: { es: 'Oferta de bienvenida', en: 'Welcome offer' },
   offerNo: { es: 'Ahora no', en: 'Not now' },
+  // ---- v2: route, places, power-ups, events, crew, big fires and front pages ----
+  chapter: { es: 'Capítulo {n}', en: 'Chapter {n}' },
+  chapterAria2: { es: 'Capítulo {n}: niveles {r}', en: 'Chapter {n}: levels {r}' },
+  prevPage: { es: 'Capítulo anterior', en: 'Previous chapter' },
+  nextPage: { es: 'Capítulo siguiente', en: 'Next chapter' },
+  bigFire: { es: 'GRAN INCENDIO', en: 'BIG FIRE' },
+  bigFireTag: { es: 'Gran incendio', en: 'Big fire' },
+  newPlace: { es: 'SITIO NUEVO', en: 'NEW PLACE' },
+  newThing: { es: 'Nuevo', en: 'New' },
+  newCrew: { es: 'Ya puedes contratar equipo en la tienda', en: 'You can hire a crew in the shop now' },
+  newCrew2: { es: 'Ahora caben 2 del equipo', en: 'Now 2 crew members fit' },
+  bigNews: { es: 'Gana y saldrás en portada', en: 'Win it and make the front page' },
+  album: { es: 'Portadas', en: 'Front pages' },
+  albumCount: { es: '{n} de {m} portadas', en: '{n} of {m} front pages' },
+  albumLocked: { es: 'Nivel {n}', en: 'Level {n}' },
+  albumHint: { es: 'Gana los grandes incendios para salir en el periódico', en: 'Win the big fires to make the paper' },
+  frontPage: { es: 'Ver la portada', en: 'See the front page' },
+  frontPageNew: { es: '¡SALES EN PORTADA!', en: 'FRONT PAGE NEWS!' },
+  newspaper: { es: 'EL DIARIO DEL FUEGO', en: 'THE DAILY BLAZE' },
+  paperPrice: { es: 'Edición especial · 1 moneda', en: 'Special edition · 1 coin' },
+  paperCaption: { es: 'El bombero, en plena faena', en: 'Our firefighter at work' },
+  paperSaved: { es: 'a salvo', en: 'saved' },
+  paperTime: { es: 'tiempo', en: 'time' },
+  paperScore: { es: 'puntos', en: 'score' },
+  paperFoot: { es: 'Juega gratis', en: 'Play free' },
+  paperShare: { es: 'Compartir', en: 'Share' },
+  paperSaved2: { es: 'Portada guardada', en: 'Front page saved' },
+  paperShareText: { es: '¡Salgo en portada! 🗞️ {h}', en: 'I made the front page! 🗞️ {h}' },
+  crew: { es: 'Equipo', en: 'Crew' },
+  crewSlots: { es: 'Equipo · {n} de {m}', en: 'Crew · {n} of {m}' },
+  crewHint: { es: 'Toca para llevarlo o dejarlo', en: 'Tap to take or leave' },
+  crewNone: { es: 'Contrata equipo en la tienda', en: 'Hire a crew in the shop' },
+  crewFrom: { es: 'Desde el nivel {n}', en: 'From level {n}' },
+  crewHire: { es: 'Contratar', en: 'Hire' },
+  crewLvl: { es: 'Nivel {n}', en: 'Level {n}' },
+  crewBuy: { es: 'Contratar o mejorar a {name} por {n} monedas', en: 'Hire or improve {name} for {n} coins' },
+  crewHired: { es: '¡Se une al equipo!', en: 'Joined the crew!' },
+  crewNoDaily: { es: 'En el reto diario no va el equipo', en: 'No crew in the daily challenge' },
+  heli: { es: 'Helicóptero', en: 'Helicopter' },
+  heliOnWay: { es: '¡Helicóptero en camino!', en: 'Helicopter on its way!' },
+  heliReady: { es: 'Helicóptero listo: pulsa el botón y apunta', en: 'Helicopter ready: tap the button and aim' },
+  airSupport: { es: 'Apoyo aéreo', en: 'Air support' },
+  airSupportD: { es: 'Reintenta con un helicóptero', en: 'Retry with a helicopter' },
+  airSupportAria: { es: 'Mira un anuncio y reintenta con un helicóptero listo', en: 'Watch an ad and retry with a helicopter ready' },
+  airReady: { es: 'Apoyo aéreo listo: pulsa el helicóptero cuando lo necesites', en: 'Air support ready: tap the helicopter when you need it' },
+  tHoseCut: { es: '¡El tren ha cortado la manguera! Vuelve al camión o a una boca de riego', en: 'A train cut your hose! Hook up to the truck or a hydrant' },
+  tHoseFixed: { es: 'Manguera empalmada', en: 'Hose spliced' },
+  tTrain: { es: '¡Viene un tren! Sal de la vía', en: 'Train coming! Get off the tracks' },
+  tTrainHit: { es: '¡Cuidado con el tren!', en: 'Mind the train!' },
+  tPump: { es: 'Bomba del muelle: la espuma se rellena', en: 'Sea pump: your foam refills' },
+  tWindowSafe: { es: '¡A salvo!', en: 'Safe!' },
+  tWindowFled: { es: '¡Ha salido por la azotea!', en: 'Out over the roof!' },
+  tDog: { es: '¡Chispa al rescate!', en: 'Sparky to the rescue!' },
+  tLeakFixed: { es: '¡Fuga cerrada!', en: 'Leak closed!' },
+  tNewPower: { es: 'Nuevo: {name}. {desc}', en: 'New: {name}. {desc}' },
+  tPowerGot: { es: '¡{name}!', en: '{name}!' },
+  tEventSoon: { es: 'En 3 s', en: 'In 3 s' },
+  whatsNewTitle: { es: 'Novedades de la 2.0', en: "What's new in 2.0" },
+  whatsNew1: { es: '3 sitios nuevos: el puerto, el centro y la estación, cada uno con su reto', en: '3 new places: the docks, downtown and the rail yard, each with its own twist' },
+  whatsNew2: { es: 'Objetos en el suelo, sorpresas a mitad de nivel y equipo que contratas', en: 'Pick-ups on the ground, mid-level surprises and a crew to hire' },
+  whatsNew3: { es: 'Un gran incendio cada 10 niveles: gánalo y sales en portada', en: 'A big fire every 10 levels: win it and make the front page' },
+  whatsNew4: { es: 'Tus estrellas siguen ahí, y los niveles nuevos que han quedado detrás ya están abiertos', en: 'Your stars are safe, and new levels behind you are already open' },
+  gotIt: { es: '¡Vamos!', en: "Let's go!" },
 } satisfies Record<string, Txt>;
 
 export type Key = keyof typeof S;
 
-let lang: Lang = 'es';
+let lang: Lang = 'en';
 export function setLang(l: Lang) {
   lang = l;
   document.documentElement.lang = l;
@@ -183,9 +246,14 @@ export function setLang(l: Lang) {
 export function getLang(): Lang {
   return lang;
 }
+/**
+ * English first (the studio's main language): Spanish only when the device's language is Spanish, or one of the
+ * other languages of Spain (Catalan, Galician, Basque), whose speakers all read Spanish.
+ */
 export function detectLang(): Lang {
-  const n = (navigator.language || 'es').toLowerCase();
-  return n.startsWith('es') || n.startsWith('ca') || n.startsWith('gl') || n.startsWith('eu') ? 'es' : 'en';
+  const langs = (navigator.languages?.length ? navigator.languages : [navigator.language || 'en']).map((l) => (l || '').toLowerCase());
+  const first = langs[0] ?? 'en';
+  return first.startsWith('es') || first.startsWith('ca') || first.startsWith('gl') || first.startsWith('eu') ? 'es' : 'en';
 }
 /** Whole numbers in the player's language (1,370 / 1.370). */
 export function num(n: number): string {

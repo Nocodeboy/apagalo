@@ -3,6 +3,7 @@
 | Documento | De qué va |
 |---|---|
 | [concepto.md](concepto.md) | Ficha de concepto: fantasía, bucle, escenarios y los criterios para matar, iterar o seguir con el juego, decididos antes de probar |
+| [diseno-v2.md](diseno-v2.md) | Diseño de la 2.0: escenarios nuevos con su mecánica, ruta mezclada, power-ups, eventos, equipo, grandes incendios con portada, apoyo aéreo y migración de partidas |
 | [dificultad.md](dificultad.md) | Dificultad de cada nivel medida con el bot, como referencia para comparar después de tocar la simulación |
 | [google-play.md](google-play.md) | App de Android: estado de la prueba, cómo compilar y subir una versión, clave de firma, textos de la ficha y respuestas de Play Console |
 | [testers.md](testers.md) | Cómo conseguir los 12 testers de la prueba cerrada: montaje, calendario, problemas frecuentes, textos para redes y WhatsApp, y LaunchReady |
@@ -18,9 +19,15 @@ Lo técnico (estructura del código, comandos, analítica, calidad gráfica) est
 
 Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arrancar un juego nuevo, infraestructura y el resumen de lo aprendido aquí) está en el repositorio privado `Nocodeboy/nocodeboy-games`. Los documentos de esta carpeta siguen siendo la referencia completa de cada tema.
 
-## Estado general (29 sept 2026)
+## Estado general (30 sept 2026)
 
 La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles. Está publicada en la web (29 sept); en Google Play y CrazyGames sigue la 1.2.0.
+
+La **2.0.0** está en la rama `v2`, sin publicar. Responde a lo que dijo Germán de la 1.3.0 («casi siempre son los mismos escenarios y mecánicas»): diseño en [diseno-v2.md](diseno-v2.md).
+
+- **Entrega 1 (hecha):** 3 escenarios nuevos con su mecánica (el puerto con el gasóleo que arde en el agua, el centro con gente en las ventanas y la estación con trenes que cortan la manguera), ruta mezclada de 97 niveles, power-ups, eventos sorpresa, equipo (Lola, Chispa y el dron), un gran incendio cada 10 niveles con su portada de periódico y el álbum, apoyo aéreo con anuncio con recompensa, el juego en inglés salvo en dispositivos en español y la migración de las partidas de la 1.2.0 y la 1.3.0.
+- **Entrega 2:** los otros 3 escenarios (esquí, museo y camping) y la ruta final de 120 niveles.
+- Antes de publicarla: actualizar los textos de las fichas (Google Play, CrazyGames, redes), que siguen diciendo «67 niveles en 6 escenarios», y rehacer capturas y vídeo con los escenarios nuevos.
 
 | Canal | Publicado | Siguiente paso |
 |---|---|---|

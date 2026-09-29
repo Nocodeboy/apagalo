@@ -22,6 +22,11 @@ export const M = {
   Block: 19,
   Thatch: 20,
   Elec: 21,
+  // v2
+  Slick: 22, // burning fuel floating on the water (the docks): drifts with the wind, only foam puts it out
+  Rail: 23, // railway track (rail yard): gravel and sleepers, trains cross it
+  Hull: 24, // wooden fishing boats and freight wagons: catch easier than a car and burn longer
+  Office: 25, // downtown towers: floors full of paper and furniture, the fire runs along the block
 } as const;
 export type MatId = (typeof M)[keyof typeof M];
 
@@ -63,6 +68,11 @@ def(M.Pallet, { key: 'pallet', flam: 0.85, fuel: 1.0, burn: 0.06, heatOut: 1.3, 
 def(M.Block, { key: 'block', flam: 0, fuel: 0, burn: 0, heatOut: 0, ember: 0, value: 0, walk: false });
 def(M.Thatch, { key: 'thatch', flam: 1.0, fuel: 0.9, burn: 0.06, heatOut: 1.4, ember: 0.15, value: 4, walk: false });
 def(M.Elec, { key: 'elec', flam: 0.4, fuel: 2.5, burn: 0.03, heatOut: 1.1, ember: 0.04, value: 6, walk: false });
+// Oil on the sea: worth nothing itself, but it carries the fire to the boats and the wooden pier
+def(M.Slick, { key: 'slick', flam: 1.0, fuel: 1.6, burn: 0.035, heatOut: 1.35, ember: 0, value: 0, walk: false, oil: true });
+def(M.Hull, { key: 'hull', flam: 0.5, fuel: 1.2, burn: 0.045, heatOut: 1.3, ember: 0.04, value: 6, walk: false });
+def(M.Office, { key: 'office', flam: 0.28, fuel: 1.4, burn: 0.035, heatOut: 1.2, ember: 0.05, value: 6, walk: false });
+def(M.Rail, { key: 'rail', flam: 0, fuel: 0, burn: 0, heatOut: 0, ember: 0, value: 0, walk: true });
 
 export function isFlammable(m: number): boolean {
   return MATS[m].flam > 0;

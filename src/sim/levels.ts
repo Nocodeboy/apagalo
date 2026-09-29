@@ -1,13 +1,17 @@
 import { CASTANAR } from './campaign/castanar';
-import { FINALE } from './campaign/finale';
+import { CIUDAD } from './campaign/ciudad';
+import { ESTACION } from './campaign/estacion';
+import { FINALE, FINALE_ID } from './campaign/finale';
 import { GASOLINERA } from './campaign/gasolinera';
 import { GRANJA } from './campaign/granja';
 import { PLAZA } from './campaign/plaza';
 import { POLIGONO } from './campaign/poligono';
+import { PUERTO } from './campaign/puerto';
 import { SANJUAN } from './campaign/sanjuan';
 import { L } from './leveldef';
 import { MB } from './mapbuilder';
-import type { LevelDef } from './types';
+import { hashString, Rng } from './rng';
+import { EVENT_KINDS, isNight, POWER_KINDS, type EventKind, type LevelDef, type LevelEvent, type News, type PowerKind, type ThemeId, type Txt } from './types';
 
 // ---------------- 1 · Verbena en la plaza ----------------
 function plaza() {
@@ -393,24 +397,201 @@ export const BASE_LEVELS: LevelDef[] = [
   ),
 ];
 
-// ---------------- Campaign: 6 originals + 10 more per scenario + the finale = 67 ----------------
-// Levels 7-66 go in 10 blocks of 6, one level of each scenario per block and rising difficulty block by block;
-// the scenario order rotates every block so the player never gets two levels of the same place in a row.
-// Level k of a scenario (index k in its file) belongs to block k. A scenario file with fewer than 10 levels
-// just leaves gaps, so the game works while the campaign is being written.
-const SCENARIOS: LevelDef[][] = [PLAZA, GRANJA, GASOLINERA, POLIGONO, CASTANAR, SANJUAN];
-export const CAMPAIGN_BLOCKS = 10;
+// =====================================================================================================================
+// The route (v2, docs/diseno-v2.md §5.2): every level of every scenario in one mixed road, never two levels in a row in
+// the same place. Level ids never change once released (saves and analytics use them); `num` is the position.
+// =====================================================================================================================
 
-function campaign(): LevelDef[] {
-  const out: LevelDef[] = [...BASE_LEVELS];
-  for (let k = 0; k < CAMPAIGN_BLOCKS; k++)
-    for (let j = 0; j < SCENARIOS.length; j++) {
-      const lvl = SCENARIOS[(j + k) % SCENARIOS.length][k];
-      if (lvl) out.push(lvl);
+/** Bumped every time the route changes: saves re-open what they had reached (src/progress.ts). */
+export const ROUTE_VERSION = 2;
+
+/** Order of the 1.3.0 campaign (67 levels), kept to migrate saves from 1.2.0 and 1.3.0. Never edit. */
+export const LEGACY_ROUTE_13 = [
+  'plaza', 'granja', 'gasolinera', 'poligono', 'castanar', 'sanjuan', 'plaza-2', 'granja-2', 'gasolinera-2', 'poligono-2', 'castanar-2', 'sanjuan-2',
+  'granja-3', 'gasolinera-3', 'poligono-3', 'castanar-3', 'sanjuan-3', 'plaza-3', 'gasolinera-4', 'poligono-4', 'castanar-4', 'sanjuan-4', 'plaza-4',
+  'granja-4', 'poligono-5', 'castanar-5', 'sanjuan-5', 'plaza-5', 'granja-5', 'gasolinera-5', 'castanar-6', 'sanjuan-6', 'plaza-6', 'granja-6',
+  'gasolinera-6', 'poligono-6', 'sanjuan-7', 'plaza-7', 'granja-7', 'gasolinera-7', 'poligono-7', 'castanar-7', 'plaza-8', 'granja-8', 'gasolinera-8',
+  'poligono-8', 'castanar-8', 'sanjuan-8', 'granja-9', 'gasolinera-9', 'poligono-9', 'castanar-9', 'sanjuan-9', 'plaza-9', 'gasolinera-10', 'poligono-10',
+  'castanar-10', 'sanjuan-10', 'plaza-10', 'granja-10', 'poligono-11', 'castanar-11', 'sanjuan-11', 'plaza-11', 'granja-11', 'gasolinera-11', 'finale',
+];
+
+interface Scenario {
+  theme: ThemeId;
+  name: Txt;
+  /** levels in difficulty order; the first one opens the scenario */
+  levels: LevelDef[];
+  /** position of its first level in the route */
+  intro: number;
+}
+
+/** Scenarios in the order they open. */
+export const SCENARIOS: Scenario[] = [
+  { theme: 'plaza', name: { es: 'La plaza', en: 'The village square' }, levels: [BASE_LEVELS[0], ...PLAZA], intro: 1 },
+  { theme: 'granja', name: { es: 'La granja', en: 'The farm' }, levels: [BASE_LEVELS[1], ...GRANJA], intro: 2 },
+  { theme: 'gasolinera', name: { es: 'La gasolinera', en: 'The gas station' }, levels: [BASE_LEVELS[2], ...GASOLINERA], intro: 3 },
+  { theme: 'poligono', name: { es: 'El polígono', en: 'The industrial park' }, levels: [BASE_LEVELS[3], ...POLIGONO], intro: 4 },
+  { theme: 'castanar', name: { es: 'El Castañar', en: 'The chestnut forest' }, levels: [BASE_LEVELS[4], ...CASTANAR], intro: 5 },
+  { theme: 'sanjuan', name: { es: 'La playa', en: 'The beach' }, levels: [BASE_LEVELS[5], ...SANJUAN], intro: 6 },
+  { theme: 'puerto', name: { es: 'El puerto', en: 'The docks' }, levels: PUERTO, intro: 7 },
+  { theme: 'ciudad', name: { es: 'El centro', en: 'Downtown' }, levels: CIUDAD, intro: 12 },
+  { theme: 'estacion', name: { es: 'La estación', en: 'The rail yard' }, levels: ESTACION, intro: 17 },
+];
+
+export function scenarioOf(theme: ThemeId): Scenario {
+  return SCENARIOS.find((s) => s.theme === theme)!;
+}
+
+/** Big fires: every 10 levels (and the finale at the end). Their first win prints a front page. */
+const BIG_SLOTS: Record<number, string> = {
+  10: 'puerto-2',
+  20: 'ciudad-3',
+  30: 'estacion-4',
+  40: 'puerto-6',
+  50: 'ciudad-7',
+  60: 'estacion-8',
+  70: 'plaza-11',
+  80: 'sanjuan-11',
+  90: 'castanar-11',
+};
+/** Headlines of the big fires whose level files come from 1.3.0 (the new ones carry theirs). */
+const OLD_HEADLINES: Record<string, Txt> = {
+  'plaza-11': { es: 'LA ÚLTIMA NOCHE DE FIESTAS NO ACABA EN TRAGEDIA', en: 'LAST NIGHT OF THE FAIR ENDS WITH CHEERS, NOT ASHES' },
+  'sanjuan-11': { es: 'NOCHE DE SAN JUAN: LA PLAYA SE SALVA POR LOS PELOS', en: 'MIDSUMMER NIGHT: THE BEACH SAVED BY A WHISKER' },
+  'castanar-11': { es: 'EL CASTAÑAR RESISTE: EL BOSQUE SIGUE EN PIE', en: 'THE FOREST STANDS: CHESTNUT WOOD SAVED' },
+  [FINALE_ID]: { es: 'EL GRAN INCENDIO, APAGADO: EL PUEBLO ENTERO LO CELEBRA', en: 'THE BIG ONE IS OUT: THE WHOLE TOWN CELEBRATES' },
+};
+
+// Power-ups, events and the crew arrive one at a time along the route (docs/diseno-v2.md §5.3-5.5).
+export const POWER_FROM: Record<PowerKind, number> = { turbo: 3, boots: 4, clock: 6, extinguisher: 8, heli: 11, suit: 14 };
+export const EVENT_FROM: Record<EventKind, number> = { neighbors: 8, rain: 11, gust: 14, pressure: 16, leak: 19, onlookers: 22, blackout: 26 };
+export const CREW_FROM = 9;
+export const CREW_TWO_FROM = 40;
+
+function buildRoute(): LevelDef[] {
+  // a scenario being written may still be empty
+  const SCN = SCENARIOS.filter((s) => s.levels.length);
+  const all = SCN.flatMap((s) => s.levels);
+  const total = all.length + FINALE.length;
+  const byId = new Map(all.map((d) => [d.id, d]));
+  const scnOf = new Map<string, number>();
+  SCN.forEach((s, k) => s.levels.forEach((d) => scnOf.set(d.id, k)));
+  // fixed slots: each scenario's first level, the big fires and the finale
+  const fixed = new Map<number, LevelDef>();
+  SCN.forEach((s) => fixed.set(s.intro, s.levels[0]));
+  for (const [pos, id] of Object.entries(BIG_SLOTS)) {
+    const d = byId.get(id);
+    if (d) fixed.set(Number(pos), d);
+  }
+  fixed.set(total, FINALE[0]);
+  const fixedPos = new Map([...fixed].map(([p, d]) => [d.id, p]));
+  // the other levels of each scenario get a target spot (spread between its fixed ones) and a deadline
+  const queues = SCN.map((s) => {
+    const anchors = s.levels.map((d, j) => [j, fixedPos.get(d.id)] as const).filter(([, p]) => p !== undefined) as [number, number][];
+    const out: { d: LevelDef; target: number; deadline: number }[] = [];
+    s.levels.forEach((d, j) => {
+      if (fixedPos.has(d.id)) return;
+      const a = [...anchors].reverse().find(([ja]) => ja < j)!;
+      const next = anchors.find(([jb]) => jb > j);
+      const [jb, pb] = next ?? [s.levels.length, total - 1];
+      // the deadline leaves room for the no-two-in-a-row rule next to the fixed level
+      out.push({ d, target: a[1] + ((j - a[0]) * (pb - a[1])) / (jb - a[0]), deadline: pb - 2 * (jb - j) });
+    });
+    return out;
+  });
+  const route: LevelDef[] = [];
+  let prev = -1;
+  for (let pos = 1; pos <= total; pos++) {
+    const f = fixed.get(pos);
+    if (f) {
+      route.push(f);
+      prev = scnOf.get(f.id) ?? -1;
+      continue;
     }
-  out.push(...FINALE);
-  return out.map((d, i) => ({ ...d, num: i + 1 }));
+    const after = fixed.get(pos + 1);
+    const nextScn = after ? (scnOf.get(after.id) ?? -1) : -1;
+    const cands = queues
+      .map((q, k) => ({ q, k }))
+      .filter(({ q, k }) => q.length && SCN[k].intro < pos && k !== prev && k !== nextScn);
+    if (!cands.length) throw new Error(`route: nothing fits at level ${pos}`);
+    const due = cands.filter(({ q }) => q[0].deadline <= pos).sort((a, b) => a.q[0].deadline - b.q[0].deadline || a.k - b.k);
+    const pick = due[0] ?? cands.sort((a, b) => a.q[0].target - b.q[0].target || a.k - b.k)[0];
+    const d = pick.q.shift()!.d;
+    route.push(d);
+    prev = pick.k;
+  }
+  return decorate(route);
+}
+
+/** Numbers, big fires, power-ups, events, crew slots and what each level brings for the first time. */
+function decorate(route: LevelDef[]): LevelDef[] {
+  const seenTheme = new Set<ThemeId>();
+  const powerDone = new Set<PowerKind>();
+  const eventDone = new Set<EventKind>();
+  const recent: EventKind[] = [];
+  return route.map((d0, i) => {
+    const n = i + 1;
+    const d: LevelDef = { ...d0, num: n };
+    const news: News[] = [];
+    const firstOfTheme = !seenTheme.has(d.theme);
+    seenTheme.add(d.theme);
+    // a new place (the six originals were each the first of their place before too)
+    d.intro = firstOfTheme && n > 6;
+    if (firstOfTheme && n > 1) news.push({ kind: 'place', id: d.theme });
+    d.big = n % 10 === 0 || d.id === FINALE_ID;
+    if (d.big) {
+      d.headline = d.headline ?? OLD_HEADLINES[d.id];
+      news.push({ kind: 'big', id: d.id });
+    } else {
+      delete d.headline;
+    }
+    const rng = new Rng(hashString('apagalo/route/' + d.id));
+    // power-ups: from level 3, never in the calm intro of a new place
+    if (n >= 3 && !d.intro) {
+      d.powerups = POWER_KINDS.filter((k) => POWER_FROM[k] <= n);
+      const fresh = d.powerups.find((k) => !powerDone.has(k));
+      if (fresh) {
+        d.powerFirst = fresh;
+        news.push({ kind: 'power', id: fresh });
+      }
+      d.powerups.forEach((k) => powerDone.add(k));
+    } else d.powerups = [];
+    // events: from level 8, one in half the levels, two in the big fires, none in the intros
+    const events: LevelEvent[] = [];
+    if (n >= 8 && !d.intro) {
+      const open = EVENT_KINDS.filter((k) => EVENT_FROM[k] <= n && (k !== 'blackout' || isNight(d)));
+      const fresh = open.find((k) => !eventDone.has(k));
+      const want = d.big ? 2 : fresh || rng.next() < 0.5 ? 1 : 0;
+      const kinds: EventKind[] = [];
+      if (fresh) kinds.push(fresh);
+      for (const k of d.wantEvents ?? []) if (kinds.length < want && open.includes(k) && !kinds.includes(k)) kinds.push(k);
+      while (kinds.length < want) {
+        const pool = open.filter((k) => !kinds.includes(k) && !recent.includes(k) && eventDone.has(k));
+        const from = pool.length ? pool : open.filter((k) => !kinds.includes(k));
+        if (!from.length) break;
+        kinds.push(from[Math.floor(rng.next() * from.length)]);
+      }
+      kinds.forEach((k, j) => {
+        const at = j === 0 ? 0.22 + 0.2 * rng.next() : 0.55 + 0.15 * rng.next();
+        events.push({ kind: k, t: Math.max(20, Math.round(d.time * at)) });
+        if (!eventDone.has(k)) news.push({ kind: 'event', id: k });
+        eventDone.add(k);
+        recent.push(k);
+        if (recent.length > 2) recent.shift();
+      });
+    }
+    d.events = events;
+    d.crewSlots = n >= CREW_TWO_FROM ? 2 : n >= CREW_FROM ? 1 : 0;
+    if (n === CREW_FROM) news.push({ kind: 'crew', id: 'crew' });
+    if (n === CREW_TWO_FROM) news.push({ kind: 'crew', id: 'crew2' });
+    d.news = news;
+    return d;
+  });
 }
 
 /** Every level in play order; `num` is the position (1-based). Ids never change once released: saves use them. */
-export const LEVELS: LevelDef[] = campaign();
+export const LEVELS: LevelDef[] = buildRoute();
+
+/** Index of a level in the route, or -1. */
+export function levelIndex(id: string): number {
+  return LEVELS.findIndex((d) => d.id === id);
+}

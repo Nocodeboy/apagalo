@@ -28,6 +28,8 @@ export class Input {
   enabled = false;
   onPause: () => void = () => undefined;
   onNozzle: (n: 0 | 1 | 2) => void = () => undefined;
+  /** H on the keyboard: call the helicopter */
+  onHeli: () => void = () => undefined;
   usedMove = false;
   usedAim = false;
 
@@ -62,6 +64,7 @@ export class Input {
       if (k === '3') this.onNozzle(2);
       if (k === 'q') this.onNozzle(((this.nozzle + 2) % 3) as 0 | 1 | 2);
       if (k === 'e') this.onNozzle(((this.nozzle + 1) % 3) as 0 | 1 | 2);
+      if (k === 'h') this.onHeli();
       if (k === ' ' || k.startsWith('arrow')) e.preventDefault();
       if ('wasd'.includes(k) || k.startsWith('arrow')) {
         this.mode = 'mouse';

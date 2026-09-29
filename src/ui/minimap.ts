@@ -16,6 +16,9 @@ const C = {
   fire: rgb(0xff5a1a),
   fireHot: rgb(0xffd23a),
   wet: rgb(0x3f6f9a),
+  slick: rgb(0x1a1a22),
+  rail: rgb(0x4a4550),
+  train: rgb(0xe8e8ee),
 };
 
 /** Small overview of the whole map: vegetation, burnt ground, live fire, the player and who needs help. */
@@ -56,7 +59,10 @@ export class Minimap {
       const md = MATS[m];
       let c: [number, number, number];
       const f = s.fire[i];
-      if (f > 0) c = f > 0.6 && flick ? C.fireHot : C.fire;
+      if (s.trainCells[i]) c = C.train;
+      else if (f > 0) c = f > 0.6 && flick ? C.fireHot : C.fire;
+      else if (m === M.Slick) c = C.slick;
+      else if (m === M.Rail) c = C.rail;
       else if (md.flam > 0 && s.fuel0[i] > 0 && s.fuel[i] / s.fuel0[i] < 0.4) c = C.burnt;
       else if (m === M.Water) c = C.water;
       else if (md.flam <= 0) c = C.ground;
@@ -109,11 +115,22 @@ export class Minimap {
       if (e.type === 'truck') {
         ctx.fillStyle = '#e23a2e';
         ctx.fillRect(e.x * PX, e.z * PX, e.w * PX, e.h * PX);
-      } else if (e.type === 'hydrant') dot(e.cx, e.cz, 2.6, s.player.anchor === e.id ? '#5cff8a' : '#7fe0ff');
+      } else if (e.type === 'hydrant' || e.type === 'seapump') dot(e.cx, e.cz, 2.6, s.player.anchor === e.id ? '#5cff8a' : e.type === 'seapump' ? '#ffe066' : '#7fe0ff');
+      else if (e.type === 'leak' && e.state === 0) dot(e.cx, e.cz, 3, flick ? '#ff4b3a' : '#f2c21a');
       else if (e.type === 'cylinder' && e.state === 0) dot(e.cx, e.cz, 2.4, e.alert > 0.5 && flick ? '#ff4b3a' : '#f07a1a');
       else if (e.type === 'lever' && e.state === 0 && s.ents.some((o) => o.type === 'elec' && o.state === 1)) dot(e.cx, e.cz, 3, flick ? '#ff4b3a' : '#ffffff');
     }
     for (const e of s.rescuees) if (e.state === 0) dot(e.cx, e.cz, 3, e.alert > 0.3 && flick ? '#ff4b3a' : '#ffc93c');
+    if (s.powerup) dot(s.powerup.x, s.powerup.z, 3.2, flick ? '#fff38a' : '#ffb21f', '#7a4a00');
+    for (const h of s.helis) {
+      ctx.strokeStyle = '#ff4b3a';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(h.x * PX, h.z * PX, 3.3 * PX, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (s.partner) dot(s.partner.x, s.partner.z, 3, '#ffd23a', '#7a2e1e');
+    if (s.dog) dot(s.dog.x, s.dog.z, 2.4, '#d8342a');
     const p = s.player;
     dot(p.x, p.z, 3.6, '#ffffff', '#1c7fc0');
   }

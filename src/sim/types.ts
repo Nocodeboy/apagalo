@@ -1,12 +1,50 @@
 export type Lang = 'es' | 'en';
 export type Txt = { es: string; en: string };
 
-export type ThemeId = 'plaza' | 'granja' | 'gasolinera' | 'poligono' | 'castanar' | 'sanjuan';
+/** Scenario of a level: its look (render/themes.ts) and, for the new ones, its star mechanic (docs/diseno-v2.md). */
+export type ThemeId = 'plaza' | 'granja' | 'gasolinera' | 'poligono' | 'castanar' | 'sanjuan' | 'puerto' | 'ciudad' | 'estacion';
+
+/** Pick-ups that appear on the ground during a level (one at a time). */
+export type PowerKind = 'turbo' | 'boots' | 'clock' | 'extinguisher' | 'heli' | 'suit';
+export const POWER_KINDS: PowerKind[] = ['turbo', 'boots', 'clock', 'extinguisher', 'heli', 'suit'];
+
+/** Surprise events, announced with a banner a few seconds before. */
+export type EventKind = 'neighbors' | 'rain' | 'gust' | 'pressure' | 'leak' | 'onlookers' | 'blackout';
+export const EVENT_KINDS: EventKind[] = ['neighbors', 'rain', 'gust', 'pressure', 'leak', 'onlookers', 'blackout'];
+
+/** Crew members the player hires in the shop and takes to a level. */
+export type CrewId = 'partner' | 'dog' | 'drone';
+export const CREW_IDS: CrewId[] = ['partner', 'dog', 'drone'];
 
 export interface WindShift {
   t: number; // seconds since start
   angle: number; // degrees, direction the wind blows TOWARDS (0 = +x/east, 90 = +z/south on screen)
   strength: number; // 0..1
+}
+
+export interface LevelEvent {
+  kind: EventKind;
+  /** seconds since the start of the level (the warning comes 3 s before) */
+  t: number;
+}
+
+/** A railway track (rail yard): two rows of rail cells from `z`, a train crossing the map every `every` seconds. */
+export interface TrainDef {
+  z: number;
+  /** +1: from west to east, -1: from east to west */
+  dir: 1 | -1;
+  first: number;
+  every: number;
+  /** length in cells (default 11) */
+  len?: number;
+  /** cells per second (default 13) */
+  speed?: number;
+}
+
+/** What a level brings for the first time (shown on its intro screen). */
+export interface News {
+  kind: 'place' | 'power' | 'event' | 'crew' | 'big';
+  id: string;
 }
 
 export interface LevelDef {
@@ -27,6 +65,28 @@ export interface LevelDef {
   foam?: number; // seconds of foam
   fireworks?: { count: number; first: number; every: number };
   night?: boolean;
+  /** rail yard: trains crossing the map */
+  trains?: TrainDef[];
+  /** big fire (every 10 levels): its first win prints a newspaper front page with this headline */
+  big?: boolean;
+  headline?: Txt;
+  /** events this level wants if the route gives it any (e.g. a blackout for a night in the city) */
+  wantEvents?: EventKind[];
+  // ---- set by the route (src/sim/levels.ts), not by the level files ----
+  /** first level of a scenario: calm, no events nor power-ups */
+  intro?: boolean;
+  /** power-ups that can appear, and the one that comes first (the level that introduces it) */
+  powerups?: PowerKind[];
+  powerFirst?: PowerKind;
+  events?: LevelEvent[];
+  news?: News[];
+  /** crew slots on this level (0 before the crew unlocks) */
+  crewSlots?: number;
+}
+
+/** Night levels: flagged, or in a place that is always at night (the beach on Midsummer night). */
+export function isNight(d: { night?: boolean; theme: ThemeId }): boolean {
+  return !!d.night || d.theme === 'sanjuan';
 }
 
 export type EntType =
@@ -64,7 +124,21 @@ export type EntType =
   | 'sheep'
   | 'goat'
   | 'person'
-  | 'bystander';
+  | 'bystander'
+  // v2: the docks, downtown and the rail yard
+  | 'boat'
+  | 'container'
+  | 'seapump'
+  | 'crane'
+  | 'post'
+  | 'tower'
+  | 'window'
+  | 'wagon'
+  | 'canopy'
+  // v2: spawned by events
+  | 'leak'
+  | 'onlooker'
+  | 'neighbor';
 
 export interface Ent {
   id: number;
@@ -79,11 +153,13 @@ export interface Ent {
   height: number;
   variant: number;
   // behaviour state
-  state: number; // generic: rescuee 0 idle / 1 rescued / 2 fled; cylinder 0 ok / 1 exploded; elec 1 live / 0 off; lever 0 up / 1 pulled
-  t: number; // timers (danger for rescuees, pressure for cylinders)
+  state: number; // generic: rescuee 0 idle / 1 rescued / 2 fled / 3 not there yet (events); cylinder 0 ok / 1 exploded; elec 1 live / 0 off; lever 0 up / 1 pulled; leak 3 dormant / 0 leaking / 1 exploded / 2 fixed
+  t: number; // timers (danger for rescuees, pressure for cylinders and leaks)
   soakCd: number;
   alert: number; // 0..1 how close the fire is (rescuees) / pressure (cylinders)
   orient: number; // 0 = facing +z, 1 = facing +x (for fences/cars)
+  /** progress of a rescue that takes time (people at windows: the platform goes up) */
+  prog: number;
 }
 
 export type SimEventType =
@@ -109,7 +185,25 @@ export type SimEventType =
   | 'hose'
   | 'foamEmpty'
   | 'win'
-  | 'lose';
+  | 'lose'
+  // v2
+  | 'powerSpawn'
+  | 'powerup'
+  | 'powerGone'
+  | 'buffEnd'
+  | 'heliCall'
+  | 'heliDrop'
+  | 'eventWarn'
+  | 'eventStart'
+  | 'eventEnd'
+  | 'leakFixed'
+  | 'bucket'
+  | 'trainWarn'
+  | 'trainHit'
+  | 'hoseCut'
+  | 'hoseFixed'
+  | 'pumpFoam'
+  | 'droneDrop';
 
 export interface SimEvent {
   type: SimEventType;
@@ -117,6 +211,8 @@ export interface SimEvent {
   z: number;
   n?: number;
   ent?: number;
+  /** extra: power-up / event kind, or who did it ('dog', 'partner') */
+  k?: string;
 }
 
 export interface SimInput {
@@ -127,6 +223,8 @@ export interface SimInput {
   aimDist: number; // <=0 -> max range of nozzle
   spray: boolean;
   nozzle: 0 | 1 | 2; // 0 jet, 1 fog, 2 foam
+  /** call the helicopter now (if a charge is ready) */
+  heli?: boolean;
 }
 
 export const NOZZLES = [

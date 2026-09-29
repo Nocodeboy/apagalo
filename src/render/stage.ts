@@ -35,6 +35,11 @@ export class Stage {
   readonly reducedMotion = REDUCED;
   private cssW = 1;
   private cssH = 1;
+  /** blackout / rain: how far the lights are dimmed right now (smoothed) */
+  private dark = 0;
+  private wetK = 0;
+  private skyC = new THREE.Color();
+  private blackC = new THREE.Color(0x05070d);
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -98,6 +103,8 @@ export class Stage {
     this.hemi.intensity = t.hemiI;
     this.view = new LevelView(sim, t, this.tier);
     this.scene.add(this.view.group);
+    this.dark = this.wetK = 0;
+    this.skyC.setHex(t.sky);
     this.focus = null;
     this.zoom = this.zoomTarget = 1;
     this.target.set(sim.player.x, 0, sim.player.z);
@@ -166,9 +173,31 @@ export class Stage {
 
   frame(dt: number, time: number) {
     if (!this.sim || !this.view) return;
+    this.weather(dt);
     this.placeCamera(dt);
     this.view.update(dt, time, this.camera, this.pxScale);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Blackout (only the fire and your torch light the scene) and rain (a greyer, darker sky). */
+  private weather(dt: number) {
+    const s = this.sim!;
+    const t = this.theme;
+    const k = 1 - Math.exp(-2.5 * dt);
+    this.dark += ((s.evT.blackout > 0 ? 1 : 0) - this.dark) * k;
+    this.wetK += ((s.evT.rain > 0 ? 1 : 0) - this.wetK) * k;
+    if (this.dark < 0.001 && this.wetK < 0.001 && this.sun.intensity === t.sunI) return;
+    const d = this.dark;
+    const w = this.wetK;
+    this.sun.intensity = t.sunI * (1 - 0.8 * d - 0.35 * w);
+    this.hemi.intensity = t.hemiI * (1 - 0.72 * d - 0.25 * w);
+    const fog = this.scene.fog as THREE.Fog;
+    fog.near = t.fogNear * (1 - 0.8 * d - 0.3 * w);
+    fog.far = t.fogFar * (1 - 0.7 * d - 0.25 * w);
+    const bg = this.scene.background as THREE.Color;
+    bg.copy(this.skyC).lerp(this.blackC, d * 0.9).multiplyScalar(1 - 0.25 * w);
+    fog.color.copy(bg);
+    this.view!.torch(d);
   }
 
   /** World -> CSS pixel position (allocation-free result object is reused: copy what you need). */

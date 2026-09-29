@@ -4,7 +4,8 @@
 // Members marked "optional" were added later: the game works with providers that lack them.
 
 /** Where an ad is shown. Rewarded placements are always opt-in (the player taps a button). */
-export type RewardedPlacement = 'continue_time' | 'double_coins' | 'free_coins';
+/** `air_support`: a helicopter ready for the retry, offered after losing a level twice (docs/diseno-v2.md §5.8). */
+export type RewardedPlacement = 'continue_time' | 'double_coins' | 'free_coins' | 'air_support';
 export type InterstitialPlacement = 'between_levels';
 export type Placement = RewardedPlacement | InterstitialPlacement;
 

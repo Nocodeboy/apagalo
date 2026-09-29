@@ -32,4 +32,45 @@ export const IC = {
   reel: s('<circle cx="10" cy="12" r="7"/><circle cx="10" cy="12" r="3.4"/><circle cx="10" cy="12" r="0.8" fill="currentColor"/><path d="M17 12h4v5"/>'),
   gauge: s('<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.2-5.2"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/>'),
   boot: s('<path d="M7 3h6v8l6.5 3.2c1 .5 1.5 1.3 1.5 2.3V19H4v-3l3-2z"/><path d="M4 16h17M10 7h3M10 10h3"/>'),
+  // ---- v2 ----
+  news: s('<rect x="3" y="4" width="15" height="16" rx="1.5"/><path d="M18 8h3v10a2 2 0 0 1-2 2h-1"/><path d="M6 8h9M6 11h4M6 14h4M6 17h9"/><rect x="11.5" y="10.5" width="4" height="4" fill="currentColor"/>'),
+  heli: s('<path d="M3 5h18M12 5v3"/><path d="M6 13c0-3 2.5-5 6-5s6 2 6 5-2 4-6 4H9"/><path d="M6 13H2M8 17l-1 3M15 17l1 3M5 20h13"/><circle cx="14" cy="12" r="1.5" fill="currentColor"/>'),
+  turbo: s('<path d="M13 2 5 13h6l-1 9 8-11h-6z" fill="currentColor" stroke-width="1.6"/>'),
+  extinguisher: s('<path d="M9 8h6v12a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" fill="currentColor"/><path d="M11 8V5h3M12 5l5-2M15 5l3 3"/>'),
+  suit: s('<path d="M8 4h8l3 5-3 2v9H8v-9L5 9z"/><path d="M8 13h8" stroke-width="2.8"/>'),
+  crew: s('<circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="9" r="2.5"/><path d="M2.5 20c0-3.5 2.5-6 5.5-6s5.5 2.5 5.5 6M13 20c0-3 1.5-5 3.5-5s4 2 4 5"/>'),
+  partner: s('<path d="M4 13a8 8 0 0 1 16 0z" fill="currentColor"/><path d="M2 13h20M11 5V3h2v2M9 16v4M15 16v4"/>'),
+  dog: s('<path d="M4 11c0-2 1.5-4 4-4h3l2-3 1 3h2l3 3-2 2h-3v7h-2v-4H9v4H7v-5c-2-.5-3-1.5-3-3z" fill="currentColor" stroke-width="1.4"/>'),
+  drone: s('<rect x="9" y="10" width="6" height="4" rx="1" fill="currentColor"/><path d="M9 11 5 8M15 11l4-3M9 13l-4 3M15 13l4 3"/><circle cx="5" cy="7" r="2.2"/><circle cx="19" cy="7" r="2.2"/><circle cx="5" cy="17" r="2.2"/><circle cx="19" cy="17" r="2.2"/>'),
+  rain: s('<path d="M6 13a4 4 0 0 1 .5-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17 13z"/><path d="M8 16l-1 3M12 16l-1 3M16 16l-1 3"/>'),
+  gust: s('<path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/>'),
+  leak: s('<path d="M6 20V9h8v11M4 20h12M14 12h4v3"/><circle cx="10" cy="6" r="2.5" fill="currentColor"/><path d="M19 8c1 1 1 2.5 0 3.5M21 6c2 2 2 5.5 0 7.5"/>'),
+  eye: s('<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/>'),
+  bucket: s('<path d="M5 8h14l-2 12H7z" fill="currentColor"/><path d="M6 8a6 6 0 0 1 12 0"/>'),
+  bulb: s('<path d="M9 18h6M10 21h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 3H9c0-1 0-2-1-3z"/><path d="M4 4l16 16" stroke-width="2.6"/>'),
+  anchor: s('<circle cx="12" cy="5" r="2"/><path d="M12 7v14M8 10h8M4 13a8 8 0 0 0 16 0"/>'),
+  city: s('<path d="M3 21V9h5v12M8 21V3h8v18M16 21v-9h5v9M2 21h20"/><path d="M11 7h2M11 11h2M11 15h2"/>'),
+  train: s('<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 20l-2 2M15 20l2 2"/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/>'),
+  tree: s('<path d="M12 3 5 13h4l-3 5h12l-3-5h4z" fill="currentColor" stroke-width="1.4"/><path d="M12 18v4"/>'),
+  barn: s('<path d="M3 11 12 4l9 7v10H3z"/><path d="M9 21v-6h6v6M9 15l6 6M15 15l-6 6"/>'),
+  pump: s('<rect x="4" y="4" width="10" height="17" rx="1.5"/><path d="M6 8h6M14 9h3l2 2v7a1.5 1.5 0 0 1-3 0v-3h-2"/>'),
+  factory: s('<path d="M3 21V11l5 3v-3l5 3v-3l5 3V4h3v17z"/>'),
+  moon: s('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/>'),
+  flag: s('<path d="M3 5h18l-2 4H5zM5 9l3 5 3-5M11 9l3 5 3-5"/>'),
 };
+
+/** Icon of each place (level select, album). */
+export const PLACE_ICON: Record<string, string> = {
+  plaza: IC.flag,
+  granja: IC.barn,
+  gasolinera: IC.pump,
+  poligono: IC.factory,
+  castanar: IC.tree,
+  sanjuan: IC.moon,
+  puerto: IC.anchor,
+  ciudad: IC.city,
+  estacion: IC.train,
+};
+export const POWER_ICON: Record<string, string> = { turbo: IC.turbo, boots: IC.boot, clock: IC.clock, extinguisher: IC.extinguisher, heli: IC.heli, suit: IC.suit };
+export const EVENT_ICON: Record<string, string> = { neighbors: IC.bucket, rain: IC.rain, gust: IC.gust, pressure: IC.gauge, leak: IC.leak, onlookers: IC.eye, blackout: IC.bulb };
+export const CREW_ICON: Record<string, string> = { partner: IC.partner, dog: IC.dog, drone: IC.drone };

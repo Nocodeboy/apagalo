@@ -103,7 +103,7 @@ async def time_up_and_decline(page):
     await end_screen(page)
 
 
-async def new_page(b, lang, query='?fakeads=1', viewport=(360, 640), init=None):
+async def new_page(b, lang, query='?fakeads=1', viewport=(360, 640), init=None, keep_news=False):
     ctx = await b.new_context(viewport={'width': viewport[0], 'height': viewport[1]}, has_touch=True, is_mobile=True, locale='es-ES' if lang == 'es' else 'en-US')
     if init:
         await ctx.add_init_script(init)
@@ -113,6 +113,9 @@ async def new_page(b, lang, query='?fakeads=1', viewport=(360, 640), init=None):
     page.on('console', lambda m: m.type == 'error' and errs.append(m.text))
     await page.goto(BASE + query)
     await page.wait_for_timeout(1500)
+    # saves with progress from 1.x see "what is new in 2.0" once on the title: out of the way unless the test is about it
+    if not keep_news and await page.is_visible('.whatsnew'):
+        await page.click('.whatsnew [data-a=back]')
     return ctx, page, errs
 
 
@@ -381,9 +384,13 @@ async def other_modes(b):
            'settings': {'sfx': False, 'music': False, 'vibration': True, 'gfx': 'auto', 'autoTier': None, 'lang': 'es', 'stats': True},
            'tutorialDone': True, 'firstOpen': False, 'seenTips': []}
     init = f"if (!sessionStorage.getItem('seeded')) {{ localStorage.setItem({json.dumps(KEY)}, {json.dumps(json.dumps(old))}); sessionStorage.setItem('seeded', '1'); }}"
-    ctx, page, errs = await new_page(b, 'es', '?fakeads=1', init=init)
+    ctx, page, errs = await new_page(b, 'es', '?fakeads=1', init=init, keep_news=True)
     s = await st(page)
     check(s['coins'] == 0 and s['up'] == {'hose': 0, 'power': 0, 'speed': 0, 'time': 0} and s['owned'] == {'remove_ads': False, 'starter_pack': False}, 'old save gets coins 0, upgrades 0 and nothing owned')
+    # a player with progress from 1.x is told once what 2.0 brings
+    check(await page.is_visible('.whatsnew'), 'what is new in 2.0 shows once for an old save with progress')
+    if await page.is_visible('.whatsnew'):
+        await page.click('.whatsnew [data-a=back]')
     stars = await page.inner_text('.starcount')
     n = len(await page.evaluate('__apagalo.levels'))
     check(f'3/{n * 3}' in stars, f'old progress kept ({stars.strip()}, {n} levels)')
@@ -391,6 +398,82 @@ async def other_modes(b):
     await page.wait_for_selector('.lvl[data-i="1"]')
     cur = await page.evaluate("(() => { const c = document.querySelector('.lvl.cur'); return c ? c.dataset.i : null })()")
     check(cur == '1' and await page.is_visible('.lvl[data-i="0"]'), f'old save: level select on the first page with level 2 as the next one (cur {cur})')
+    check(not errs, f'no errors {errs}')
+    await ctx.close()
+
+    print('[en] save from 1.3.0 (20 levels won in the old order): nothing lost in the new route')
+    ids13 = ['plaza', 'granja', 'gasolinera', 'poligono', 'castanar', 'sanjuan', 'plaza-2', 'granja-2', 'gasolinera-2', 'poligono-2', 'castanar-2',
+             'sanjuan-2', 'granja-3', 'gasolinera-3', 'poligono-3', 'castanar-3', 'sanjuan-3', 'plaza-3', 'gasolinera-4', 'poligono-4']
+    won = {lid: 1 + k % 3 for k, lid in enumerate(ids13)}
+    total = sum(won.values())
+    old = {'v': 1, 'stars': won, 'best': {lid: 900 for lid in ids13}, 'daily': {}, 'streak': {'count': 2, 'last': '2026-09-28'},
+           'settings': {'sfx': False, 'music': False, 'vibration': True, 'gfx': 'auto', 'autoTier': None, 'lang': 'en', 'stats': True},
+           'tutorialDone': True, 'firstOpen': False, 'seenTips': ['oil'], 'coins': 3210, 'upgrades': {'hose': 2, 'power': 1, 'speed': 0, 'time': 3},
+           'owned': {'remove_ads': False, 'starter_pack': True},
+           'ads': {'freeDay': '', 'freeClaims': 0, 'freeTimes': [], 'lastInterstitial': 0, 'lastFullscreen': 0, 'levelEnds': 30, 'sinceInterstitial': 1},
+           'starterOffered': True, 'dailyTimes': [], 'iapTokens': ['tok-old-1']}
+    init = f"if (!sessionStorage.getItem('seeded')) {{ localStorage.setItem({json.dumps(KEY)}, {json.dumps(json.dumps(old))}); sessionStorage.setItem('seeded', '1'); }}"
+    ctx, page, errs = await new_page(b, 'en', '?fakeads=1', init=init, keep_news=True)
+    s = await st(page)
+    check(s['coins'] == 3210 and s['up'] == {'hose': 2, 'power': 1, 'speed': 0, 'time': 3} and s['owned']['starter_pack'] and s['tokens'] == ['tok-old-1'],
+          f'1.3.0 save keeps coins, upgrades and purchases ({s["coins"]}, {s["up"]})')
+    check(await page.is_visible('.whatsnew'), '1.3.0 save: what is new in 2.0 shows once')
+    if await page.is_visible('.whatsnew'):
+        await page.click('.whatsnew [data-a=back]')
+    n = len(await page.evaluate('__apagalo.levels'))
+    stars = await page.inner_text('.starcount')
+    check(f'{total}/{n * 3}' in stars, f'1.3.0 save: every star kept ({stars.strip()}, expected {total}/{n * 3})')
+    info = await page.evaluate("""(() => { const a = __apagalo, ids = a.levels, s = a.save;
+      const won = (id) => (s.stars[id] || 0) >= 1;
+      const open = ids.map((id, i) => i === 0 || won(ids[i - 1]) || won(id) || s.open.includes(id));
+      const f = ids.indexOf('castanar-4');
+      return { f, openAtF: open[f], afterF: open[f + 1], allBefore: open.slice(0, f + 1).every(Boolean),
+        newBefore: ids.slice(0, f + 1).filter((id) => /^(puerto|ciudad|estacion)-/.test(id)), route: s.route, reach: s.reach } })()""")
+    check(info['openAtF'] and info['allBefore'] and not info['afterF'], f'1.3.0 save: everything up to where it had got (castanar-4, now #{info["f"] + 1}) is open, nothing after ({info})')
+    check(len(info['newBefore']) >= 6, f'1.3.0 save: the new levels inserted before that point are playable ({info["newBefore"]})')
+    # the next level is the first new one (the docks), and it can be played and won
+    await page.click('.title-screen [data-a=levels]')
+    await page.wait_for_selector('.lvl.cur')
+    cur = await page.evaluate("(() => { const c = document.querySelector('.lvl.cur'); return c ? Number(c.dataset.i) : -1 })()")
+    ids = await page.evaluate('__apagalo.levels')
+    check(cur >= 0 and ids[cur] == 'puerto-1', f'1.3.0 save: the next level is the first new place ({ids[cur] if cur >= 0 else None})')
+    await shot(page, 'en-12-save13-levels.png')
+    await page.click(f'.lvl[data-i="{cur}"]')
+    await go_and_win(page)
+    s = await st(page)
+    check(s['result']['win'] and (await page.evaluate("__apagalo.save.stars['puerto-1'] || 0")) >= 1, 'an inserted level plays and its stars are saved')
+    await page.reload()
+    await page.wait_for_timeout(1500)
+    check(not await page.is_visible('.whatsnew'), 'what is new does not show again')
+    stars = await page.inner_text('.starcount')
+    check(f'/{n * 3}' in stars and int(stars.split('/')[0].split()[-1]) > total, f'stars add up after the reload ({stars.strip()})')
+    check(not errs, f'no errors {errs}')
+    await ctx.close()
+
+    print('[en] air support: rewarded helicopter after losing the same level twice in a row (from level 8)')
+    ctx, page, errs = await new_page(b, 'en', '?fakeads=1')
+    ids = await page.evaluate('__apagalo.levels')
+    await page.evaluate(f"(() => {{ const s = __apagalo.save; {json.dumps(ids[:7])}.forEach((id) => s.stars[id] = 2); s.tutorialDone = true; }})()")
+    await page.evaluate(f"__apagalo.level({json.dumps(ids[7])}, true)")
+    await page.wait_for_timeout(400)
+    await time_up_and_decline(page)
+    check(not await page.query_selector('.end-screen [data-a=air]'), 'no air support after the first loss')
+    await page.click('.end-screen [data-a=retry]')
+    await page.wait_for_timeout(600)
+    await time_up_and_decline(page)
+    await page.wait_for_selector('.end-screen [data-a=air]', timeout=4000)
+    label = (await page.inner_text('.end-screen [data-a=air]')).lower()
+    check('ad' in label, f'second loss in a row: air support offered, and the button says it is an ad ("{label.strip()}")')
+    await shot(page, 'en-13-air-support.png')
+    await page.click('.end-screen [data-a=air]')
+    ok = await until(page, "__apagalo.mode === 'play' && __apagalo.sim && __apagalo.sim.heliCharges >= 1", 8000)
+    check(ok, 'after the ad the level restarts with a helicopter ready')
+    await page.evaluate(TIME_UP)
+    await page.wait_for_selector('[data-a=decline]', timeout=5000)
+    await page.click('[data-a=decline]')
+    await end_screen(page)
+    await page.wait_for_timeout(600)
+    check(not await page.query_selector('.end-screen [data-a=air]'), 'air support only once per level and session')
     check(not errs, f'no errors {errs}')
     await ctx.close()
 

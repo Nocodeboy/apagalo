@@ -2,7 +2,7 @@ import { BASE_LEVELS } from './levels';
 import { MATS } from './materials';
 import { parseLevel } from './parse';
 import { hashString, Rng } from './rng';
-import type { LevelDef, Txt } from './types';
+import { EVENT_KINDS, isNight, POWER_KINDS, type LevelDef, type Txt } from './types';
 import type { SimOptions } from './world';
 
 export const DAILY_EPOCH = Date.UTC(2026, 8, 25); // Reto #1 = 25 Sep 2026
@@ -75,6 +75,13 @@ export function makeDaily(d = new Date(), salt = 0): Daily {
     const c = cands[Math.floor(rng.next() * cands.length)];
     extra.push(c);
     if (c + 1 < p.W * p.H) extra.push(c + 1);
+  }
+  // v2: power-ups for everyone, and 2 days out of 3 a surprise event (the same for every player of the day)
+  def.powerups = [...POWER_KINDS];
+  def.events = [];
+  if (rng.next() < 0.67) {
+    const kinds = EVENT_KINDS.filter((k) => k !== 'blackout' || isNight(def));
+    def.events.push({ kind: kinds[Math.floor(rng.next() * kinds.length)], t: Math.round(def.time * (0.25 + 0.25 * rng.next())) });
   }
   // keep the level's own start too, so the daily always opens with action
   const opts: SimOptions = {

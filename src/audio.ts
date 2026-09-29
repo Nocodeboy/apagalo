@@ -320,6 +320,57 @@ export class Audio {
         for (let i = 0; i < 4; i++) this.tone(i % 2 ? 588 : 440, 0.36, 'square', 0.035, i * 0.38);
         break;
       }
+      // ---- v2 ----
+      case 'powerSpawn':
+        [988, 1319].forEach((f, i) => this.tone(f, 0.12, 'sine', 0.07, i * 0.09));
+        break;
+      case 'powerup':
+        [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.1, 'square', 0.06, i * 0.05));
+        this.noiseBurst(0.3, 'highpass', 4000, 8000, 0.08);
+        break;
+      case 'buffEnd':
+        this.tone(660, 0.12, 'triangle', 0.08);
+        this.tone(440, 0.18, 'triangle', 0.08, 0.1);
+        break;
+      case 'eventWarn':
+        [0, 0.16, 0.32].forEach((d) => this.tone(1046, 0.1, 'triangle', 0.09, d));
+        break;
+      case 'eventStart':
+        this.tone(523, 0.18, 'sawtooth', 0.07);
+        this.tone(784, 0.3, 'sawtooth', 0.07, 0.12);
+        break;
+      case 'heli':
+        // rotor chop
+        for (let i = 0; i < 14; i++) this.noiseBurst(0.06, 'lowpass', 400, 200, 0.18, 0.8, i * 0.11);
+        break;
+      case 'heliDrop':
+        this.noiseBurst(1.6, 'lowpass', 1800, 300, 0.45);
+        this.noiseBurst(1.2, 'highpass', 3000, 6000, 0.15, 0.8, 0.1);
+        break;
+      case 'bell':
+        // level crossing bell
+        for (let i = 0; i < 6; i++) this.tone(i % 2 ? 1175 : 1397, 0.18, 'triangle', 0.09, i * 0.25);
+        break;
+      case 'train':
+        this.noiseBurst(2.4, 'lowpass', 500, 180, 0.35, 0.9);
+        this.tone(330, 0.6, 'sawtooth', 0.05, 0.1);
+        this.tone(415, 0.6, 'sawtooth', 0.05, 0.1);
+        break;
+      case 'cut':
+        this.noiseBurst(0.3, 'bandpass', 1800, 600, 0.4, 1.2);
+        this.tone(200, 0.3, 'square', 0.08, 0, 90);
+        break;
+      case 'bucket':
+        if (!this.limit('bucket', 0.25)) return;
+        this.noiseBurst(0.35, 'bandpass', 1400, 700, 0.18);
+        break;
+      case 'lift':
+        this.tone(300, 0.5, 'sine', 0.06, 0, 600);
+        break;
+      case 'page':
+        this.noiseBurst(0.25, 'highpass', 2500, 5000, 0.2);
+        [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.1, 0.1 + i * 0.08));
+        break;
     }
   }
 }

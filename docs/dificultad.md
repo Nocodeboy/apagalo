@@ -118,8 +118,8 @@ Cosas a tener en cuenta:
 
 - **Se pierde más cerca de la 2.ª estrella.** En muchos niveles nuevos `minSaved` está a 5-13 puntos de la línea de 2 estrellas (en los originales, unos 30). Por eso el marcador de salvado se pone rojo y parpadea cuando quedan menos de 5 puntos para perder (`#hud-saved.danger`).
 - **La noche solo es difícil para personas.** El bot ve igual de noche, así que los niveles nocturnos (p. ej. `plaza-6`, `plaza-9`, `granja-9`, `poligono-10`, el final) serán algo más duros de lo que dicen estos números.
-- **Rescates y 3 estrellas.** El bot casi nunca rescata (se queda parado a 1,3 casillas del animal), así que las 3 estrellas de los niveles con rescates quedan para quien juegue bien.
-- **Fallos del bot que no se han tocado** (cambiarlos movería todas las medidas y la tabla del reto diario): no llega nunca a propósito a una boca de riego (`nearAt(hydrant, 0.9)` no casa con ninguna casilla, haría falta ≥ 1,05), no apunta a celdas de un edificio escondidas detrás de otras aunque el agua llegue, y si la palanca está lejos riega el cuadro eléctrico una y otra vez. Los niveles se han diseñado para no depender de eso.
+- **Rescates y 3 estrellas.** En la 1.3.0 el bot casi nunca rescataba (se quedaba parado a 1,3 casillas del animal), así que las 3 estrellas de los niveles con rescates quedaban para quien jugara bien. Arreglado en la 2.0.
+- **Fallos del bot que no se tocaron en la 1.3.0** (los dos primeros, arreglados en la 2.0: ver «2.0: qué cambia al medir»): no llega nunca a propósito a una boca de riego (`nearAt(hydrant, 0.9)` no casa con ninguna casilla, haría falta ≥ 1,05), no apunta a celdas de un edificio escondidas detrás de otras aunque el agua llegue, y si la palanca está lejos riega el cuadro eléctrico una y otra vez. Los niveles se han diseñado para no depender de eso.
 
 ## Con mejoras
 
@@ -189,3 +189,107 @@ npx tsx tools/bot.ts 30 finale --up=max
 - Con 50 partidas: PRO 96 %, casual 36 %. Sin hacer nada se descontrola hacia el segundo 50.
 - Las 3 estrellas no las saca ningún bot (ninguno rescata a los tres y el PRO no pasa del 74 % salvado): quedan para quien juegue muy bien.
 - Rendimiento (Chromium con WebGL por software, calidad media, 360×640): 0,2-0,4 ms por paso de simulación, ~1,5 ms por actualización de la vista y unas 110 llamadas de dibujo con 56.000 triángulos, frente a 60-75 llamadas y 33.000-80.000 triángulos de los niveles originales.
+
+## 2.0: qué cambia al medir
+
+Desde la 2.0 los números no se pueden comparar uno a uno con los de arriba (1.3.0), por tres motivos:
+
+- **Los niveles tienen power-ups y eventos** (desde el 3 y el 8). El bot coge los power-ups que le pillan cerca, usa el helicóptero y enfría la fuga de gas. Casi todos ayudan, así que los niveles de siempre salen algo más fáciles.
+- **Se han arreglado los fallos del bot** que se habían dejado para no mover las medidas: ahora sí llega a las bocas de riego (y al camión: se engancha en su punto de enganche, no en el centro), rescata (se pone en el centro de la casilla, a menos de 1,25 m), ataca las llamas escondidas dentro de un edificio echando agua a su pared (solo si no ve otra) y ya no se queda quieto delante de un objetivo que no ve por estar medio metro desviado. Juega mejor, sobre todo el casual en los niveles con rescates y bocas de riego.
+- **La gente de las ventanas** (el centro) solo va a rescatarla cuando el fuego se le acerca.
+
+El reto diario (`dailyTable.ts`) se ha regenerado con el bot nuevo: de 400 días, 300 valen con la primera semilla.
+
+## 2.0, entrega 1: ruta de 97 niveles
+
+Medida el 30 sept 2026 con `npx tsx tools/bot.ts 10 --sum`. Con 10 partidas cada porcentaje baila unos ±15 puntos.
+
+Por capítulos (cada capítulo acaba en su gran incendio):
+
+| Capítulo | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| 1-10 | 10 | 100 % | 89 % | 70 % |
+| 11-20 | 10 | 100 % | 91 % | 78 % |
+| 21-30 | 10 | 100 % | 84 % | 76 % |
+| 31-40 | 10 | 97 % | 86 % | 73 % |
+| 41-50 | 10 | 100 % | 91 % | 72 % |
+| 51-60 | 10 | 100 % | 74 % | 69 % |
+| 61-70 | 10 | 100 % | 80 % | 77 % |
+| 71-80 | 10 | 98 % | 71 % | 70 % |
+| 81-90 | 10 | 100 % | 69 % | 68 % |
+| 91-97 | 7 | 100 % | 87 % | 72 % |
+Por escenario:
+
+| Escenario | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| plaza | 12 | 100 % | 81 % | 72 % |
+| granja | 11 | 99 % | 87 % | 81 % |
+| gasolinera | 11 | 100 % | 90 % | 67 % |
+| poligono | 11 | 99 % | 74 % | 68 % |
+| castanar | 11 | 100 % | 63 % | 62 % |
+| sanjuan | 11 | 97 % | 75 % | 71 % |
+| puerto | 10 | 100 % | 93 % | 75 % |
+| ciudad | 10 | 100 % | 91 % | 82 % |
+| estacion | 10 | 100 % | 88 % | 76 % |
+| Grandes incendios | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| todos | 10 | 99 % | 70 % | 67 % |
+
+Retos diarios del 25 sept al 1 oct (solo PRO):
+
+```
+daily#1 casta wind     win  60%  saved  38%  left 114s  ★ 4/6/0/0  rescued 2.4/4  boom 0.0  zap 0.0  pw 0.4  {"win":6,"control":4}
+daily#2 plaza wind     win 100%  saved  91%  left  93s  ★ 0/0/10/0  rescued 0.0/0  boom 0.0  zap 0.0  pw 0.3  {"win":10}
+daily#3 casta night    win 100%  saved  73%  left 150s  ★ 0/0/7/3  rescued 1.7/4  boom 0.0  zap 0.0  pw 0.7  {"win":10}
+daily#4 gasol short    win 100%  saved  62%  left  58s  ★ 0/9/1/0  rescued 0.0/0  boom 0.0  zap 0.0  pw 1.2  {"win":10}
+daily#5 sanju wind     win 100%  saved  80%  left  64s  ★ 0/1/9/0  rescued 0.0/2  boom 0.0  zap 0.0  pw 2.3  {"win":10}
+daily#6 granj night    win 100%  saved  64%  left 100s  ★ 0/10/0/0  rescued 4.4/6  boom 0.0  zap 0.0  pw 1.1  {"win":10}
+daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/1/9  rescued 0.0/0  boom 0.1  zap 0.0  pw 0.3  {"win":10}
+```
+
+### Los 30 niveles nuevos
+
+| Nº | id | Nombre | Tiempo | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|---|---|
+| 7 | `puerto-1` | El muelle (presentación) | 130 s | 100 % | 100 % | 100 % |
+| 10 | `puerto-2` | ¡Fuego en el puerto! (gran incendio) | 190 s | 100 % | 70 % | 74 % |
+| 12 | `ciudad-1` | La calle mayor (presentación) | 130 s | 100 % | 100 % | 98 % |
+| 17 | `estacion-1` | El andén (presentación) | 130 s | 100 % | 100 % | 79 % |
+| 18 | `ciudad-2` | El café de la esquina | 130 s | 100 % | 100 % | 88 % |
+| 19 | `puerto-3` | La lonja | 150 s | 100 % | 90 % | 66 % |
+| 20 | `ciudad-3` | Rascacielos en llamas (gran incendio) | 200 s | 100 % | 60 % | 73 % |
+| 25 | `estacion-2` | Los vagones | 150 s | 100 % | 100 % | 98 % |
+| 28 | `estacion-3` | El paso a nivel | 150 s | 100 % | 100 % | 77 % |
+| 29 | `puerto-4` | Los contenedores | 160 s | 100 % | 100 % | 72 % |
+| 30 | `estacion-4` | Incendio en la estación (gran incendio) | 210 s | 100 % | 60 % | 63 % |
+| 31 | `ciudad-4` | El mercado de abastos | 150 s | 100 % | 100 % | 69 % |
+| 38 | `puerto-5` | El varadero | 150 s | 100 % | 100 % | 66 % |
+| 39 | `ciudad-5` | El parque | 150 s | 100 % | 100 % | 81 % |
+| 40 | `puerto-6` | La terminal de combustible (gran incendio) | 210 s | 100 % | 100 % | 68 % |
+| 46 | `estacion-5` | La cochera | 160 s | 100 % | 100 % | 81 % |
+| 48 | `ciudad-6` | El aparcamiento | 160 s | 100 % | 100 % | 95 % |
+| 50 | `ciudad-7` | Apagón en el centro (gran incendio) | 220 s | 100 % | 100 % | 73 % |
+| 53 | `estacion-6` | Dos vías | 170 s | 100 % | 90 % | 73 % |
+| 58 | `estacion-7` | El almacén de mercancías | 160 s | 100 % | 80 % | 70 % |
+| 60 | `estacion-8` | La playa de vías (gran incendio) | 230 s | 100 % | 60 % | 57 % |
+| 61 | `puerto-7` | El faro | 170 s | 100 % | 100 % | 89 % |
+| 69 | `ciudad-8` | El hotel | 180 s | 100 % | 100 % | 81 % |
+| 73 | `puerto-8` | El ferry | 170 s | 100 % | 80 % | 64 % |
+| 82 | `estacion-9` | El último tren | 180 s | 100 % | 100 % | 77 % |
+| 84 | `ciudad-9` | Noche de estreno | 170 s | 100 % | 70 % | 79 % |
+| 85 | `puerto-9` | El barrio de pescadores | 160 s | 100 % | 100 % | 70 % |
+| 91 | `estacion-10` | Hora punta en la estación | 190 s | 100 % | 90 % | 83 % |
+| 92 | `ciudad-10` | Hora punta | 200 s | 100 % | 80 % | 80 % |
+| 93 | `puerto-10` | Noche en los muelles | 200 s | 100 % | 90 % | 80 % |
+
+### Cómo se han ajustado
+
+1. **Que el fuego sea una amenaza**: con `npx tsx tools/curve.ts <id>` se mira cuánto se quema si nadie hace nada (tiene que perderse entre el 30 y el 60 %) y si el PRO y el casual salvan más que eso. Si a los 10 s todos van igual, el fuego empieza demasiado grande o en algo que nadie alcanza; si nadie lo nota, empieza en algo que no se propaga.
+2. **Pocos focos al empezar, en material que corre** (pasarelas de madera, redes, pacas, hierba seca junto a las vías, torres pegadas unas a otras) y repartidos, para que decidan la rapidez y el orden.
+3. **Umbrales con `tools/tune.ts`**: juega 16 partidas sin mínimo de salvado y propone el `minSaved` más alto con el que el PRO gana el 95 % y el casual la tasa pedida para su puesto en la ruta (del 95 % en las presentaciones al 50 % al final, 10 puntos menos en los grandes incendios y 10 más justo después). Las estrellas: dos, en lo que salva el PRO de mediana menos 2 puntos; tres, en su percentil 80.
+
+### Lo que no se ha conseguido
+
+- **En los escenarios nuevos el casual gana casi tanto como el PRO.** Sus niveles se deciden más por la mecánica (espuma para el gasóleo, estar debajo de la ventana, esperar al tren) que por la puntería o la rapidez, y el bot casual las usa igual de bien que el PRO. Por eso sus tasas de victoria del casual se quedan altas aunque los umbrales estén justo por debajo de lo que salva el PRO. A una persona le costarán más: no sabe de antemano que el agua aviva el gasóleo ni que el tren corta la manguera.
+- **El PRO rescata más ventanas y salva menos edificios** que el casual en algunos niveles del centro (`ciudad-8`): gasta tiempo en la plataforma mientras la manzana arde. Da las tres estrellas (nadie se escapa), no más % salvado.
+- **`sanjuan-4`** sigue con el PRO al 80-90 % (lo mismo que en la 1.3.0).

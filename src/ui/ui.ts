@@ -1,11 +1,12 @@
+import { EVENT_INFO, PLACE_COLOR, PLACE_INFO, POWER_INFO } from '../content';
 import { num, t, tx } from '../i18n';
 import type { Label } from '../render/view';
 import type { Stage } from '../render/stage';
 import { THEMES } from '../render/themes';
 import { FINALE_ID } from '../sim/campaign/finale';
-import type { LevelDef } from '../sim/types';
+import type { EventKind, LevelDef, News, PowerKind } from '../sim/types';
 import type { Result } from '../sim/world';
-import { IC } from './icons';
+import { CREW_ICON, EVENT_ICON, IC, PLACE_ICON, POWER_ICON } from './icons';
 
 export const $ = <T extends HTMLElement = HTMLElement>(sel: string, root: ParentNode = document) => root.querySelector(sel) as T;
 
@@ -127,8 +128,8 @@ export function titleScreen(o: TitleOpts) {
   show(n);
 }
 
-/** Levels per page of the level select (chapters: 1-12, 13-24... the last one holds the finale). */
-export const LEVELS_PER_PAGE = 12;
+/** Levels per chapter of the level select: 1-10, 11-20... each one ends with its big fire. */
+export const LEVELS_PER_PAGE = 10;
 
 export interface LevelsOpts {
   levels: LevelDef[];
@@ -139,13 +140,17 @@ export interface LevelsOpts {
   next: number;
   /** open on the page of this level instead (coming back from its intro screen) */
   focus?: number;
+  /** front pages won, by level id */
+  pages: Record<string, unknown>;
   onPick: (i: number) => void;
   onBack: () => void;
+  onAlbum: () => void;
 }
 
 /**
- * Level select: 12 levels per page, with a tab per page (its range and its stars) that also works with the
- * arrow keys, PageUp/PageDown and a horizontal swipe over the cards. Cards keep `.lvl[data-i]` (index in `levels`).
+ * Level select, the route by chapters of 10: a pager (arrows, swipe, PageUp/PageDown) with a dot per chapter, and the
+ * cards of the chapter in play order, each with the colour and icon of its place. The big fire closes the chapter.
+ * Cards keep `.lvl[data-i]` (index in `levels`).
  */
 export function levelsScreen(o: LevelsOpts) {
   const { levels, stars, best, unlocked } = o;
@@ -153,6 +158,8 @@ export function levelsScreen(o: LevelsOpts) {
   const pages = Math.max(1, Math.ceil(levels.length / per));
   const total = levels.reduce((a, L) => a + (stars[L.id] ?? 0), 0);
   const done = levels.filter((L) => (stars[L.id] ?? 0) > 0).length;
+  const bigs = levels.filter((L) => L.big);
+  const pagesWon = bigs.filter((L) => o.pages[L.id]).length;
   const clampPage = (p: number) => Math.max(0, Math.min(pages - 1, p));
   let page = clampPage(Math.floor((o.focus ?? o.next) / per));
   const span = (p: number) => [p * per, Math.min(levels.length, (p + 1) * per)] as const;
@@ -172,26 +179,22 @@ export function levelsScreen(o: LevelsOpts) {
   const card = (L: LevelDef, i: number) => {
     const th = THEMES[L.theme];
     const fin = L.id === FINALE_ID;
-    const bg = fin ? 'linear-gradient(160deg, #1a2350 0%, #5a2340 55%, #e2572e 100%)' : `linear-gradient(160deg, ${hex(th.sky)} 0%, ${hex(th.outside)} 70%, ${th.grass[1]} 100%)`;
+    const big = !!L.big;
+    const place = (L.news ?? []).some((n) => n.kind === 'place');
+    const col = PLACE_COLOR[L.theme];
+    const bg = big ? `linear-gradient(160deg, #1a2350 0%, #5a2340 55%, #e2572e 100%)` : `linear-gradient(160deg, ${hex(th.sky)} 0%, ${hex(th.outside)} 70%, ${th.grass[1]} 100%)`;
     const lock = !unlocked(i);
     const cur = isCur(i);
     const st = stars[L.id] ?? 0;
-    const label = `${t('level')} ${L.num}: ${tx(L.name)}. ${lock ? t('lockedShort') : cur ? t('newTag') : t('starsN', { n: st })}`;
-    return `<button class="lvl${lock ? ' locked' : ''}${cur ? ' cur' : ''}${fin ? ' finale' : ''}" data-i="${i}" style="background:${bg}" aria-label="${esc(label)}"${lock ? ' aria-disabled="true"' : ''}${cur ? ' aria-current="step" data-focus' : ''}>
-        <span class="num">${L.num}</span>${fin ? `<span class="fin" aria-hidden="true">${IC.flame}</span>` : ''}
+    const label = `${t('level')} ${L.num}: ${tx(L.name)}${big ? ` (${t('bigFireTag')})` : ''}. ${lock ? t('lockedShort') : cur ? t('newTag') : t('starsN', { n: st })}`;
+    const tag = big ? `<span class="bigtag">${IC.flame}${t('bigFire')}</span>` : place ? `<span class="placetag">${t('newPlace')}</span>` : '';
+    const paper = big && o.pages[L.id] ? `<span class="paper" aria-hidden="true">${IC.news}</span>` : '';
+    return `<button class="lvl${lock ? ' locked' : ''}${cur ? ' cur' : ''}${big ? ' big' : ''}${fin ? ' finale' : ''}" data-i="${i}" style="background:${bg};--pc:${col}" aria-label="${esc(label)}"${lock ? ' aria-disabled="true"' : ''}${cur ? ' aria-current="step" data-focus' : ''}>
+        <span class="num">${L.num}</span><span class="pi" aria-hidden="true">${PLACE_ICON[L.theme] ?? ''}</span>${paper}
+        ${tag}
         <span class="nm">${esc(tx(L.name))}</span>
         <span class="st">${lock ? '<span>🔒</span>' : cur ? `<span class="new">${IC.play}${t('newTag')}</span>` : `<span>${starsTxt(st)}</span>`}${best[L.id] ? `<small>${best[L.id].toLocaleString()}</small>` : ''}</span>
       </button>`;
-  };
-  const tab = (p: number) => {
-    const ps = pageStars(p);
-    const [a] = span(p);
-    const locked = !unlocked(a);
-    const pct = Math.round((ps.s / ps.max) * 100);
-    const aria = t('chapterAria', { r: range(p), s: ps.s, m: ps.max });
-    return `<button class="chap${locked ? ' locked' : ''}${p === nextPage && isCur(o.next) ? ' has-next' : ''}" role="tab" id="lv-tab-${p}" data-p="${p}" aria-controls="lv-grid" aria-label="${esc(aria)}">
-      <b>${locked ? '<i class="lk" aria-hidden="true">🔒</i>' : ''}${range(p)}</b><span class="cst"><span class="star-on">★</span> ${ps.s}/${ps.max}</span><i class="cbar" aria-hidden="true"><span style="width:${pct}%"></span></i>
-    </button>`;
   };
 
   const n = el(`
@@ -201,47 +204,60 @@ export function levelsScreen(o: LevelsOpts) {
       <div class="panel-head lv-head">
         <button class="icon-btn" data-a="back" aria-label="${t('back')}">${IC.back}</button>
         <div class="lv-title"><h2>${t('levels')}</h2><div class="eyebrow"><span class="star-on">★</span> ${total}/${levels.length * 3}<span class="lv-done"> · ${t('levelsDone', { n: done, m: levels.length })}</span></div></div>
+        <button class="album-btn" data-a="album" aria-label="${esc(t('album'))}">${IC.news}<b>${pagesWon}/${bigs.length}</b></button>
       </div>
       <div class="panel-body">
-        ${pages > 1 ? `<div class="chapters" role="tablist" aria-label="${t('levels')}" style="--pages:${pages}">${Array.from({ length: pages }, (_, p) => tab(p)).join('')}</div>` : ''}
-        <div class="levels" id="lv-grid"${pages > 1 ? ' role="tabpanel"' : ''}></div>
+        <div class="pager">
+          <button class="icon-btn pg" data-a="prev" aria-label="${t('prevPage')}">${IC.back}</button>
+          <div class="pg-mid"><div class="pg-title" id="pg-title"></div><div class="pg-dots" role="tablist" aria-label="${t('levels')}">${Array.from({ length: pages }, (_, p) => `<button class="dot${p === nextPage ? ' has-next' : ''}" role="tab" data-p="${p}" aria-label="${esc(t('chapterAria2', { n: p + 1, r: range(p) }))}"></button>`).join('')}</div></div>
+          <button class="icon-btn pg" data-a="nextp" aria-label="${t('nextPage')}">${IC.next}</button>
+        </div>
+        <div class="levels" id="lv-grid" role="tabpanel"></div>
       </div>
     </div>
   </div>`);
   const grid = n.querySelector<HTMLElement>('#lv-grid')!;
-  const tabs = [...n.querySelectorAll<HTMLElement>('.chap')];
+  const dots = [...n.querySelectorAll<HTMLElement>('.dot')];
+  const title = n.querySelector<HTMLElement>('#pg-title')!;
 
   function render(dir: number) {
     const [a, b] = span(page);
     let html = '';
     for (let i = a; i < b; i++) html += card(levels[i], i);
-    // keep every page as tall as a full one, so the tabs and the cards do not jump around
-    if (pages > 1) for (let i = b - a; i < per; i++) html += '<span class="lvl-ph" aria-hidden="true"></span>';
     grid.innerHTML = html;
-    if (pages > 1) grid.setAttribute('aria-labelledby', `lv-tab-${page}`);
-    tabs.forEach((tb, p) => {
-      tb.setAttribute('aria-selected', String(p === page));
-      tb.tabIndex = p === page ? 0 : -1;
+    const ps = pageStars(page);
+    const bigL = levels.slice(a, b).find((L) => L.big);
+    title.innerHTML = `<b>${esc(t('chapter', { n: page + 1 }))}</b> <span class="pg-r">${range(page)}</span> <span class="pg-s"><span class="star-on">★</span> ${ps.s}/${ps.max}</span>${bigL ? `<small>${IC.flame}${esc(tx(bigL.name))}</small>` : ''}`;
+    dots.forEach((d, p) => {
+      d.setAttribute('aria-selected', String(p === page));
+      d.tabIndex = p === page ? 0 : -1;
+      d.classList.toggle('locked', !unlocked(span(p)[0]));
+      d.classList.toggle('full', pageStars(p).s === pageStars(p).max);
     });
+    n.querySelector<HTMLButtonElement>('[data-a=prev]')!.disabled = page === 0;
+    n.querySelector<HTMLButtonElement>('[data-a=nextp]')!.disabled = page === pages - 1;
+    grid.setAttribute('aria-label', t('chapterAria2', { n: page + 1, r: range(page) }));
     grid.classList.remove('slide-l', 'slide-r');
     if (dir) {
       void grid.offsetWidth;
       grid.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
     }
   }
-  function go(p: number, focusTab = false) {
+  function go(p: number, focusDot = false) {
     p = clampPage(p);
     if (p !== page) {
       const dir = p > page ? 1 : -1;
       page = p;
       render(dir);
     }
-    if (focusTab) tabs[page]?.focus();
+    if (focusDot) dots[page]?.focus();
   }
   render(0);
 
-  tabs.forEach((tb, p) => tb.addEventListener('click', () => go(p)));
-  n.querySelector('.chapters')?.addEventListener('keydown', (e) => {
+  dots.forEach((d, p) => d.addEventListener('click', () => go(p)));
+  n.querySelector('[data-a=prev]')!.addEventListener('click', () => go(page - 1));
+  n.querySelector('[data-a=nextp]')!.addEventListener('click', () => go(page + 1));
+  n.querySelector('.pg-dots')?.addEventListener('keydown', (e) => {
     const k = (e as KeyboardEvent).key;
     const to = k === 'ArrowRight' ? page + 1 : k === 'ArrowLeft' ? page - 1 : k === 'Home' ? 0 : k === 'End' ? pages - 1 : null;
     if (to === null) return;
@@ -281,9 +297,25 @@ export function levelsScreen(o: LevelsOpts) {
     o.onPick(i);
   });
   n.querySelector('[data-a=back]')!.addEventListener('click', o.onBack);
+  n.querySelector('[data-a=album]')!.addEventListener('click', o.onAlbum);
   show(n);
-  // no highlighted level on this page (all done, or browsing another page): keyboard focus starts on the page tab
-  if (!grid.querySelector('[data-focus]')) (tabs[page] ?? n.querySelector<HTMLElement>('[data-a=back]'))?.focus({ preventScroll: true });
+  // no highlighted level on this page (all done, or browsing another page): keyboard focus starts on the page dot
+  if (!grid.querySelector('[data-focus]')) (dots[page] ?? n.querySelector<HTMLElement>('[data-a=back]'))?.focus({ preventScroll: true });
+}
+
+/** What a level brings for the first time, as pills for its intro screen. */
+export function newsHtml(news: News[] | undefined): string {
+  if (!news?.length) return '';
+  const pill = (icon: string, text: string, cls = '') => `<span class="pill news ${cls}">${icon}<b>${esc(t('newThing'))}</b> ${esc(text)}</span>`;
+  return `<div class="news-row">${news
+    .map((nw) => {
+      if (nw.kind === 'place') return pill(PLACE_ICON[nw.id] ?? IC.flag, `${tx(PLACE_INFO[nw.id as keyof typeof PLACE_INFO].name)}: ${tx(PLACE_INFO[nw.id as keyof typeof PLACE_INFO].tip)}`, 'place');
+      if (nw.kind === 'power') return pill(POWER_ICON[nw.id], tx(POWER_INFO[nw.id as PowerKind].name), 'power');
+      if (nw.kind === 'event') return pill(EVENT_ICON[nw.id], tx(EVENT_INFO[nw.id as EventKind].name).replace(/[¡!]/g, ''), 'event');
+      if (nw.kind === 'crew') return pill(IC.crew, t(nw.id === 'crew2' ? 'newCrew2' : 'newCrew'), 'crew');
+      return `<span class="pill news big">${IC.news}${esc(t('bigNews'))}</span>`;
+    })
+    .join('')}</div>`;
 }
 
 function windPill(angle: number, strength: number) {
@@ -301,6 +333,13 @@ export function goalsHtml(def: LevelDef, hasRescues: boolean, saved?: number): s
   </div>`;
 }
 
+export interface CrewPick {
+  /** places on this level */
+  slots: number;
+  /** hired crew members, with whether they come to this level */
+  members: { id: string; name: string; lvl: number; on: boolean }[];
+  onToggle: (id: string) => void;
+}
 export interface IntroOpts {
   def: LevelDef;
   eyebrow: string;
@@ -312,19 +351,32 @@ export interface IntroOpts {
   hasRescues: boolean;
   extra?: string;
   note?: string;
+  /** what this level brings for the first time (pills) */
+  news?: string;
+  crew?: CrewPick;
   onGo: () => void;
   onBack: () => void;
 }
+function crewHtml(c: CrewPick): string {
+  const on = c.members.filter((m) => m.on).length;
+  const body = c.members.length
+    ? c.members.map((m) => `<button class="crew-chip${m.on ? ' on' : ''}" data-crew="${m.id}" aria-pressed="${m.on}">${CREW_ICON[m.id]}<span>${esc(m.name)}</span><small>${'★'.repeat(m.lvl)}</small></button>`).join('')
+    : `<span class="muted">${esc(t('crewNone'))}</span>`;
+  return `<div class="crew-pick"><div class="eyebrow">${IC.crew}${esc(t('crewSlots', { n: on, m: c.slots }))}</div><div class="crew-row">${body}</div></div>`;
+}
 export function introScreen(o: IntroOpts) {
+  const big = !!o.def.big;
   const n = el(`
   <div class="screen dim">
-    <div class="panel">
+    <div class="panel${big ? ' bigfire' : ''}">
       <div class="tape"></div>
-      <div class="panel-head"><div class="eyebrow">${esc(o.eyebrow)}</div><h2>${esc(o.title)}</h2></div>
+      <div class="panel-head">${big ? `<div class="bigbadge">${IC.flame}${t('bigFire')}</div>` : ''}<div class="eyebrow">${esc(o.eyebrow)}</div><h2>${esc(o.title)}</h2></div>
       <div class="panel-body">
+        ${o.news ?? ''}
         <div class="tip">${IC.flame.replace('<svg', '<svg style="width:26px;height:26px;flex:none;color:#ffb21f"')}<p>${esc(o.tip)}</p></div>
         ${goalsHtml(o.def, o.hasRescues)}
         <div class="meta"><span class="pill">${IC.clock}${fmtTime(o.time)}</span>${windPill(o.wind.angle, o.wind.strength)}${o.extra ?? ''}</div>
+        ${o.crew ? `<div id="crew-slot">${crewHtml(o.crew)}</div>` : ''}
         ${o.note ? `<p class="muted note">${esc(o.note)}</p>` : ''}
         <div class="actions">
           <button class="btn ghost" data-a="back" aria-label="${t('back')}" style="flex:0 0 60px;padding:0">${IC.back}</button>
@@ -335,7 +387,19 @@ export function introScreen(o: IntroOpts) {
   </div>`);
   n.querySelector('[data-a=go]')!.addEventListener('click', o.onGo);
   n.querySelector('[data-a=back]')!.addEventListener('click', o.onBack);
+  if (o.crew) {
+    const slot = n.querySelector<HTMLElement>('#crew-slot')!;
+    slot.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-crew]');
+      if (b) o.crew!.onToggle(b.dataset.crew!);
+    });
+  }
   show(n);
+}
+/** Redraws the crew picker of the intro screen after a toggle. */
+export function refreshCrew(c: CrewPick) {
+  const slot = document.querySelector<HTMLElement>('#crew-slot');
+  if (slot) slot.innerHTML = crewHtml(c);
 }
 
 export interface PauseOpts {
@@ -401,6 +465,13 @@ export interface EndOpts {
   instant?: boolean;
   /** the finale was just won: the whole campaign is done (levels in it, stars earned and possible) */
   campaign?: { levels: number; stars: number; maxStars: number };
+  /** rewarded air support after losing the level twice */
+  airSupport?: boolean;
+  onAirSupport?: () => void;
+  /** a big fire with its front page won: button to see it (and `newPage` the first time) */
+  frontPage?: boolean;
+  newPage?: boolean;
+  onFrontPage?: () => void;
   onNext: () => void;
   onRetry: () => void;
   onMenu: () => void;
@@ -471,6 +542,8 @@ export function endScreen(o: EndOpts) {
           ${o.canDouble ? `<button class="btn amber sm" data-a="double" aria-label="${t('doubleAria')}">${IC.ad}${adLabel(t('double'))}</button>` : ''}
           ${walletHtml(o.instant ? o.balance : o.balance - o.coins, 'end-balance')}
         </div>
+        ${o.frontPage ? `<button class="btn ${o.newPage ? 'amber' : 'ghost'} paper-btn" data-a="page">${IC.news}${esc(o.newPage ? t('frontPageNew') : t('frontPage'))}</button>` : ''}
+        ${o.airSupport ? `<button class="btn amber air-btn" data-a="air" aria-label="${esc(t('airSupportAria'))}">${IC.ad}${adLabel(t('airSupport'))}<small class="air-d">${esc(t('airSupportD'))}</small></button>` : ''}
         <div class="actions">
           ${
             r.win && o.hasNext
@@ -497,6 +570,12 @@ export function endScreen(o: EndOpts) {
     o.onShared();
   });
   n.querySelector('[data-a=shop]')!.addEventListener('click', o.onShop);
+  n.querySelector('[data-a=page]')?.addEventListener('click', () => o.onFrontPage?.());
+  const air = n.querySelector<HTMLButtonElement>('[data-a=air]');
+  air?.addEventListener('click', () => {
+    air.disabled = true;
+    o.onAirSupport?.();
+  });
   const earned = n.querySelector<HTMLElement>('#end-coins')!;
   const balance = n.querySelector<HTMLElement>('#end-balance')!;
   const dbl = n.querySelector<HTMLButtonElement>('[data-a=double]');
@@ -768,8 +847,18 @@ export function updateIcons(stage: Stage, labels: Label[], edges: { x: number; z
     } else if (l.kind === 'lever') {
       e.className = 'ic lever';
       e.textContent = leverText;
+    } else if (l.kind === 'power') {
+      e.className = 'ic power' + (l.v < 3 ? ' ending' : '');
+      if (e.dataset.pk !== l.k) {
+        e.innerHTML = POWER_ICON[l.k ?? ''] ?? '';
+        e.dataset.pk = l.k ?? '';
+      }
+    } else if (l.kind === 'lift') {
+      e.className = 'ic gauge lift';
+      e.style.background = `conic-gradient(#ffd23a ${Math.round(l.v * 360)}deg, rgba(255,255,255,.2) 0)`;
+      e.innerHTML = '<span>⇡</span>';
     }
-    e.style.transform = `translate(${p.x}px, ${p.y + (l.kind === 'lever' ? Math.sin(performance.now() / 200) * 4 : 0)}px)`;
+    e.style.transform = `translate(${p.x}px, ${p.y + (l.kind === 'lever' || l.kind === 'power' ? Math.sin(performance.now() / 200) * 4 : 0)}px)`;
   }
   // off-screen fire indicators, kept clear of the HUD and the minimap
   const W = window.innerWidth;
@@ -809,7 +898,7 @@ export function updateIcons(stage: Stage, labels: Label[], edges: { x: number; z
 }
 
 // ---------------- HUD ----------------
-export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void) {
+export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void, onHeli: () => void = () => undefined) {
   const hud = $('#hud');
   hud.innerHTML = `
     <div class="hud-row">
@@ -822,6 +911,8 @@ export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void) 
       <div class="chip" id="hud-resc" hidden>${IC.paw}<span class="dots"></span></div>
       <div class="chip" id="hud-wind"><span class="wind" id="hud-windarrow">${IC.wind}</span></div>
       <div class="chip" id="hud-rockets" hidden>${IC.rocket}<span>0</span></div>
+      <div class="chip cut" id="hud-cut" hidden>${IC.reel}<span>0</span></div>
+      <span id="hud-buffs"></span>
     </div>
     <div class="hud-row mm-row"><canvas id="minimap" aria-hidden="true"></canvas></div>`;
   $('#hud-pause').addEventListener('click', onPause);
@@ -829,8 +920,14 @@ export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void) 
   nz.innerHTML = `
     <button class="noz sel" data-n="0" aria-label="${t('jet')}">${IC.jet}<span>${t('jet')}</span></button>
     <button class="noz" data-n="1" aria-label="${t('fog')}">${IC.fog}<span>${t('fog')}</span></button>
-    <button class="noz" data-n="2" aria-label="${t('foam')}">${IC.foam}<span>${t('foam')}</span><span class="cnt"><b id="hud-foam" style="width:100%"></b></span></button>`;
-  nz.querySelectorAll<HTMLElement>('.noz').forEach((b) =>
+    <button class="noz" data-n="2" aria-label="${t('foam')}">${IC.foam}<span>${t('foam')}</span><span class="cnt"><b id="hud-foam" style="width:100%"></b></span></button>
+    <button class="noz heli" id="hud-heli" aria-label="${t('heli')}" hidden>${IC.heli}<span>${t('heli')}</span><b class="hc" id="hud-heli-n">1</b></button>`;
+  const hb = nz.querySelector<HTMLElement>('#hud-heli')!;
+  hb.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    onHeli();
+  });
+  nz.querySelectorAll<HTMLElement>('.noz[data-n]').forEach((b) =>
     b.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       onNozzle(Number(b.dataset.n) as 0 | 1 | 2);
@@ -853,6 +950,12 @@ export interface HudState {
   foamMax: number;
   rockets: number;
   hasRockets: boolean;
+  /** v2: timed power-ups running, helicopter charges, hose cut countdown, blackout (no minimap) */
+  buffs: { k: string; t: number }[];
+  heli: number;
+  heliBusy: boolean;
+  cut: number;
+  blackout: boolean;
 }
 let lastHud = '';
 let lastStars = 3;
@@ -862,7 +965,7 @@ export function setStarLostHandler(f: () => void) {
 }
 export function updateHud(s: HudState) {
   const pct = Math.round(s.control * 100);
-  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}`;
+  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}|${s.buffs.map((b) => b.k + Math.ceil(b.t)).join()}|${s.heli}|${s.heliBusy}|${Math.ceil(s.cut)}|${s.blackout}`;
   if (key === lastHud) return;
   lastHud = key;
   $('#hud-fill').style.width = `calc(${Math.max(3, pct)}% - 8px)`;
@@ -898,8 +1001,129 @@ export function updateHud(s: HudState) {
     foamBtn.disabled = s.foam <= 0;
     $('#hud-foam').style.width = `${s.foamMax > 0 ? (s.foam / s.foamMax) * 100 : 0}%`;
   }
+  // v2
+  const heli = document.querySelector<HTMLButtonElement>('#hud-heli');
+  if (heli) {
+    heli.hidden = s.heli <= 0 && !s.heliBusy;
+    heli.disabled = s.heliBusy || s.heli <= 0;
+    heli.classList.toggle('ready', s.heli > 0 && !s.heliBusy);
+    $('#hud-heli-n').textContent = String(s.heli);
+  }
+  const cut = $('#hud-cut');
+  cut.hidden = s.cut <= 0;
+  cut.lastElementChild!.textContent = `${Math.ceil(s.cut)}`;
+  $('#hud-buffs').innerHTML = s.buffs.map((b) => `<span class="chip buff ${b.t < 3 ? 'ending' : ''}">${POWER_ICON[b.k] ?? ''}<span>${Math.ceil(b.t)}</span></span>`).join('');
+  const mm = document.getElementById('minimap');
+  if (mm) mm.style.visibility = s.blackout ? 'hidden' : '';
 }
 export function resetHudCache() {
   lastHud = '';
   lastStars = 3;
+}
+
+// ---------------- v2: event banner, album, front page, what's new ----------------
+/** Big banner under the HUD for a surprise event: the warning (3 s before) and the start. */
+export function eventBanner(kind: EventKind, soon: boolean) {
+  const host = $('#app');
+  host.querySelector('.ev-banner')?.remove();
+  const info = EVENT_INFO[kind];
+  const n = el(`<div class="ev-banner ${soon ? 'soon' : ''} ev-${kind}" role="status"><span class="ev-ic">${EVENT_ICON[kind]}</span><div><b>${esc(tx(info.name))}</b><small>${esc(soon ? t('tEventSoon') : tx(info.tip))}</small></div></div>`);
+  host.appendChild(n);
+  host.classList.add('ev-on');
+  setTimeout(() => n.classList.add('out'), soon ? 2600 : 3600);
+  setTimeout(() => {
+    n.remove();
+    if (!host.querySelector('.ev-banner')) host.classList.remove('ev-on');
+  }, soon ? 3000 : 4000);
+}
+
+export interface AlbumCard {
+  id: string;
+  num: number;
+  name: string;
+  theme: string;
+  /** the front page thumbnail (canvas), or null while it is not won */
+  canvas: HTMLCanvasElement | null;
+}
+/** Album of front pages: one per big fire, in route order; the missing ones show which level wins them. */
+export function albumScreen(o: { cards: AlbumCard[]; onOpen: (id: string) => void; onBack: () => void }) {
+  const won = o.cards.filter((c) => c.canvas).length;
+  const n = el(`
+  <div class="screen dim album-screen">
+    <div class="panel wide">
+      <div class="tape"></div>
+      <div class="panel-head lv-head">
+        <button class="icon-btn" data-a="back" aria-label="${t('back')}">${IC.back}</button>
+        <div class="lv-title"><h2>${t('album')}</h2><div class="eyebrow">${esc(t('albumCount', { n: won, m: o.cards.length }))}</div></div>
+      </div>
+      <div class="panel-body">
+        ${won ? '' : `<p class="muted note">${esc(t('albumHint'))}</p>`}
+        <div class="album">${o.cards
+          .map(
+            (c) => `<button class="apage${c.canvas ? '' : ' locked'}" data-id="${c.id}" style="--pc:${PLACE_COLOR[c.theme as keyof typeof PLACE_COLOR] ?? '#888'}" aria-label="${esc(`${c.name}. ${c.canvas ? t('frontPage') : t('albumLocked', { n: c.num })}`)}"${c.canvas ? '' : ' aria-disabled="true"'}>
+              <span class="thumb"></span><span class="cap"><b>${c.num}</b> ${esc(c.name)}</span>${c.canvas ? '' : `<span class="lk">${IC.news}<small>${esc(t('albumLocked', { n: c.num }))}</small></span>`}
+            </button>`,
+          )
+          .join('')}</div>
+      </div>
+    </div>
+  </div>`);
+  o.cards.forEach((c) => {
+    if (!c.canvas) return;
+    const slot = n.querySelector<HTMLElement>(`.apage[data-id="${c.id}"] .thumb`)!;
+    c.canvas.classList.add('thumb-cv');
+    slot.appendChild(c.canvas);
+  });
+  n.querySelector('.album')!.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.apage');
+    if (!b || b.classList.contains('locked')) return;
+    o.onOpen(b.dataset.id!);
+  });
+  n.querySelector('[data-a=back]')!.addEventListener('click', o.onBack);
+  show(n);
+}
+
+/** A front page, full size, over the current screen: share it (image) or close. */
+export function pageModal(o: { canvas: HTMLCanvasElement; fresh: boolean; onShare: () => void; onClose: () => void }) {
+  const n = el(`
+  <div class="screen dim page-modal">
+    <div class="page-wrap${o.fresh ? ' fresh' : ''}"></div>
+    <div class="actions page-actions">
+      <button class="btn water" data-a="share" data-focus>${IC.share}${t('paperShare')}</button>
+      <button class="btn ghost" data-a="back" aria-label="${t('back')}">${IC.back}${t('back')}</button>
+    </div>
+  </div>`);
+  o.canvas.classList.add('page-cv');
+  n.querySelector('.page-wrap')!.appendChild(o.canvas);
+  n.querySelector('[data-a=share]')!.addEventListener('click', o.onShare);
+  n.querySelector('[data-a=back]')!.addEventListener('click', () => {
+    n.remove();
+    o.onClose();
+  });
+  overlay(n);
+}
+
+/** One-time notice for players coming from 1.x. */
+export function whatsNewModal(onClose: () => void) {
+  const n = el(`
+  <div class="screen dim">
+    <div class="panel offer whatsnew">
+      <div class="tape"></div>
+      <div class="panel-head" style="text-align:center"><div class="eyebrow">Put It Out! 2.0</div><h2>${t('whatsNewTitle')}</h2></div>
+      <div class="panel-body">
+        <ul class="wn">
+          <li>${IC.anchor}<span>${esc(t('whatsNew1'))}</span></li>
+          <li>${IC.turbo}<span>${esc(t('whatsNew2'))}</span></li>
+          <li>${IC.news}<span>${esc(t('whatsNew3'))}</span></li>
+          <li>${IC.flag}<span>${esc(t('whatsNew4'))}</span></li>
+        </ul>
+        <button class="btn big" data-a="back" data-focus>${t('gotIt')}</button>
+      </div>
+    </div>
+  </div>`);
+  n.querySelector('[data-a=back]')!.addEventListener('click', () => {
+    n.remove();
+    onClose();
+  });
+  overlay(n);
 }

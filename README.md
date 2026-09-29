@@ -1,6 +1,6 @@
 # ¡Apágalo! (Put It Out!)
 
-Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene una campaña de 67 niveles en 6 escenarios, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
+Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene una campaña de 97 niveles en 9 escenarios (cada escenario nuevo con su propia mecánica), power-ups, eventos sorpresa, un equipo que contratas, un gran incendio cada 10 niveles con su portada de periódico, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
 
 | Dónde | Estado |
 |---|---|
@@ -16,18 +16,25 @@ Forma parte del estudio de juegos de @nocodeboy, junto con *¡Marchando!* y *¡P
 
 ```
 src/sim/        Simulación pura (sin 3D): fuego, viento, brasas, agua, reglas, niveles, bot
-  world.ts        motor: rejilla de celdas, propagación, agua, bombonas, electricidad, cohetes
-  levels.ts       los 6 niveles originales (BASE_LEVELS) y el orden de la campaña (LEVELS); ver «Campaña»
-  campaign/       los niveles 7-66 de cada escenario (plaza.ts, granja.ts...) y el final (finale.ts)
+  world.ts        motor: rejilla de celdas, propagación, agua, bombonas, electricidad, cohetes, y desde la 2.0
+                  power-ups, eventos, helicóptero, equipo (compañera, perro, dron), manchas de gasóleo,
+                  ventanas y trenes
+  levels.ts       los 6 niveles originales (BASE_LEVELS) y la ruta (LEVELS): orden, grandes incendios,
+                  power-ups, eventos y huecos del equipo de cada nivel; ver «Campaña»
+  campaign/       los niveles de cada escenario (plaza.ts, granja.ts... puerto.ts, ciudad.ts, estacion.ts)
+                  y el final (finale.ts)
   mapbuilder.ts   comandos para dibujar los mapas; la leyenda de caracteres está en parse.ts
   daily.ts        reto diario con semilla por fecha
   dailyTable.ts   semillas verificadas por el bot (generado; no editar)
   bot.ts          bot que juega (dificultad, demo del menú, validación del diario)
 src/render/     Three.js: suelo con quemado/mojado dinámico, modelos, llamas, humo, agua, manguera
 src/ui/         HUD, pantallas, avisos e iconos sobre el mundo (shop.ts: tienda y oferta de inicio)
+src/ui/frontpage.ts  portadas de periódico de los grandes incendios: dibujo, foto y compartir como imagen
 src/audio.ts    efectos sintetizados con WebAudio y reproductor de música
 src/main.ts     flujo del juego y bucle principal
-src/economy.ts  monedas por partida, mejoras (coste y efecto) y lo que da cada compra
+src/content.ts  nombres y textos (inglés y español) de power-ups, eventos, equipo y escenarios
+src/progress.ts qué niveles están abiertos y cómo se migra una partida cuando cambia la ruta
+src/economy.ts  monedas por partida, mejoras y equipo (coste y efecto) y lo que da cada compra
 src/monetize/   anuncios y compras (ver «Monetización»)
   types.ts        contrato común: AdProvider, IapProvider, lugares de anuncio y catálogo de productos
   index.ts        elige el proveedor según la versión, topes de anuncios, pausa y analítica
@@ -93,26 +100,32 @@ Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo
 
 ## Campaña
 
-67 niveles en 6 escenarios (la plaza, la granja, la gasolinera, el polígono, El Castañar y la playa en la noche de San Juan), en este orden (`campaign()` en `src/sim/levels.ts`):
+97 niveles en 9 escenarios, en una ruta mezclada (`buildRoute()` en `src/sim/levels.ts`; `npx tsx tools/route.ts` la imprime). Diseño completo en `docs/diseno-v2.md`.
 
-| Niveles | Qué son | Dónde están |
-|---|---|---|
-| 1-6 | Los originales, uno por escenario. Cada uno enseña una mecánica y son también los mapas del reto diario | `BASE_LEVELS` en `src/sim/levels.ts` |
-| 7-66 | 10 bloques de 6, un nivel de cada escenario por bloque y más difíciles bloque a bloque. El orden de los escenarios rota en cada bloque, así que nunca tocan dos del mismo sitio seguidos | `src/sim/campaign/<escenario>.ts`: el índice `k` del archivo va al bloque `k` (ids `plaza-2` … `plaza-11`) |
-| 67 | «El gran incendio» / «The Big One»: todo el pueblo de noche con un fuego en cada barrio (feria, gasolinera, naves con el cuadro eléctrico, casco viejo con la iglesia), cambios de viento y cohetes | `src/sim/campaign/finale.ts` |
+| Escenario | Niveles | Mecánica estrella | Archivo |
+|---|---|---|---|
+| La plaza, la granja, la gasolinera, el polígono, El Castañar y la playa | 11-12 cada uno | Apuntar a la base, rescatar animales, espuma para el combustible, cortar la luz, bocas de riego y viento, cohetes | `BASE_LEVELS` (los 6 originales) y `src/sim/campaign/<escenario>.ts` |
+| El puerto (`puerto`) | 10 | Gasóleo ardiendo que el viento arrastra por el agua: solo la espuma lo apaga, y la bomba del muelle la rellena | `src/sim/campaign/puerto.ts` |
+| El centro (`ciudad`) | 10 | Gente en las ventanas: quédate en la marca amarilla y la plataforma los baja | `src/sim/campaign/ciudad.ts` |
+| La estación (`estacion`) | 10 | Trenes con horario que tapan el agua, te apartan y cortan la manguera | `src/sim/campaign/estacion.ts` |
+| El final | 1 | «El gran incendio»: todo el pueblo de noche con un fuego en cada barrio | `src/sim/campaign/finale.ts` |
 
-- Se desbloquean en orden: hay que ganar el anterior (1 estrella o más). Un nivel ya ganado sigue abierto aunque cambie el orden. Las partidas guardadas usan el `id` de cada nivel, así que un id publicado no se cambia nunca; `num` (el número que ve el jugador) lo pone la campaña según la posición.
-- El selector de niveles va por páginas de 12 (1-12, 13-24… 61-67), con una pestaña por página con sus estrellas, y se abre en la página del siguiente nivel por jugar. En la pantalla del título, CONTINUAR lleva a ese nivel.
+- **Orden**: los niveles 1-6 son los originales; los escenarios nuevos se estrenan en el 7 (puerto), el 12 (centro) y el 17 (estación) con un nivel tranquilo de presentación. Nunca tocan dos niveles seguidos del mismo sitio.
+- **Grandes incendios** en el 10, 20… 90 y el final en el 97: mapa grande, más fuego y dos eventos. La primera victoria imprime una portada de *El Diario del Fuego* / *The Daily Blaze* (con la foto del momento) que va al álbum y se comparte como imagen.
+- **Power-ups** desde el nivel 3 (bomba turbo, botas, cronómetro, extintor, helicóptero y traje ignífugo) y **eventos sorpresa** desde el 8 (vecinos con cubos, chaparrón, racha de viento, baja la presión, fuga de gas, curiosos y apagón). Salen de una semilla fija por nivel: son los mismos en cada intento.
+- **Equipo**: Lola (compañera con su manguera), Chispa (perro de rescate) y el dron. Se contratan en la tienda y se eligen en la presentación del nivel: 1 hueco desde el nivel 9 y 2 desde el 40.
+- Se desbloquean en orden: hay que ganar el anterior (1 estrella o más). Las partidas guardadas usan el `id` de cada nivel, así que un id publicado no se cambia nunca; `num` (el número que ve el jugador) lo pone la ruta. Cuando la ruta cambia (`ROUTE_VERSION`), `src/progress.ts` abre todo lo que queda por detrás del punto al que había llegado el jugador (también para partidas de la 1.2.0 y la 1.3.0).
+- El selector de niveles va por capítulos de 10 (cada uno acaba en su gran incendio), con el icono y el color del escenario en cada nivel, y se abre en el capítulo del siguiente nivel por jugar. Desde ahí se abre el álbum de portadas.
 - El menú de fondo del título (el bot jugando) y el reto diario solo usan los 6 niveles originales.
-- Al ganar el nivel 67 la pantalla final celebra la campaña completada (con las estrellas de toda la campaña) y lo añade al texto de compartir.
-- Los eventos `level_start`, `level_complete`, `level_fail`, `level_quit` y `share` llevan el `id` del nivel (`level`) y su número en la campaña (`num`).
+- Los eventos `level_start`, `level_complete`, `level_fail`, `level_quit` y `share` llevan el `id` del nivel (`level`) y su número (`num`); los de la 2.0, además, el escenario (`scn`) y si es gran incendio (`big`).
 
-**Cómo añadir un nivel.** En el archivo de su escenario, añade un `L({...}, mapa())` al array (el índice decide el bloque). El mapa se dibuja con `MB` (`src/sim/mapbuilder.ts`) y los caracteres están en `src/sim/parse.ts`; tiene que haber un camión (`X`). Luego mide la dificultad con el bot (`npx tsx tools/bot.ts 10 <id>`, compara con `docs/dificultad.md`) y mira el mapa con `npx tsx tools/check.ts --map`. Si un archivo tiene menos de 10 niveles, la campaña simplemente se salta los que faltan. No hace falta regenerar `dailyTable.ts`: el reto diario solo usa los 6 originales.
+**Cómo añadir un nivel.** En el archivo de su escenario, añade un `L({...}, mapa())` al array: el orden del array es el de dificultad y el primero es el de presentación. El mapa se dibuja con `MB` (`src/sim/mapbuilder.ts`) y los caracteres están en `src/sim/parse.ts`; tiene que haber un camión (`X`). Para ver el mapa: `npx tsx tools/map.ts <id>`. Para ajustarlo: `npx tsx tools/curve.ts <id>` (cuánto se quema sin nadie, con el bot casual y con el PRO) y `npx tsx tools/tune.ts 16 <id>:<casual>` (propone `minSaved` y estrellas para la tasa de victoria del casual que quieras). Luego compara con `docs/dificultad.md`. No hace falta regenerar `dailyTable.ts` si solo cambias niveles: el reto diario usa los 6 originales (sí si tocas la simulación o el bot).
 
 ## Controles
 
-- **Móvil:** con el pulgar izquierdo te mueves y con el derecho apuntas y echas agua (tiene ayuda de puntería). Las boquillas se eligen a la derecha.
-- **Escritorio:** WASD para moverte, ratón para apuntar y clic (o espacio) para echar agua. Boquillas con 1/2/3, Q/E, rueda o clic derecho. Pausa con Esc.
+- **Móvil:** con el pulgar izquierdo te mueves y con el derecho apuntas y echas agua (tiene ayuda de puntería). Las boquillas se eligen a la derecha; debajo sale el botón del helicóptero cuando tienes uno.
+- **Escritorio:** WASD para moverte, ratón para apuntar y clic (o espacio) para echar agua. Boquillas con 1/2/3, Q/E, rueda o clic derecho. Helicóptero con H. Pausa con Esc.
+- Los power-ups se cogen pasando por encima; a la gente de las ventanas se la baja quedándose en la marca amarilla.
 
 ## Calidad gráfica
 
@@ -122,7 +135,7 @@ Por defecto está en **Automática**: los móviles empiezan en calidad media y l
 
 Cada partida da monedas, ganes o pierdas: 50 + 50 por estrella + hasta 50 según el % salvado (de 50 a 250). El primer resultado del día en el reto diario da 100 si pierdes y 200, 250 o 300 según las estrellas; si lo repites, paga como un nivel. Con las monedas se compran mejoras en la tienda (título o pantalla final): manguera más larga, más presión, botas y más tiempo, 5 niveles cada una a 200/500/1.000/2.000/4.000 monedas. El reto diario no aplica mejoras para que la clasificación sea justa. Efectos y equilibrio medido con el bot: `docs/dificultad.md`.
 
-Como referencia, una victoria con 3 estrellas da unas 250 monedas y una normal (2 estrellas) unas 190. Pasarse la campaña de 67 niveles, con sus derrotas, da unas 15.000 monedas sin anuncios: el nivel 4 de todas las mejoras. El nivel 5 (16.000 más) queda para el reto diario, el x2, las monedas gratis o las compras. Cálculo completo en `docs/monetizacion.md` («Economía»).
+Como referencia, una victoria con 3 estrellas da unas 250 monedas y una normal (2 estrellas) unas 190. Pasarse la campaña de 97 niveles, con sus derrotas, da unas 21.000 monedas sin anuncios. Desde la 2.0 las monedas también contratan y suben al **equipo** (3 niveles cada uno: Lola 2.500/4.000/7.000, Chispa 1.500/3.000/5.000, el dron 2.000/3.500/6.000; 34.500 en total), que se suma a las mejoras (30.800). Cálculo completo en `docs/monetizacion.md` («Economía»).
 
 ## Monetización
 
@@ -137,7 +150,7 @@ El juego solo habla con el contrato de `src/monetize/types.ts` (`AdProvider` e `
 
 Si no hay anuncio con recompensa listo, sus botones no aparecen; si no hay tienda, tampoco la sección de compras. Mientras se ve un anuncio el juego se para y se silencia, y si un anuncio o una compra fallan el juego sigue sin bloquearse.
 
-- **Con recompensa** (siempre los elige el jugador, y el botón dice «Anuncio»/«Ad» además del icono): +30 s cuando se acaba el tiempo (una vez por intento y nunca en el reto diario), x2 de monedas en la pantalla final (una vez) y +150 monedas gratis en la tienda (3 al día, y como mucho 3 en 24 h aunque se cambie la fecha del móvil). El premio del reto diario tampoco se cobra más de 3 veces en 24 h.
+- **Con recompensa** (siempre los elige el jugador, y el botón dice «Anuncio»/«Ad» además del icono): +30 s cuando se acaba el tiempo (una vez por intento y nunca en el reto diario), x2 de monedas en la pantalla final (una vez), +150 monedas gratis en la tienda (3 al día, y como mucho 3 en 24 h aunque se cambie la fecha del móvil) y, desde la 2.0, **apoyo aéreo** (`air_support`): tras perder 2 veces seguidas el mismo nivel (desde el nivel 8, nunca en el reto diario), una vez por nivel y sesión y en CrazyGames como mucho una vez cada 10 minutos, reintentas con un helicóptero listo. El premio del reto diario tampoco se cobra más de 3 veces en 24 h.
 - **Entre niveles**: solo al pulsar «Siguiente» en la pantalla final, que lleva a la presentación del nivel (nunca con «Reintentar», que empieza a jugar directamente, ni con «Menú» o el botón atrás). Solo si hay al menos 3 niveles terminados en total, 2 desde el último anuncio entre niveles y 120 s desde el último anuncio a pantalla completa (también los de recompensa); nunca en la primera sesión, nunca si se ha comprado «Sin anuncios» y nunca en la misma transición que un anuncio con recompensa (x2 o +30 s en ese intento) o que la oferta de inicio. Si no hay anuncio cargado, no cuenta. Los topes son constantes al principio de `src/monetize/index.ts`.
 - **Compras** (solo Android): «Sin anuncios» (+500 monedas), pack de inicio (3.000 monedas, una sola vez; además se ofrece en una ventana tras completar el segundo nivel) y packs de 1.000, 6.000 y 14.000 monedas. Los precios los da la tienda y un producto que la tienda no devuelve no se muestra. Cada compra se entrega y se guarda antes de consumirla, y la partida recuerda su identificador, así que nunca se entrega dos veces; las pagadas que no llegaron a entregarse (app cerrada, pago pendiente que se confirma después) se entregan al arrancar o al volver a la app. «Restaurar compras» recupera lo comprado; lo que no se consume se concede una sola vez por partida guardada. «Borrar progreso» borra también las monedas compradas (lo avisa antes); «Sin anuncios» se conserva.
 
@@ -150,6 +163,8 @@ Prueba de punta a punta: `python3 tools/test_monetize.py` (con `dist/` servido),
 Hasta la 1.2.0 (y la web 1.3.0 publicada el 29 sept antes de juntar este cambio) el juego enviaba a `apagalo_track` y `apagalo_submit_daily` del proyecto Tools-NoCode. Esas funciones siguen funcionando para las versiones ya instaladas y reenvían cada llamada al proyecto del estudio, así que todos los datos están allí. Cuando dejen de llegar llamadas, se borran los `apagalo_*` de Tools-NoCode (pasos en `docs/datos.md` del estudio).
 
 Eventos: `first_open`, `session_start`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). `first_open` y `session_start` llevan además el idioma del dispositivo (`loc`, p. ej. `en-US`) y su zona horaria (`tz`, p. ej. `America/New_York`), que dan la región aproximada. El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
+
+Novedades de la 2.0: `powerup {k, level}` (power-up cogido), `event {k, level}` (evento sorpresa), `crew_hire {id, lvl, n}`, `frontpage {level}` (portada ganada) y `share {what: 'frontpage'}`. `level_start` lleva el equipo que va al nivel (`crew`) y `level_complete`/`level_fail` los power-ups cogidos (`pw`).
 
 Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}` (el intersticial, solo si de verdad se ha mostrado), `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_pending {id}` (pago pendiente), `iap_fail {id}`, `iap_recover {id}` (compra pagada entregada al arrancar o al volver a la app) y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
 

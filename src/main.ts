@@ -1,7 +1,9 @@
 import { initAnalytics, localeProps, setAnalyticsEnabled, submitDaily, track } from './analytics';
 import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDone, onAndroidBack, platformInit } from './platform';
 import { audio, vibrate } from './audio';
-import { buyUpgrade, claimFreeCoins, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, takeDailyReward, upgradeOptions, type UpgradeId } from './economy';
+import { buyCrew, buyUpgrade, claimFreeCoins, crewFor, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, takeDailyReward, toggleTeam, upgradeOptions, type UpgradeId } from './economy';
+import { CREW_INFO, EVENT_INFO, PLACE_INFO, POWER_INFO } from './content';
+import { isUnlocked, nextLevelIndex as nextIndex, noteReach } from './progress';
 import { detectLang, getLang, num, setLang, t, tx } from './i18n';
 import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, openPrivacyOptions, privacyOptionsAvailable, restorePurchases, showRewarded, storeProducts, type BuyResult, type Delivered } from './monetize';
 import type { ProductId } from './monetize/types';
@@ -11,18 +13,27 @@ import { Bot, SKILL_PRO } from './sim/bot';
 import { dayKey, makeDaily, type Daily } from './sim/daily';
 import { DAILY_SALTS } from './sim/dailyTable';
 import { FINALE_ID } from './sim/campaign/finale';
-import { BASE_LEVELS, LEVELS } from './sim/levels';
+import { BASE_LEVELS, CREW_FROM, LEVELS } from './sim/levels';
 import { MATS } from './sim/materials';
 import { RESCUE_TYPES } from './sim/parse';
-import type { Lang, LevelDef, SimEvent, SimInput } from './sim/types';
+import { CREW_IDS, type CrewId, type EventKind, type Lang, type LevelDef, type PowerKind, type SimEvent, type SimInput } from './sim/types';
 import { Sim, SIM_DT, type Result } from './sim/world';
 import * as store from './storage';
 import type { Settings } from './storage';
 import { Minimap } from './ui/minimap';
 import { shopScreen, starterOffer } from './ui/shop';
+import { drawFrontPage, savePhoto, sharePage, snapshot, thumbOf } from './ui/frontpage';
+import { IC } from './ui/icons';
 import {
   $,
+  albumScreen,
   banner,
+  eventBanner,
+  newsHtml,
+  pageModal,
+  refreshCrew,
+  whatsNewModal,
+  type CrewPick,
   buildHud,
   goalsHtml,
   setStarLostHandler,
@@ -83,11 +94,21 @@ let slowHold = 0;
 let minimap: Minimap | null = null;
 let playStart = 0;
 let wakeLock: { release: () => Promise<void> } | null = null;
-const flags = { flares: 0, overheat: 0, hose: false, rocket: false };
+const flags = { flares: 0, overheat: 0, hose: false, rocket: false, train: false, lift: 0 };
 /** rewarded +30 s in this attempt: offered once, and whether the player took it */
 let continueState: 'none' | 'offered' | 'taken' = 'none';
 /** an ad is on screen: the loop and the audio are paused */
 let adBusy = false;
+/** the HUD's helicopter button was pressed: sent to the sim with the next input */
+let heliPress = false;
+/** losses in a row of each level in this session (air support is offered after 2) and air support already given */
+const lossStreak = new Map<string, number>();
+const airGiven = new Set<string>();
+let lastAirAt = 0;
+/** helicopter charges for the next attempt (rewarded air support) */
+let airCharge = 0;
+/** big fire photo: the best moment so far (most fire on screen), taken right after a frame is drawn */
+const photo = { want: false, lastAt: 0, best: 0, url: '', shots: 0 };
 const firstSession = save.firstOpen;
 
 // ---------- boot ----------
@@ -146,6 +167,7 @@ setStarLostHandler(() => {
 });
 input.onPause = pauseGame;
 input.onNozzle = setNozzle;
+input.onHeli = pressHeli;
 // Android back: pause while playing, otherwise the top screen's own back/resume/menu button; on the title, leave
 onAndroidBack(() => {
   if (adBusy) return;
@@ -205,7 +227,7 @@ function adPause(on: boolean) {
   last = performance.now();
 }
 function initHud() {
-  buildHud(pauseGame, setNozzle);
+  buildHud(pauseGame, setNozzle, pressHeli);
   minimap = new Minimap($<HTMLCanvasElement>('#minimap'));
   if (sim) minimap.setSim(sim);
 }
@@ -221,14 +243,12 @@ function fireCentroid(s: Sim): { x: number; z: number } | null {
   }
   return n ? { x: sx / n, z: sz / n } : null;
 }
-/** Linear unlocking: win the previous level (1 star or more). A level already won stays open whatever comes before it. */
+/** Linear unlocking, plus the levels a route change opened (src/progress.ts). */
 function unlocked(i: number): boolean {
-  if (i === 0) return true;
-  return (save.stars[LEVELS[i - 1].id] ?? 0) >= 1 || (save.stars[LEVELS[i].id] ?? 0) >= 1;
+  return isUnlocked(save, i);
 }
 function nextLevelIndex(): number {
-  for (let i = 0; i < LEVELS.length; i++) if (!save.stars[LEVELS[i].id]) return unlocked(i) ? i : Math.max(0, i - 1);
-  return LEVELS.length - 1;
+  return nextIndex(save);
 }
 function todayDaily(): Daily {
   const base = makeDaily(new Date());
@@ -238,6 +258,10 @@ function todayDaily(): Daily {
 function setHudVisible(v: boolean) {
   $('#hud').hidden = !v;
   $('#nozzles').hidden = !v;
+}
+function pressHeli() {
+  if (!sim || mode !== 'play' || !sim.heliReady()) return;
+  heliPress = true;
 }
 function setNozzle(n: 0 | 1 | 2) {
   if (!sim || mode !== 'play') return;
@@ -307,6 +331,14 @@ function showTitle() {
       showShop('title');
     },
   });
+  // players coming from 1.x: what is new, until they close it (the title can be drawn again while it is up)
+  if (save.whatsNew < 2 && !document.querySelector('.whatsnew')) {
+    whatsNewModal(() => {
+      save.whatsNew = 2;
+      store.save();
+      audio.play('click');
+    });
+  }
 }
 
 // ---------- shop ----------
@@ -324,6 +356,18 @@ function renderShop() {
   shopScreen({
     coins: save.coins,
     upgrades: save.upgrades,
+    crew: LEVELS[Math.min(LEVELS.length - 1, nextLevelIndex())].num >= CREW_FROM || Object.values(save.crew).some((n) => n > 0) ? save.crew : null,
+    crewFrom: CREW_FROM,
+    onCrew: (id: CrewId) => {
+      const cost = buyCrew(save, id);
+      if (!cost) return;
+      store.save();
+      track('coins_spend', { item: `crew_${id}`, n: cost });
+      track('crew_hire', { id, lvl: save.crew[id], n: cost });
+      audio.play('star', save.crew[id] - 1);
+      toast(save.crew[id] === 1 ? t('crewHired') : t('upgraded'), 'good', 1400);
+      renderShop();
+    },
     free: canReward() ? { left: freeCoinsLeft(save, today), amount: FREE_COINS } : null,
     products: hasStore() ? storeProducts().filter((p) => !(isNonConsumable(p.id) && save.owned[p.id])) : null,
     onUpgrade: (id: UpgradeId) => {
@@ -384,6 +428,7 @@ function showLevels(focus?: number) {
     unlocked,
     next: nextLevelIndex(),
     focus,
+    pages: save.pages,
     onPick: (i) => {
       audio.play('click');
       openLevel(i);
@@ -392,6 +437,50 @@ function showLevels(focus?: number) {
       audio.play('click');
       showTitle();
     },
+    onAlbum: () => {
+      audio.play('click');
+      showAlbum(() => showLevels(focus));
+    },
+  });
+}
+
+/** Album of front pages (the big fires). */
+async function showAlbum(back: () => void) {
+  const cards = await Promise.all(
+    LEVELS.filter((L) => L.big).map(async (L) => {
+      const pg = save.pages[L.id];
+      return { id: L.id, num: L.num, name: tx(L.name), theme: L.theme, canvas: pg ? thumbOf(await drawFrontPage(L, pg, GAME_URL)) : null };
+    }),
+  );
+  albumScreen({
+    cards,
+    onOpen: (id) => {
+      audio.play('click');
+      void openPage(id, false);
+    },
+    onBack: () => {
+      audio.play('click');
+      back();
+    },
+  });
+}
+
+/** Full-size front page with its share button. */
+async function openPage(id: string, fresh: boolean) {
+  const L = LEVELS.find((d) => d.id === id);
+  const pg = save.pages[id];
+  if (!L || !pg) return;
+  const cv = await drawFrontPage(L, pg, GAME_URL);
+  if (fresh) audio.play('page');
+  pageModal({
+    canvas: cv,
+    fresh,
+    onShare: async () => {
+      const r = await sharePage(cv, id, `${t('paperShareText', { h: L.headline ? tx(L.headline) : tx(L.name) })}${GAME_URL ? '\n' + GAME_URL : ''}`);
+      if (r === 'saved') toast(t('paperSaved2'), 'good');
+      track('share', { what: 'frontpage', level: id });
+    },
+    onClose: () => audio.play('click'),
   });
 }
 
@@ -461,7 +550,15 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   flags.overheat = 0;
   flags.hose = false;
   flags.rocket = false;
+  flags.train = false;
+  flags.lift = 0;
   continueState = 'none';
+  heliPress = false;
+  photo.want = !!def.big && !save.pages[def.id] && def.id !== 'daily';
+  photo.best = 0;
+  photo.url = '';
+  photo.shots = 0;
+  photo.lastAt = 0;
   timeScale = slowTarget = 1;
   slowHold = 0;
   minimap?.setSim(sim);
@@ -473,23 +570,47 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   }
 }
 
-/** Levels are played with the player's upgrades (never the daily: its ranking is shared). */
-function levelOpts() {
-  return upgradeOptions(save.upgrades);
+/** Levels are played with the player's upgrades and crew (never the daily: its ranking is shared). */
+function levelOpts(def: LevelDef) {
+  const heli = airCharge;
+  return { ...upgradeOptions(save.upgrades), crew: crewFor(save, def.crewSlots ?? 0), heli };
+}
+
+/** The crew picker of a level's intro screen. */
+function crewPick(def: LevelDef, i: number): CrewPick | undefined {
+  const slots = def.crewSlots ?? 0;
+  if (!slots) return undefined;
+  const going = crewFor(save, slots);
+  const pick: CrewPick = {
+    slots,
+    members: CREW_IDS.filter((id) => save.crew[id] > 0).map((id) => ({ id, name: tx(CREW_INFO[id].name).split(',')[0], lvl: save.crew[id], on: id in going })),
+    onToggle: (id) => {
+      toggleTeam(save, id as CrewId, slots);
+      store.save();
+      audio.play('click');
+      prepare(def, levelOpts(def));
+      current = { kind: 'level', index: i };
+      refreshCrew(crewPick(def, i)!);
+    },
+  };
+  return pick;
 }
 
 function openLevel(i: number) {
   const L = LEVELS[i];
   current = { kind: 'level', index: i };
-  prepare(L, levelOpts());
+  prepare(L, levelOpts(L));
   introScreen({
     def: L,
-    eyebrow: `${t('level')} ${L.num}`,
+    eyebrow: `${t('level')} ${L.num} · ${tx(PLACE_INFO[L.theme].name)}`,
     title: tx(L.name),
     tip: tx(L.tip),
     time: sim!.timeLeft,
     wind: L.wind,
     hasRescues: sim!.rescuees.length > 0,
+    news: newsHtml(L.news),
+    crew: crewPick(L, i),
+    extra: airCharge ? `<span class="pill air">${IC.heli}${t('airSupport')}</span>` : undefined,
     onGo: () => startPlay(),
     onBack: () => {
       audio.play('click');
@@ -501,7 +622,7 @@ function openLevel(i: number) {
 
 function quickStart(i: number) {
   current = { kind: 'level', index: i };
-  prepare(LEVELS[i], levelOpts());
+  prepare(LEVELS[i], levelOpts(LEVELS[i]));
   startPlay();
 }
 
@@ -519,7 +640,7 @@ function openDaily() {
     wind: d.opts.windOverride ?? d.def.wind,
     hasRescues: sim!.rescuees.length > 0,
     extra: `<span class="pill">⚡ ${tx(d.mod.label)}</span>`,
-    note: hasUpgrades(save.upgrades) ? t('noUpgradesNote') : undefined,
+    note: hasUpgrades(save.upgrades) || Object.values(save.crew).some((n) => n > 0) ? `${t('noUpgradesNote')} ${t('crewNoDaily')}.` : undefined,
     onGo: () => startPlay(),
     onBack: () => {
       audio.play('click');
@@ -549,7 +670,12 @@ function startPlay() {
   endTimer = -1;
   // level events carry the level id (stable, what saves use) and its number in the campaign order
   if (current?.kind === 'daily') track('level_start', { level: `daily-${current.daily.num}` });
-  else track('level_start', { level: sim.def.id, num: sim.def.num });
+  else track('level_start', { level: sim.def.id, num: sim.def.num, scn: sim.def.theme, big: !!sim.def.big, crew: Object.keys(crewFor(save, sim.def.crewSlots ?? 0)).join(',') });
+  // the air support was for this attempt
+  if (airCharge && sim.heliCharges > 0) {
+    airCharge = 0;
+    toast(t('airReady'), 'good', 3600);
+  }
   if (current?.kind === 'daily') track('daily_start', { num: current.daily.num });
   if (current?.kind === 'level' && current.index === 0 && !save.tutorialDone) showTutorial();
   try {
@@ -606,7 +732,7 @@ function pauseGame() {
 function retry() {
   if (!current) return;
   if (current.kind === 'level') {
-    prepare(LEVELS[current.index], levelOpts());
+    prepare(LEVELS[current.index], levelOpts(LEVELS[current.index]));
   } else {
     prepare(current.daily.def, current.daily.opts, !!current.daily.def.night);
   }
@@ -640,6 +766,10 @@ function buildInput(s: Sim): SimInput {
   if (rec.driver) return rec.driver.update();
   const p = s.player;
   const inp: SimInput = { mx: input.moveX, mz: input.moveY, ax: 0, az: 0, aimDist: 0, spray: input.spray, nozzle: input.nozzle };
+  if (heliPress) {
+    heliPress = false;
+    inp.heli = true;
+  }
   const maxR = s.nozzleRange(input.nozzle);
   if (input.mode === 'mouse') {
     if (input.mouseX >= 0) {
@@ -706,15 +836,19 @@ function handleEvent(ev: SimEvent) {
     case 'ignite':
       audio.play('ignite');
       break;
-    case 'rescue':
+    case 'rescue': {
       audio.play('rescue');
-      floater(t('tRescue'), ev.x, 1.8, ev.z, 'good');
+      const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
+      floater(ev.k === 'dog' ? t('tDog') : e?.type === 'window' ? t('tWindowSafe') : t('tRescue'), ev.x, 1.8, ev.z, 'good');
       if (vib) vibrate(25);
       break;
-    case 'fled':
+    }
+    case 'fled': {
       audio.play('fled');
-      floater(t('tFled'), ev.x, 1.8, ev.z, 'bad');
+      const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
+      floater(e?.type === 'window' ? t('tWindowFled') : t('tFled'), ev.x, 1.8, ev.z, 'bad');
       break;
+    }
     case 'soak': {
       audio.play('soak');
       const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
@@ -789,6 +923,89 @@ function handleEvent(ev: SimEvent) {
     case 'foamEmpty':
       toast(t('tFoamEmpty'), 'warn');
       input.nozzle = 0;
+      break;
+    // ---- v2 ----
+    case 'powerSpawn': {
+      audio.play('powerSpawn');
+      const k = ev.k as PowerKind;
+      if (!save.seenTips.includes('pw-' + k)) {
+        save.seenTips.push('pw-' + k);
+        store.save();
+        toast(t('tNewPower', { name: tx(POWER_INFO[k].name), desc: tx(POWER_INFO[k].desc) }), 'good', 4200);
+      }
+      break;
+    }
+    case 'powerup': {
+      audio.play('powerup');
+      const k = ev.k as PowerKind;
+      floater(t('tPowerGot', { name: tx(POWER_INFO[k].name) }), ev.x, 1.8, ev.z, 'gold');
+      if (k === 'heli') toast(t('heliReady'), 'good', 3000);
+      if (save.settings.vibration) vibrate(30);
+      track('powerup', { k, level: s.def.id });
+      break;
+    }
+    case 'buffEnd':
+      audio.play('buffEnd');
+      break;
+    case 'heliCall':
+      audio.play('heli');
+      toast(t('heliOnWay'), 'good', 2000);
+      break;
+    case 'heliDrop':
+      audio.play('heliDrop');
+      if (vib) vibrate([60, 40, 60]);
+      break;
+    case 'eventWarn':
+      audio.play('eventWarn');
+      eventBanner(ev.k as EventKind, true);
+      break;
+    case 'eventStart': {
+      const k = ev.k as EventKind;
+      audio.play('eventStart');
+      eventBanner(k, false);
+      track('event', { k, level: s.def.id });
+      if (!save.seenTips.includes('ev-' + k)) {
+        save.seenTips.push('ev-' + k);
+        store.save();
+      }
+      break;
+    }
+    case 'eventEnd':
+      break;
+    case 'leakFixed':
+      audio.play('fizzle');
+      floater(t('tLeakFixed'), ev.x, 1.6, ev.z, 'good');
+      break;
+    case 'bucket':
+      audio.play('bucket');
+      break;
+    case 'trainWarn':
+      audio.play('bell');
+      setTimeout(() => audio.play('train'), 2600);
+      if (!flags.train) {
+        flags.train = true;
+        toast(t('tTrain'), 'warn', 2600);
+      }
+      break;
+    case 'trainHit':
+      audio.play('overheat');
+      toast(t('tTrainHit'), 'warn', 2000);
+      if (vib) vibrate(80);
+      break;
+    case 'hoseCut':
+      audio.play('cut');
+      toast(t('tHoseCut'), 'warn', 3400);
+      if (vib) vibrate([60, 30, 60]);
+      break;
+    case 'hoseFixed':
+      audio.play('connect');
+      floater(t('tHoseFixed'), s.player.x, 1.8, s.player.z, 'water');
+      break;
+    case 'pumpFoam':
+      toast(t('tPump'), 'good', 2800);
+      break;
+    case 'droneDrop':
+      audio.play('hiss');
       break;
     case 'win':
       audio.play('win');
@@ -904,6 +1121,10 @@ interface EndInfo {
   adSeen: boolean;
   /** the finale was won: the campaign is complete */
   campaign?: { levels: number; stars: number; maxStars: number };
+  /** a front page was just won */
+  newPage?: boolean;
+  /** the air support button is on this end screen */
+  airShown?: boolean;
 }
 let endInfo: EndInfo | null = null;
 
@@ -936,11 +1157,25 @@ function commitResult() {
         save.best[id] = r.score;
       }
       if (idx === 0) save.tutorialDone = true;
-    }
+      lossStreak.delete(id);
+      // a big fire's first win prints its front page
+      if (s.def.big && !save.pages[id]) {
+        save.pages[id] = { t: Date.now(), stars: r.stars, saved: r.saved, score: r.score };
+        if (!photo.url) {
+          // no photo taken while playing (a quick win): draw a frame now and take it straight away
+          stage.renderer.render(stage.scene, stage.camera);
+          photo.url = snapshot(stage.renderer.domElement);
+        }
+        if (photo.url) savePhoto(id, photo.url);
+        info.newPage = true;
+        track('frontpage', { level: id });
+      }
+    } else lossStreak.set(id, (lossStreak.get(id) ?? 0) + 1);
+    noteReach(save);
     info.best = save.best[id] ?? 0;
     info.hasNext = idx < LEVELS.length - 1;
     if (nextWasLocked && unlocked(idx + 1)) info.unlockedNext = idx + 2;
-    track(r.win ? 'level_complete' : 'level_fail', { level: id, num: s.def.num, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur, ...cont });
+    track(r.win ? 'level_complete' : 'level_fail', { level: id, num: s.def.num, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur, scn: s.def.theme, big: !!s.def.big, pw: r.powerups, ...cont });
     // the finale's level_complete already marks the end of the campaign in the analytics
     if (r.win && id === FINALE_ID) info.campaign = campaignStats();
   } else if (current?.kind === 'daily') {
@@ -997,7 +1232,28 @@ function showEnd() {
     }, 1700);
   }
   renderEnd(false);
+  if (info.airShown) adOffered('air_support');
   maybeStarterOffer();
+  // the front page of a big fire, the first time: show it after the stars
+  if (info.newPage) {
+    const id = sim!.def.id;
+    setTimeout(() => {
+      if (endInfo === info && mode === 'end' && document.querySelector('#screens > .end-screen:last-child')) void openPage(id, true);
+    }, 2200);
+  }
+}
+
+/**
+ * Rewarded air support on the end screen: after losing the same level twice in a row this session (from level 8,
+ * never the daily), once per level and session, and on CrazyGames at most once every 10 minutes.
+ */
+function airSupportOffer(): boolean {
+  const s = sim;
+  if (!s?.result || s.result.win || current?.kind !== 'level' || s.def.num < 8) return false;
+  if ((lossStreak.get(s.def.id) ?? 0) < 2 || airGiven.has(s.def.id) || !canReward()) return false;
+  if (TARGET_CG && Date.now() - lastAirAt < 10 * 60_000) return false;
+  if (endInfo) endInfo.airShown = true;
+  return true;
 }
 
 /** End screen. `instant` when coming back from the shop: no animations and nothing granted again. */
@@ -1021,6 +1277,26 @@ function renderEnd(instant: boolean) {
     canDouble,
     instant,
     campaign: info.campaign,
+    frontPage: current?.kind === 'level' && !!s.def.big && !!save.pages[s.def.id],
+    newPage: !!info.newPage && !instant,
+    onFrontPage: () => {
+      audio.play('click');
+      void openPage(s.def.id, false);
+    },
+    airSupport: airSupportOffer(),
+    onAirSupport: async () => {
+      info.adSeen = true;
+      airGiven.add(s.def.id);
+      lastAirAt = Date.now();
+      if (await showRewarded('air_support')) {
+        airCharge = 1;
+        lossStreak.delete(s.def.id);
+        leaveEnd(retry);
+      } else {
+        toast(t('adFail'), 'warn');
+        renderEnd(true);
+      }
+    },
     // the interstitial only goes before the next level's intro screen: never right before play (Retry) nor on
     // navigation (Menu, Android back)
     onNext: () =>
@@ -1218,6 +1494,16 @@ function tick(dt: number) {
   const paused = mode === 'paused';
   time += paused ? 0 : sdt;
   if (rec.render) stage.frame(paused ? 0 : sdt, time);
+  // big fire: keep the frame with the most flames as the front page photo (a few shots at most)
+  if (photo.want && mode === 'play' && rec.render && s.time > 8 && photo.shots < 5 && s.burning > photo.best * 1.25 && s.time - photo.lastAt > 6) {
+    const url = snapshot(stage.renderer.domElement);
+    if (url) {
+      photo.url = url;
+      photo.best = s.burning;
+      photo.lastAt = s.time;
+      photo.shots++;
+    }
+  }
 
   if (mode === 'play') {
     const p = s.player;
@@ -1250,7 +1536,18 @@ function tick(dt: number) {
       foamMax: s.foamMax,
       rockets: s.rocketsPending,
       hasRockets: !!s.def.fireworks,
+      buffs: (['turbo', 'boots', 'suit'] as const).filter((k) => s.buffs[k] > 0).map((k) => ({ k, t: s.buffs[k] })),
+      heli: s.heliCharges,
+      heliBusy: s.helis.length > 0,
+      cut: p.cut,
+      blackout: s.evT.blackout > 0,
     });
+    // the platform going up to a window makes a sound once per rescue
+    const lifting = s.ents.find((e) => e.type === 'window' && e.state === 0 && e.prog > 0.05);
+    if (lifting && flags.lift !== lifting.id + 1) {
+      flags.lift = lifting.id + 1;
+      audio.play('lift');
+    } else if (!lifting) flags.lift = 0;
     if (input.nozzle !== p.nozzle && p.nozzle === 0 && input.nozzle === 2) input.nozzle = 0;
     // tutorial
     if (tutorialNodes.length) {
@@ -1299,6 +1596,21 @@ void RESCUE_TYPES;
   /** ids of the campaign levels, in play order */
   get levels() {
     return LEVELS.map((L) => L.id);
+  },
+  /** screenshots and tests: a level's intro screen (or straight into play) by id */
+  level(id: string, go = false) {
+    const i = LEVELS.findIndex((L) => L.id === id);
+    if (i < 0) return false;
+    if (go) quickStart(i);
+    else openLevel(i);
+    return true;
+  },
+  /** screenshots: the album and a front page */
+  album() {
+    void showAlbum(() => showTitle());
+  },
+  page(id: string) {
+    void openPage(id, true);
   },
   get info() {
     const r = stage.renderer.info;

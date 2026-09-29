@@ -1,6 +1,7 @@
 // Meta progression: coins per level, permanent upgrades and what each store product grants.
 // Pure rules on the save (no DOM, no analytics), shared by the game and tools/bot.ts.
 import { PRODUCTS, type ProductId } from './monetize/types';
+import type { CrewId } from './sim/types';
 import type { Result, SimOptions } from './sim/world';
 import type { Save } from './storage';
 
@@ -49,6 +50,44 @@ export function buyUpgrade(save: Save, id: UpgradeId): number {
   save.coins -= cost;
   save.upgrades[id]++;
   return cost;
+}
+
+// ---------- crew (docs/diseno-v2.md §5.5) ----------
+/** Price to hire (level 1) and to raise to levels 2 and 3. */
+export const CREW_COSTS: Record<CrewId, number[]> = { partner: [2500, 4000, 7000], dog: [1500, 3000, 5000], drone: [2000, 3500, 6000] };
+export const MAX_CREW = 3;
+
+/** Cost of the next crew level, or null when maxed. */
+export function crewCost(id: CrewId, level: number): number | null {
+  return level < MAX_CREW ? CREW_COSTS[id][level] : null;
+}
+
+/** Hires or raises a crew member. Returns the coins spent (0 if maxed or not affordable). A new hire joins the team. */
+export function buyCrew(save: Save, id: CrewId): number {
+  const cost = crewCost(id, save.crew[id]);
+  if (cost === null || save.coins < cost) return 0;
+  save.coins -= cost;
+  save.crew[id]++;
+  if (save.crew[id] === 1 && !save.team.includes(id)) save.team.push(id);
+  return cost;
+}
+
+/** The crew that goes to a level with `slots` places: the first hired members of the team. */
+export function crewFor(save: Save, slots: number): Partial<Record<CrewId, number>> {
+  const out: Partial<Record<CrewId, number>> = {};
+  for (const id of save.team) {
+    if (Object.keys(out).length >= slots) break;
+    if (save.crew[id] > 0) out[id] = save.crew[id];
+  }
+  return out;
+}
+
+/** Takes a crew member to the levels (at the front of the team) or leaves them at the station. */
+export function toggleTeam(save: Save, id: CrewId, slots: number) {
+  if (save.crew[id] <= 0) return;
+  const on = Object.keys(crewFor(save, slots)).includes(id);
+  save.team = save.team.filter((x) => x !== id);
+  if (!on) save.team.unshift(id);
 }
 
 // ---------- coins ----------

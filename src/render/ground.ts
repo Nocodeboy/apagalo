@@ -21,7 +21,7 @@ function shade(hex: string, k: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-const GROUNDISH = new Set<number>([M.Grass, M.Dry, M.Leaves, M.Dirt, M.Road, M.Stone, M.Concrete, M.Sand, M.Water, M.Wood, M.Oil]);
+const GROUNDISH = new Set<number>([M.Grass, M.Dry, M.Leaves, M.Dirt, M.Road, M.Stone, M.Concrete, M.Sand, M.Water, M.Wood, M.Oil, M.Rail]);
 
 export class Ground {
   readonly mesh: THREE.Mesh;
@@ -53,7 +53,7 @@ export class Ground {
       for (let x = 0; x < W; x++) {
         const i = z * W + x;
         const j = ((H - 1 - z) * W + x) * 4;
-        mask[j] = sim.mat[i] === M.Water ? 255 : 0;
+        mask[j] = sim.mat[i] === M.Water || sim.mat[i] === M.Slick ? 255 : 0;
       }
     const maskTex = new THREE.DataTexture(mask, W, H, THREE.RGBAFormat);
     maskTex.magFilter = THREE.LinearFilter;
@@ -126,6 +126,7 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
   private groundUnder(i: number): number {
     const s = this.sim;
     const m = s.mat[i];
+    if (m === M.Slick) return M.Water;
     if (GROUNDISH.has(m)) return m;
     const x = i % s.W;
     const z = Math.floor(i / s.W);
@@ -202,6 +203,13 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
             ctx.fillRect(px, pz, PX, PX);
             dot(shade(t.road, 1.25), 6, 1, 1);
             dot(shade(t.road, 0.8), 6, 1, 1);
+            if (rows[z][x] === '+') {
+              // zebra crossing: bars along the way people walk
+              ctx.fillStyle = '#f2efe6';
+              const vertical = (z > 0 && rows[z - 1][x] === '+') || (z < s.H - 1 && rows[z + 1][x] === '+');
+              if (vertical) for (let k = 0; k < 2; k++) ctx.fillRect(px + 2 + k * 8, pz, 4, PX);
+              else for (let k = 0; k < 2; k++) ctx.fillRect(px, pz + 2 + k * 8, PX, 4);
+            }
             if (rows[z][x] === '-') {
               ctx.fillStyle = '#f2efe6';
               const vertical = (z > 0 && rows[z - 1][x] === '-') || (z < s.H - 1 && rows[z + 1][x] === '-');
@@ -232,6 +240,30 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
             ctx.fillStyle = shade(t.concrete, 0.84);
             if (x % 3 === 0) ctx.fillRect(px, pz, 1, PX);
             if (z % 3 === 0) ctx.fillRect(px, pz, PX, 1);
+            // quay edge: a stone kerb where the concrete meets the sea
+            const up = z > 0 ? s.mat[i - s.W] : -1;
+            if (up === M.Water || up === M.Slick) {
+              ctx.fillStyle = shade(t.concrete, 0.7);
+              ctx.fillRect(px, pz, PX, 4);
+              ctx.fillStyle = 'rgba(255,255,255,0.25)';
+              ctx.fillRect(px, pz + 4, PX, 1);
+            }
+            break;
+          }
+          case M.Rail: {
+            // ballast, sleepers across the two rows of the track and two steel rails
+            const top = z === 0 || s.mat[i - s.W] !== M.Rail;
+            ctx.fillStyle = shade('#7d766c', 0.95 + rnd() * 0.08);
+            ctx.fillRect(px, pz, PX, PX);
+            dot('#958d80', 10, 2, 2);
+            dot('#5f5950', 8, 2, 2);
+            ctx.fillStyle = '#5a4332';
+            for (const sx of [2, 10]) ctx.fillRect(px + sx, pz, 4, PX);
+            const ry = pz + (top ? 9 : 5);
+            ctx.fillStyle = '#c9ccd0';
+            ctx.fillRect(px, ry, PX, 2);
+            ctx.fillStyle = 'rgba(40,40,44,0.6)';
+            ctx.fillRect(px, ry + 2, PX, 1);
             break;
           }
           case M.Sand: {
@@ -293,7 +325,7 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
       }
     // contact shadows under objects
     for (const e of s.ents) {
-      const k = { tree: 0.8, pine: 0.75, palm: 0.5, house: 0.2, church: 0.2, barn: 0.2, warehouse: 0.15, stall: 0.2, churros: 0.2, car: 0.35, truck: 0.3, hay: 0.5, cabin: 0.2, chiringuito: 0.25, shop: 0.15, hedge: 0.45, pallet: 0.4 }[e.type as string];
+      const k = { tree: 0.8, pine: 0.75, palm: 0.5, house: 0.2, church: 0.2, barn: 0.2, warehouse: 0.15, stall: 0.2, churros: 0.2, car: 0.35, truck: 0.3, hay: 0.5, cabin: 0.2, chiringuito: 0.25, shop: 0.15, hedge: 0.45, pallet: 0.4, container: 0.2, tower: 0.25, wagon: 0.3, crane: 0.1 }[e.type as string];
       if (!k) continue;
       const cx = e.cx * PX;
       const cz = e.cz * PX;
@@ -326,7 +358,8 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
         const i = z * W + x;
         const j = (row + x) * 4;
         const f0 = s.fuel0[i];
-        d[j] = f0 > 0 ? Math.round((1 - s.fuel[i] / f0) * 255) : 0;
+        // fuel on the sea is a dark sheen (the same channel as charring)
+        d[j] = s.mat[i] === M.Slick ? Math.round(150 + 90 * Math.min(1, s.fuel[i] / Math.max(0.01, f0))) : f0 > 0 ? Math.round((1 - s.fuel[i] / f0) * 255) : 0;
         d[j + 1] = Math.round(s.wet[i] * 255);
         d[j + 2] = Math.round(s.fire[i] * 255);
         d[j + 3] = Math.round(s.foam[i] * 255);

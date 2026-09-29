@@ -19,6 +19,10 @@ const GROUND: Record<string, number> = {
   '*': M.Dry,
   '^': M.Wood,
   '%': M.Oil,
+  // v2
+  O: M.Slick, // fuel on the sea (the docks)
+  R: M.Rail, // railway track (rail yard)
+  '+': M.Road, // zebra crossing (downtown)
 };
 const BURNING = new Set(['*', '^', '%']);
 
@@ -55,6 +59,11 @@ const SINGLE: Record<string, SingleDef> = {
   a: { type: 'goat', mat: null, height: 0 },
   v: { type: 'person', mat: null, height: 0 },
   m: { type: 'bystander', mat: null, height: 0 },
+  // v2
+  q: { type: 'seapump', mat: null, height: 0.9, walk: false }, // the docks: hook up here and the foam refills
+  i: { type: 'post', mat: null, height: 0, walk: false }, // bollard, signal or traffic light (the look depends on the theme)
+  J: { type: 'window', mat: null, height: 0 }, // someone at the window of the building just north: stand on this spot to get them down
+  z: { type: 'canopy', mat: null, height: 0 }, // platform canopy (decoration, walkable)
 };
 
 interface RegionDef {
@@ -78,9 +87,17 @@ const REGION: Record<string, RegionDef> = {
   U: { type: 'chiringuito', mat: M.Thatch, height: 2.6, chunk: 4 },
   V: { type: 'cabin', mat: M.Building, height: 2.8 },
   F: { type: 'fountain', mat: M.Water, height: 0.9 },
+  // v2
+  D: { type: 'boat', mat: M.Hull, height: 1.6, chunk: 3 },
+  N: { type: 'container', mat: M.Vehicle, height: 2.4, chunk: 3 },
+  x: { type: 'crane', mat: M.Block, height: 5.0 },
+  M: { type: 'tower', mat: M.Office, height: 6.2, chunk: 4 },
+  g: { type: 'wagon', mat: M.Hull, height: 2.3, chunk: 4 },
 };
 
-export const RESCUE_TYPES = new Set<EntType>(['cat', 'dog', 'sheep', 'goat', 'person']);
+export const RESCUE_TYPES = new Set<EntType>(['cat', 'dog', 'sheep', 'goat', 'person', 'window', 'onlooker']);
+/** Rescues that are not a walk-up: the platform has to go up to the window (seconds standing on the spot). */
+export const WINDOW_RESCUE_TIME = 1.5;
 
 export interface Parsed {
   W: number;
@@ -94,7 +111,7 @@ export interface Parsed {
   ents: Ent[];
 }
 
-function newEnt(id: number, type: EntType, x: number, z: number, w: number, h: number, height: number, W: number): Ent {
+export function newEnt(id: number, type: EntType, x: number, z: number, w: number, h: number, height: number, W: number): Ent {
   const cells: number[] = [];
   for (let zz = z; zz < z + h; zz++) for (let xx = x; xx < x + w; xx++) cells.push(zz * W + xx);
   return {
@@ -114,6 +131,7 @@ function newEnt(id: number, type: EntType, x: number, z: number, w: number, h: n
     soakCd: 0,
     alert: 0,
     orient: w > h ? 1 : 0,
+    prog: 0,
   };
 }
 
@@ -137,7 +155,7 @@ export function parseLevel(def: LevelDef): Parsed {
 
   const setCell = (i: number, m: number, wk?: boolean, hgt = 0, val?: number) => {
     mat[i] = m;
-    walk[i] = wk === undefined ? (m === M.Water || m === M.Block ? 0 : [M.Building, M.Tree, M.Hay, M.Hedge, M.Fence, M.Vehicle, M.Stall, M.Pallet, M.Thatch, M.Elec].includes(m as never) ? 0 : 1) : wk ? 1 : 0;
+    walk[i] = wk === undefined ? (m === M.Water || m === M.Block || m === M.Slick ? 0 : [M.Building, M.Tree, M.Hay, M.Hedge, M.Fence, M.Vehicle, M.Stall, M.Pallet, M.Thatch, M.Elec, M.Hull, M.Office].includes(m as never) ? 0 : 1) : wk ? 1 : 0;
     height[i] = hgt;
     value[i] = val ?? -1;
   };

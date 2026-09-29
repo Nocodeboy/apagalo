@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { MATS } from '../sim/materials';
 import { RESCUE_TYPES } from '../sim/parse';
 import type { Ent, EntType, SimEvent } from '../sim/types';
-import type { Sim } from '../sim/world';
+import type { Player, Sim } from '../sim/world';
 import { flameGeometry } from './geo';
 import { Ground } from './ground';
 import { Hose } from './hose';
-import { characterMesh, entityModel, heroRig, leverHandle, truckGroup, type HeroRig } from './models';
+import { HELI_DELAY } from '../sim/world';
+import { characterMesh, dogVest, droneModel, entityModel, heliModel, heroRig, leverHandle, PARTNER_PALETTE, platformModel, powerModel, trainGroup, truckGroup, type HeroRig } from './models';
 import { FxList, Particles } from './particles';
 import type { Theme } from './themes';
 
@@ -32,6 +33,10 @@ const TALL: Partial<Record<EntType, number>> = {
   umbrella: 1.7,
   bonfire: 0.25,
   bench: 0.4,
+  boat: 1.0,
+  container: 1.8,
+  tower: 3.4,
+  wagon: 1.5,
 };
 const BIG_FLAME: Partial<Record<EntType, number>> = {
   house: 1.45,
@@ -50,8 +55,14 @@ const BIG_FLAME: Partial<Record<EntType, number>> = {
   hay: 1.3,
   bonfire: 1.5,
   pallet: 1.15,
+  boat: 1.3,
+  container: 1.3,
+  tower: 1.6,
+  wagon: 1.25,
 };
-const DARK_SMOKE = new Set<EntType>(['car', 'house', 'barn', 'warehouse', 'shop', 'elec', 'church', 'cabin']);
+const DARK_SMOKE = new Set<EntType>(['car', 'house', 'barn', 'warehouse', 'shop', 'elec', 'church', 'cabin', 'boat', 'container', 'tower', 'wagon']);
+/** Characters that are not there until an event brings them in. */
+const LATE_CHARS = new Set<EntType>(['onlooker', 'neighbor']);
 
 function hash(i: number): number {
   let h = i * 374761393;
@@ -76,13 +87,24 @@ interface CharView {
   vx: number;
   vz: number;
   hop: number;
+  /** someone at a window: where they stand on the facade, and their aerial platform */
+  win?: { x: number; y: number; z: number; face: number; plat: { base: THREE.Mesh; lift: THREE.Mesh; basket: THREE.Mesh } };
+}
+
+/** Animation state of a firefighter rig (the player or the partner). */
+interface RigState {
+  legYaw: number;
+  aimYaw: number;
+  walkPh: number;
 }
 
 export interface Label {
   x: number;
   y: number;
   z: number;
-  kind: 'alert' | 'pressure' | 'lever' | 'hydrant' | 'rocket';
+  kind: 'alert' | 'pressure' | 'lever' | 'hydrant' | 'rocket' | 'power' | 'lift';
+  /** power-up kind */
+  k?: string;
   v: number;
   ent?: number;
 }
@@ -118,10 +140,26 @@ export class LevelView {
   private v = new THREE.Vector3();
   private s = new THREE.Vector3();
   private col = new THREE.Color();
-  private legYaw = 0;
-  private aimYaw = 0;
-  private walkPh = 0;
+  private heroSt: RigState = { legYaw: 0, aimYaw: 0, walkPh: 0 };
   private lastAnchor = -1;
+  // v2
+  private partnerRig: HeroRig | null = null;
+  private partnerSt: RigState = { legYaw: 0, aimYaw: 0, walkPh: 0 };
+  private partnerHose: Hose | null = null;
+  private partnerAnchor = -1;
+  private dogObj: THREE.Group | null = null;
+  private droneObj: THREE.Group | null = null;
+  private powerObj: THREE.Group | null = null;
+  private powerKind = '';
+  private powerRing: THREE.Mesh;
+  private trainObjs: THREE.Group[] = [];
+  private trainLights: THREE.Mesh[] = [];
+  private trainStrips: THREE.Mesh[] = [];
+  private helis: { x: number; z: number; t: number; dropped: boolean; obj: ReturnType<typeof heliModel>; ring: THREE.Mesh }[] = [];
+  private leakObj: THREE.Mesh | null = null;
+  private rainT = 0;
+  private cutFlash = 0;
+  private torchLight = new THREE.PointLight(0xffe9c0, 0, 10, 1.4);
   private smokeAcc = 0;
   labels: Label[] = [];
   centers: { x: number; z: number; k: number }[] = [];
@@ -181,6 +219,35 @@ export class LevelView {
     this.hose = new Hose(sim);
     this.hoseMat = this.hose.mesh.material as THREE.MeshLambertMaterial;
     this.group.add(this.hose.mesh);
+    // crew
+    if (sim.partner) {
+      const pr = heroRig(PARTNER_PALETTE);
+      this.partnerRig = pr;
+      this.group.add(pr.root);
+      addSil(pr.root, silHero);
+      late(pr.root);
+      const partner = sim.partner;
+      this.partnerHose = new Hose(sim, () => partner.hose);
+      (this.partnerHose.mesh.material as THREE.MeshLambertMaterial).color.setHex(0xe8d2a8);
+      this.group.add(this.partnerHose.mesh);
+    }
+    if (sim.dog) {
+      const g = characterMesh('dog', 1);
+      g.add(dogVest());
+      this.dogObj = g;
+      this.group.add(g);
+    }
+    if (sim.drone) {
+      this.droneObj = droneModel();
+      this.group.add(this.droneObj);
+    }
+    this.powerRing = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 28), new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.7, depthWrite: false }));
+    this.powerRing.rotation.x = -Math.PI / 2;
+    this.powerRing.visible = false;
+    this.group.add(this.powerRing);
+    this.buildTrains();
+    // only levels with a blackout carry the torch (one more light in every shader otherwise)
+    if (sim.def.events?.some((e) => e.kind === 'blackout')) this.group.add(this.torchLight);
 
     const fgeo = flameGeometry();
     this.flames = new THREE.InstancedMesh(fgeo, new THREE.MeshBasicMaterial({ vertexColors: true }), 3200);
@@ -225,12 +292,25 @@ export class LevelView {
     const groups = new Map<string, Ent[]>();
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
     for (const e of s.ents) {
-      if (RESCUE_TYPES.has(e.type) || e.type === 'bystander') {
+      if (RESCUE_TYPES.has(e.type) || e.type === 'bystander' || LATE_CHARS.has(e.type)) {
         const obj = characterMesh(e.type, e.variant);
         obj.position.set(e.cx, 0, e.cz);
         obj.rotation.y = hash(e.id) * Math.PI * 2;
         this.group.add(obj);
-        this.chars.push({ ent: e, obj, t: hash(e.id) * 10, mode: 'idle', vx: 0, vz: 0, hop: 0 });
+        const cv: CharView = { ent: e, obj, t: hash(e.id) * 10, mode: 'idle', vx: 0, vz: 0, hop: 0 };
+        if (e.type === 'window') cv.win = this.windowSpot(e);
+        if (e.state === 3) obj.visible = false;
+        this.chars.push(cv);
+        continue;
+      }
+      if (e.type === 'leak') {
+        const spec = entityModel('leak', 1, 1, 0, 0, this.theme)!;
+        const mesh = new THREE.Mesh(spec.geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+        mesh.position.set(e.cx, 0, e.cz);
+        mesh.castShadow = true;
+        mesh.visible = e.state !== 3;
+        this.group.add(mesh);
+        this.leakObj = mesh;
         continue;
       }
       if (e.type === 'truck') {
@@ -257,7 +337,7 @@ export class LevelView {
         this.group.add(h);
         this.levers.set(e.id, h);
       }
-      if (e.type === 'hydrant') {
+      if (e.type === 'hydrant' || e.type === 'seapump') {
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.2, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false }));
         ring.rotation.x = -Math.PI / 2;
         ring.position.set(e.cx, 0.04, e.cz);
@@ -301,7 +381,7 @@ export class LevelView {
       };
     })();
     const pts: [number, number][] = [];
-    const dense = s.def.theme === 'castanar' ? 3 : 1;
+    const dense = t.around?.dense ?? 1;
     const n = Math.round((s.W + s.H) * 1.6 * dense);
     for (let k = 0; k < n; k++) {
       const side = Math.floor(rnd() * 4);
@@ -325,7 +405,7 @@ export class LevelView {
       if (t.outsideNorthWater && z < 6) continue;
       pts.push([x, z]);
     }
-    const kinds: EntType[] = s.def.theme === 'sanjuan' ? ['palm', 'pine'] : s.def.theme === 'poligono' ? ['pine', 'tree'] : s.def.theme === 'castanar' ? ['tree', 'tree', 'pine'] : ['tree', 'tree', 'pine'];
+    const kinds: EntType[] = t.around?.props ?? ['tree', 'tree', 'pine'];
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     for (let ki = 0; ki < kinds.length; ki++) {
       const mine = pts.filter((_, i) => i % kinds.length === ki);
@@ -340,9 +420,10 @@ export class LevelView {
       mesh.castShadow = false;
       this.group.add(mesh);
     }
-    // a few neighbouring houses for village-like maps
-    if (['plaza', 'sanjuan', 'gasolinera', 'granja'].includes(s.def.theme)) {
-      const spec = entityModel('house', 4, 4, 1, 0, t)!;
+    // a few neighbouring buildings (houses, towers, containers) around the map
+    const blocks = t.around?.blocks;
+    if (blocks) {
+      const spec = entityModel(blocks, 4, blocks === 'container' ? 2 : 4, 1, 0, t)!;
       const spots: [number, number][] = [];
       for (let x = -6; x < s.W + 6; x += 6) spots.push([x, s.H + 5 + (x % 3)]);
       for (let z = 2; z < s.H; z += 7) {
@@ -359,6 +440,7 @@ export class LevelView {
   }
 
   private buildBunting() {
+    if (!this.theme.bunting) return;
     const lamps = this.sim.ents.filter((e) => e.type === 'lamp');
     const rows = new Map<number, Ent[]>();
     for (const l of lamps) {
@@ -414,8 +496,13 @@ export class LevelView {
     }
     this.updateHero(dt, time);
     this.updateHose(dt);
+    this.updateCrew(dt, time);
     this.updateProps(dt, time);
     this.updateChars(dt, time);
+    this.updatePower(dt, time);
+    this.updateTrains(time);
+    this.updateHelis(dt, time);
+    this.updateWeather(dt, cam);
     this.lastScale = pxScale;
     this.updateFire(dt, time);
     this.glow.end(pxScale);
@@ -467,36 +554,38 @@ export class LevelView {
   }
 
   private updateHero(dt: number, time: number) {
-    const s = this.sim;
-    const p = s.player;
-    const h = this.hero;
+    this.animateRig(this.hero, this.sim.player, this.heroSt, dt, time, true);
+  }
+
+  /** Walk cycle, torso twist towards the aim, spraying pose, stun wobble and heat tint of a firefighter. */
+  private animateRig(h: HeroRig, p: Player, st: RigState, dt: number, time: number, isHero: boolean) {
     h.root.position.set(p.x, 0, p.z);
     const sp = Math.hypot(p.vx, p.vz);
     const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
     const aim = Math.atan2(p.aimZ, p.aimX);
     const k = 1 - Math.exp(-14 * dt);
-    this.aimYaw += wrap(aim - this.aimYaw) * k;
-    const legT = sp > 0.4 ? p.face : this.aimYaw;
-    this.legYaw += wrap(legT - this.legYaw) * (1 - Math.exp(-10 * dt));
+    st.aimYaw += wrap(aim - st.aimYaw) * k;
+    const legT = sp > 0.4 ? p.face : st.aimYaw;
+    st.legYaw += wrap(legT - st.legYaw) * (1 - Math.exp(-10 * dt));
     // keep torso twist within reach, like the reference rig: legs follow when needed
-    let tw = wrap(this.aimYaw - this.legYaw);
+    let tw = wrap(st.aimYaw - st.legYaw);
     if (Math.abs(tw) > 1.5) {
-      this.legYaw += (tw - Math.sign(tw) * 1.5);
+      st.legYaw += tw - Math.sign(tw) * 1.5;
       tw = Math.sign(tw) * 1.5;
     }
-    h.hips.rotation.y = -this.legYaw;
+    h.hips.rotation.y = -st.legYaw;
     h.torso.rotation.y = -tw;
-    const prevPh = this.walkPh;
-    this.walkPh += sp * dt * 3.2;
+    const prevPh = st.walkPh;
+    st.walkPh += sp * dt * 3.2;
     // footstep dust puffs
-    if (sp > 2 && Math.floor(prevPh / Math.PI) !== Math.floor(this.walkPh / Math.PI) && this.tier !== 'low') {
-      const back = this.legYaw + Math.PI;
+    if (sp > 2 && Math.floor(prevPh / Math.PI) !== Math.floor(st.walkPh / Math.PI) && this.tier !== 'low') {
+      const back = st.legYaw + Math.PI;
       this.steam.add({ x: p.x + Math.cos(back) * 0.25, y: 0.12, z: p.z + Math.sin(back) * 0.25, vy: 0.4, vx: Math.cos(back) * 0.4, vz: Math.sin(back) * 0.4, life: 0.5, s0: 0.25, s1: 0.6, r: 0.78, g: 0.72, b: 0.62, a: 0.35, drag: 2 });
     }
-    const sw = Math.sin(this.walkPh) * Math.min(1, sp / 3) * 0.75;
+    const sw = Math.sin(st.walkPh) * Math.min(1, sp / 3) * 0.75;
     h.legL.rotation.z = sw;
     h.legR.rotation.z = -sw;
-    h.hips.position.y = Math.abs(Math.sin(this.walkPh)) * 0.06 * Math.min(1, sp / 3);
+    h.hips.position.y = Math.abs(Math.sin(st.walkPh)) * 0.06 * Math.min(1, sp / 3);
     const spray = p.spraying ? 1 : 0;
     h.nozzle.position.x = 0.32 - spray * (0.03 + Math.sin(time * 40) * 0.01);
     h.torso.rotation.z = -spray * 0.06;
@@ -504,14 +593,18 @@ export class LevelView {
     h.armR.rotation.y = 0.35;
     // stun wobble / heat tint
     h.root.rotation.z = p.stun > 0 ? Math.sin(time * 18) * 0.12 : 0;
+    if (!isHero) return;
     const heat = Math.max(0, p.heat - 0.25) / 0.75;
-    h.tint.color.setRGB(1 + heat * 0.25, 1 - heat * 0.35, 1 - heat * 0.45);
+    const suit = this.sim.buffs.suit > 0 ? 0.5 + 0.5 * Math.sin(time * 6) : 0;
+    h.tint.color.setRGB(1 + heat * 0.25 - suit * 0.1, 1 - heat * 0.35 + suit * 0.05, 1 - heat * 0.45 + suit * 0.15);
     if (p.stun > 0 && Math.random() < 0.3) this.sparks.add({ x: p.x + (Math.random() - 0.5) * 0.6, y: 2.0, z: p.z + (Math.random() - 0.5) * 0.6, life: 0.4, s0: 0.2, s1: 0.1, r: 1, g: 0.95, b: 0.4, vy: 0.8 });
+    // boots: a trail; turbo: sparkles on the nozzle
+    if (this.sim.buffs.boots > 0 && sp > 2 && Math.random() < 0.5) this.sparks.add({ x: p.x, y: 0.2, z: p.z, life: 0.4, s0: 0.22, s1: 0.05, r: 1, g: 0.5, b: 0.3 });
   }
 
   heroHand(): { x: number; y: number; z: number } {
     const p = this.sim.player;
-    const back = this.aimYaw + Math.PI;
+    const back = this.heroSt.aimYaw + Math.PI;
     return { x: p.x + Math.cos(back) * 0.28, y: 0.85, z: p.z + Math.sin(back) * 0.28 };
   }
 
@@ -526,6 +619,8 @@ export class LevelView {
     this.hose.update(Math.min(dt, 1 / 30), a.x, a.y, a.z, e.x, e.y, e.z);
     const taut = Math.max(0, (s.player.hoseTaut - 0.9) / 0.1);
     this.hoseMat.color.copy(this.hoseCream).lerp(this.hoseTaut, taut);
+    // cut by a train: the hose goes grey and flashes until it is spliced
+    if (s.player.cut > 0) this.hoseMat.color.setHex(Math.floor(performance.now() / 180) % 2 ? 0x6a6a70 : 0xff5a3a);
   }
 
   private updateProps(dt: number, time: number) {
@@ -591,9 +686,31 @@ export class LevelView {
     const truck = s.anchorPoint(s.anchors[0]);
     for (const c of this.chars) {
       const e = c.ent;
+      const o = c.obj;
+      if (e.state === 3) {
+        o.visible = false;
+        continue;
+      }
       c.t += dt;
+      if (c.win) this.updatePlatform(c, dt);
+      if (e.type === 'neighbor') {
+        // bucket brigade: stand facing the fire, hop on each throw, walk off at the end
+        if (e.state === 0) {
+          o.visible = true;
+          c.hop = Math.max(0, c.hop - dt * 3);
+          o.position.set(e.cx, Math.sin(c.hop * Math.PI) * 0.25, e.cz);
+          o.rotation.y = -e.alert;
+        } else {
+          c.t += dt;
+          o.position.z += dt * 3;
+          o.scale.setScalar(Math.max(0, 1 - c.t * 0.5));
+          if (c.t > 2) o.visible = false;
+        }
+        continue;
+      }
       if (c.mode === 'idle' && e.state === 1) {
         c.mode = 'saved';
+        if (c.win) o.position.set(e.cx, 0, e.cz);
         const dx = truck.x - e.cx;
         const dz = truck.z - e.cz;
         const d = Math.hypot(dx, dz) || 1;
@@ -618,18 +735,37 @@ export class LevelView {
         c.vz = (bz / d) * 5;
         c.t = 0;
       }
-      const o = c.obj;
       if (c.mode === 'idle') {
+        o.visible = true;
         const alert = e.alert;
         const bob = Math.abs(Math.sin(c.t * (alert > 0.3 ? 12 : 3))) * (alert > 0.3 ? 0.12 : 0.03);
         c.hop = Math.max(0, c.hop - dt * 4);
+        if (c.win) {
+          // at the window, waving (faster when the fire gets close)
+          o.position.set(c.win.x, c.win.y + bob * 0.5, c.win.z);
+          o.rotation.y = c.win.face + Math.sin(time * (alert > 0.3 ? 10 : 4) + e.id) * 0.25;
+          continue;
+        }
+        const px = o.position.x;
+        const pz = o.position.z;
         o.position.set(e.cx, bob + Math.sin(c.hop * Math.PI) * 0.5, e.cz);
-        if (e.type === 'bystander') {
+        if (e.type === 'onlooker') {
+          const mx = e.cx - px;
+          const mz = e.cz - pz;
+          if (Math.hypot(mx, mz) > 0.002) o.rotation.y = -Math.atan2(mz, mx);
+        } else if (e.type === 'bystander') {
           // watch the nearest big fire
           const p = s.player;
           o.rotation.y = -Math.atan2(p.z - e.cz, p.x - e.cx) * 0.3 + o.rotation.y * 0.7;
         } else if (alert > 0.3) o.rotation.y += Math.sin(time * 6 + e.id) * dt * 4;
       } else {
+        if (c.win && c.mode === 'fled') {
+          // over the roof: up and away
+          o.position.y += dt * 2.5;
+          o.scale.setScalar(Math.max(0, 1 - c.t * 0.6));
+          if (c.t > 1.7) o.visible = false;
+          continue;
+        }
         o.position.x += c.vx * dt;
         o.position.z += c.vz * dt;
         o.position.y = Math.abs(Math.sin(c.t * 14)) * 0.18;
@@ -641,6 +777,45 @@ export class LevelView {
         if (c.mode === 'fled' && Math.random() < 0.4) this.smoke.add({ x: o.position.x, y: 0.6, z: o.position.z, vy: 0.8, life: 0.8, s0: 0.3, s1: 0.8, r: 0.3, g: 0.3, b: 0.3, a: 0.5 });
       }
     }
+  }
+
+  /** Where someone at a window stands: on the facade of the building next to their spot (north preferred). */
+  private windowSpot(e: Ent): CharView['win'] {
+    const s = this.sim;
+    const W = s.W;
+    const x = Math.floor(e.cx);
+    const z = Math.floor(e.cz);
+    const bld = (zz: number) => {
+      if (zz < 0 || zz >= s.H) return null;
+      const o = s.owner[zz * W + x];
+      return o >= 0 && !s.walk[zz * W + x] ? s.ents[o] : null;
+    };
+    const north = bld(z - 1);
+    const south = north ? null : bld(z + 1);
+    const b = north ?? south;
+    const topY = b ? Math.max(2.2, Math.min(5.2, (TALL[b.type] ?? 1.5) * 1.35)) : 2.6;
+    const plat = platformModel();
+    plat.base.position.set(e.cx, 0.01, e.cz);
+    plat.lift.position.set(e.cx, 0.1, e.cz);
+    plat.basket.position.set(e.cx, 0.1, e.cz);
+    plat.lift.scale.set(1, 0.001, 1);
+    this.group.add(plat.base, plat.lift, plat.basket);
+    return { x: e.cx, y: topY - 0.6, z: north ? z + 0.08 : z + 0.92, face: north ? -Math.PI / 2 : Math.PI / 2, plat };
+  }
+
+  /** The aerial platform rises while the player stands on the spot, and comes down with the person. */
+  private updatePlatform(c: CharView, dt: number) {
+    const w = c.win!;
+    const e = c.ent;
+    const top = w.y + 0.1;
+    let h: number;
+    if (e.state === 0) h = Math.min(1, e.prog / 1.5) * top;
+    else if (e.state === 1) h = Math.max(0, top * (1 - c.t * 1.6));
+    else h = 0;
+    w.plat.lift.scale.set(1, Math.max(0.001, h), 1);
+    w.plat.basket.position.y = 0.1 + h;
+    if (e.state === 1 && c.mode === 'saved' && c.t < 0.6) c.obj.position.y = h;
+    void dt;
   }
 
   private flameBase(i: number): { y: number; big: number; type: EntType | null; ex: number; ez: number } {
@@ -864,11 +1039,17 @@ export class LevelView {
     const L: Label[] = [];
     for (const c of this.chars) {
       const e = c.ent;
-      if (c.mode !== 'idle' || e.type === 'bystander') continue;
-      if (e.alert > 0.15 || e.t > 0) L.push({ x: e.cx, y: 1.6, z: e.cz, kind: 'alert', v: Math.max(e.alert, e.t / 2.2), ent: e.id });
+      if (c.mode !== 'idle' || e.type === 'bystander' || e.type === 'neighbor' || e.state !== 0) continue;
+      const flee = e.type === 'window' ? 4.5 : e.type === 'onlooker' ? 3.2 : 2.2;
+      if (c.win) {
+        if (e.prog > 0) L.push({ x: e.cx, y: 0.6, z: e.cz, kind: 'lift', v: Math.min(1, e.prog / 1.5), ent: e.id });
+        L.push({ x: c.win.x, y: c.win.y + 1.6, z: c.win.z, kind: 'alert', v: Math.max(0.35, e.alert, e.t / flee), ent: e.id });
+      } else if (e.alert > 0.15 || e.t > 0) L.push({ x: e.cx, y: 1.6, z: e.cz, kind: 'alert', v: Math.max(e.alert, e.t / flee), ent: e.id });
     }
+    const pw = s.powerup;
+    if (pw) L.push({ x: pw.x, y: 1.5, z: pw.z, kind: 'power', v: pw.t, k: pw.kind });
     for (const e of s.ents) {
-      if (e.type === 'cylinder' && e.state === 0 && e.alert > 0.08) L.push({ x: e.cx, y: 1.2, z: e.cz, kind: 'pressure', v: e.alert, ent: e.id });
+      if ((e.type === 'cylinder' || e.type === 'leak') && e.state === 0 && e.alert > 0.08) L.push({ x: e.cx, y: 1.2, z: e.cz, kind: 'pressure', v: e.alert, ent: e.id });
       if (e.type === 'lever' && e.state === 0 && s.ents.some((o) => o.type === 'elec' && o.state === 1)) L.push({ x: e.cx, y: 1.9, z: e.cz, kind: 'lever', v: 0.5 + 0.5 * Math.sin(time * 5), ent: e.id });
     }
     this.labels = L;
@@ -945,6 +1126,50 @@ export class LevelView {
       case 'win':
         for (let k = 0; k < 4; k++) this.fireworkBurst(x + (Math.random() - 0.5) * 8, z + (Math.random() - 0.5) * 8, false, 8 + Math.random() * 3);
         break;
+      // ---- v2 ----
+      case 'powerup':
+        for (let k = 0; k < 24; k++) this.sparks.add({ x, y: 0.6, z, vx: (Math.random() - 0.5) * 4, vz: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 3, grav: 5, life: 0.8, s0: 0.3, s1: 0.08, r: 1, g: 0.9, b: 0.4 });
+        if (ev.k === 'extinguisher') {
+          for (let k = 0; k < 40; k++) {
+            const a = (k / 40) * Math.PI * 2;
+            this.steam.add({ x: x + Math.cos(a) * 0.5, y: 0.4, z: z + Math.sin(a) * 0.5, vx: Math.cos(a) * 5, vz: Math.sin(a) * 5, vy: 0.6, drag: 1.8, life: 1.1, s0: 0.5, s1: 1.8, r: 0.98, g: 0.98, b: 1, a: 0.7 });
+          }
+        }
+        break;
+      case 'heliCall':
+        this.addHeli(x, z);
+        break;
+      case 'heliDrop':
+        this.shake = Math.max(this.shake, 0.4);
+        for (let k = 0; k < 80; k++) {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.random() * 2.6;
+          this.splash.add({ x: x + Math.cos(a) * r, y: 3 + Math.random() * 3, z: z + Math.sin(a) * r, vx: Math.cos(a) * 2, vz: Math.sin(a) * 2, vy: -6 - Math.random() * 4, grav: 10, life: 0.8, s0: 0.5, s1: 0.2, r: 0.85, g: 0.94, b: 1, a: 0.9 });
+        }
+        for (let k = 0; k < 20; k++) this.steam.add({ x: x + (Math.random() - 0.5) * 5, y: 0.4, z: z + (Math.random() - 0.5) * 5, vy: 1.6 + Math.random(), life: 1.8, s0: 0.8, s1: 2.8, r: 0.98, g: 0.98, b: 1, a: 0.55, drag: 0.4 });
+        break;
+      case 'bucket': {
+        for (const c of this.chars) if (c.ent.id === ev.ent) c.hop = 1;
+        const nb = ev.ent !== undefined ? this.sim.ents[ev.ent] : null;
+        if (nb) for (let k = 0; k < 14; k++) {
+          const t = k / 14;
+          this.splash.add({ x: nb.cx + (x - nb.cx) * t, y: 1.2 + Math.sin(t * Math.PI) * 1.2, z: nb.cz + (z - nb.cz) * t, vy: -1, life: 0.35 + t * 0.3, s0: 0.3, s1: 0.2, r: 0.8, g: 0.92, b: 1, a: 0.85 });
+        }
+        break;
+      }
+      case 'droneDrop':
+        for (let k = 0; k < 26; k++) this.splash.add({ x: x + (Math.random() - 0.5) * 1.2, y: 2.6, z: z + (Math.random() - 0.5) * 1.2, vy: -5 - Math.random() * 2, grav: 8, life: 0.55, s0: 0.3, s1: 0.15, r: 0.8, g: 0.92, b: 1, a: 0.9 });
+        break;
+      case 'trainHit':
+        this.shake = Math.max(this.shake, 0.5);
+        break;
+      case 'hoseCut':
+        this.burstSparks(x, 0.3, z, 30, 1, 0.8, 0.4, 4);
+        this.cutFlash = 1;
+        break;
+      case 'leakFixed':
+        for (let k = 0; k < 10; k++) this.steam.add({ x, y: 0.8, z, vy: 1.5 + Math.random(), vx: (Math.random() - 0.5) * 1.5, life: 1.2, s0: 0.3, s1: 1.2, r: 1, g: 1, b: 1, a: 0.6 });
+        break;
     }
   }
 
@@ -967,6 +1192,175 @@ export class LevelView {
       const e = Math.acos(Math.random() * 2 - 1);
       const v = 4 + Math.random() * 1.5;
       this.sparks.add({ x, y: h, z, vx: Math.sin(e) * Math.cos(a) * v, vy: Math.cos(e) * v, vz: Math.sin(e) * Math.sin(a) * v, grav: 3, drag: 1.2, life: 1.1 + Math.random() * 0.5, s0: 0.3, s1: 0.08, r, g, b });
+    }
+  }
+
+  /** The firefighter's torch during a blackout (0..1). */
+  torch(k: number) {
+    const p = this.sim.player;
+    this.torchLight.position.set(p.x + p.aimX * 1.5, 2.2, p.z + p.aimZ * 1.5);
+    this.torchLight.intensity = k * 26;
+  }
+
+  // ---------- v2: crew, power-ups, trains, helicopter, weather ----------
+  private updateCrew(dt: number, time: number) {
+    const s = this.sim;
+    if (this.partnerRig && s.partner) {
+      const pt = s.partner;
+      this.animateRig(this.partnerRig, pt, this.partnerSt, dt, time, false);
+      const a = s.anchorPoint(pt.anchor);
+      const ay = s.ents[pt.anchor].type === 'truck' ? 0.9 : 0.55;
+      const back = this.partnerSt.aimYaw + Math.PI;
+      const hx = pt.x + Math.cos(back) * 0.28;
+      const hz = pt.z + Math.sin(back) * 0.28;
+      if (pt.anchor !== this.partnerAnchor) {
+        this.partnerAnchor = pt.anchor;
+        this.partnerHose!.reset(a.x, ay, a.z, hx, 0.85, hz);
+      }
+      this.partnerHose!.update(Math.min(dt, 1 / 30), a.x, ay, a.z, hx, 0.85, hz);
+    }
+    const d = s.dog;
+    if (this.dogObj && d) {
+      const o = this.dogObj;
+      o.position.set(d.x, d.moving ? Math.abs(Math.sin(time * 16)) * 0.12 : 0, d.z);
+      o.rotation.y = -d.face;
+    }
+    const dr = s.drone;
+    if (this.droneObj && dr) {
+      this.droneObj.position.set(dr.x, 3.1 + Math.sin(time * 3) * 0.15, dr.z);
+      this.droneObj.rotation.y = time * 0.8;
+    }
+    // gas leak: hissing while it leaks
+    const lk = s.leak;
+    if (this.leakObj && lk) {
+      this.leakObj.visible = lk.state === 0 || lk.state === 2;
+      if (lk.state === 0) {
+        this.leakObj.position.x = lk.cx + (lk.t > 0.6 ? (Math.random() - 0.5) * lk.t * 0.08 : 0);
+        if (Math.random() < 0.5 + lk.t) this.steam.add({ x: lk.cx + 0.2, y: 0.95, z: lk.cz, vx: (Math.random() - 0.3) * 1.5, vy: 1.2 + lk.t * 2, vz: (Math.random() - 0.5), life: 0.6, s0: 0.15, s1: 0.7, r: 0.92, g: 0.96, b: 0.88, a: 0.45 + lk.t * 0.3 });
+      }
+    }
+    this.cutFlash = Math.max(0, this.cutFlash - dt);
+  }
+
+  private updatePower(dt: number, time: number) {
+    const pw = this.sim.powerup;
+    if (!pw) {
+      if (this.powerObj) this.powerObj.visible = false;
+      this.powerRing.visible = false;
+      return;
+    }
+    if (!this.powerObj || this.powerKind !== pw.kind) {
+      if (this.powerObj) this.group.remove(this.powerObj);
+      this.powerObj = powerModel(pw.kind);
+      this.powerObj.scale.setScalar(1.35);
+      this.powerKind = pw.kind;
+      this.group.add(this.powerObj);
+    }
+    const blink = pw.t < 3 && Math.floor(time * 6) % 2 === 0;
+    this.powerObj.visible = !blink;
+    this.powerObj.position.set(pw.x, 0.25 + Math.sin(time * 3) * 0.12, pw.z);
+    this.powerObj.rotation.y = time * 1.6;
+    this.powerRing.visible = true;
+    this.powerRing.position.set(pw.x, 0.05, pw.z);
+    this.powerRing.scale.setScalar(1 + 0.12 * Math.sin(time * 5));
+    if (Math.random() < dt * 8) this.sparks.add({ x: pw.x + (Math.random() - 0.5) * 0.8, y: 0.3, z: pw.z + (Math.random() - 0.5) * 0.8, vy: 1.4, life: 0.7, s0: 0.18, s1: 0.04, r: 1, g: 0.9, b: 0.4 });
+  }
+
+  private buildTrains() {
+    const s = this.sim;
+    s.trains.forEach((tr, i) => {
+      const g = trainGroup(tr.len, i % 2 === 1 || tr.len > 12);
+      g.visible = false;
+      g.position.set(0, 0, tr.z + 1);
+      if (tr.dir < 0) g.rotation.y = Math.PI;
+      this.group.add(g);
+      this.trainObjs.push(g);
+      // crossing lights at both ends of the track and a warning strip on the rails
+      for (const x of [-0.6, s.W + 0.6])
+        for (const dz of [-0.4, 2.4]) {
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), new THREE.MeshBasicMaterial({ color: 0x401010 }));
+          m.position.set(x, 1.1, tr.z + dz);
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 5), new THREE.MeshLambertMaterial({ color: 0x2e3238 }));
+          pole.position.set(x, 0.55, tr.z + dz);
+          this.group.add(m, pole);
+          this.trainLights.push(m);
+        }
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(s.W, 2), new THREE.MeshBasicMaterial({ color: 0xff3a2a, transparent: true, opacity: 0, depthWrite: false }));
+      strip.rotation.x = -Math.PI / 2;
+      strip.position.set(s.W / 2, 0.04, tr.z + 1);
+      this.group.add(strip);
+      this.trainStrips.push(strip);
+    });
+  }
+
+  private updateTrains(time: number) {
+    const s = this.sim;
+    s.trains.forEach((tr, i) => {
+      const g = this.trainObjs[i];
+      g.visible = tr.st === 2;
+      if (tr.st === 2) g.position.x = tr.head;
+      const on = tr.st > 0 && Math.floor(time * 4) % 2 === 0;
+      for (let k = 0; k < 4; k++) {
+        const m = this.trainLights[i * 4 + k];
+        (m.material as THREE.MeshBasicMaterial).color.setHex(tr.st > 0 ? ((k + (on ? 1 : 0)) % 2 ? 0xff2a1a : 0x401010) : 0x401010);
+      }
+      const strip = this.trainStrips[i].material as THREE.MeshBasicMaterial;
+      strip.opacity = tr.st === 1 ? 0.18 + 0.18 * Math.sin(time * 14) : tr.st === 2 ? 0.1 : 0;
+    });
+  }
+
+  private addHeli(x: number, z: number) {
+    const obj = heliModel();
+    obj.group.scale.setScalar(1.1);
+    this.group.add(obj.group);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(2.9, 3.3, 40), new THREE.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.8, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, 0.07, z);
+    this.group.add(ring);
+    this.helis.push({ x, z, t: 0, dropped: false, obj, ring });
+  }
+
+  /** The helicopter flies in from the south-west, drops over the ring and flies off to the north-east. */
+  private updateHelis(dt: number, time: number) {
+    this.helis = this.helis.filter((h) => {
+      h.t += dt;
+      const g = h.obj.group;
+      h.obj.rotor.rotation.y += dt * 30;
+      const arrive = HELI_DELAY;
+      if (h.t < arrive) {
+        const k = h.t / arrive;
+        const e = 1 - (1 - k) * (1 - k);
+        g.position.set(h.x - 26 * (1 - e), 7.5 + 3 * (1 - e), h.z + 18 * (1 - e));
+        g.rotation.y = Math.atan2(-18, 26) * -1;
+        h.ring.scale.setScalar(1.25 - 0.25 * k + 0.05 * Math.sin(time * 12));
+        (h.ring.material as THREE.MeshBasicMaterial).opacity = 0.5 + 0.4 * Math.sin(time * 12);
+        h.obj.bucket.visible = true;
+      } else {
+        const k = (h.t - arrive) / 2.4;
+        if (!h.dropped) {
+          h.dropped = true;
+          this.group.remove(h.ring);
+        }
+        g.position.set(h.x + 26 * k * k, 7.5 + 4 * k, h.z - 18 * k * k);
+        if (k >= 1) {
+          this.group.remove(g);
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  /** Rain shower: streaks around the camera while it lasts. */
+  private updateWeather(dt: number, cam: THREE.Camera) {
+    const s = this.sim;
+    if (s.evT.rain <= 0) return;
+    this.rainT += dt * (this.tier === 'low' ? 60 : 140);
+    const cx = cam.position.x;
+    const cz = cam.position.z - 14;
+    while (this.rainT >= 1) {
+      this.rainT -= 1;
+      this.splash.add({ x: cx + (Math.random() - 0.5) * 30, y: 7 + Math.random() * 3, z: cz + (Math.random() - 0.5) * 26, vx: -1.5, vy: -16, vz: 0.5, life: 0.5, s0: 0.12, s1: 0.1, r: 0.8, g: 0.88, b: 1, a: 0.55 });
     }
   }
 

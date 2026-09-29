@@ -19,7 +19,10 @@ export class Hose {
   private s = new THREE.Vector3();
   private p = new THREE.Vector3();
 
-  constructor(private sim: Sim) {
+  constructor(
+    private sim: Sim,
+    private maxLen: () => number = () => sim.hoseLen,
+  ) {
     const geo = new THREE.CylinderGeometry(0.075, 0.075, 1, 6, 1, true);
     geo.translate(0, 0.5, 0);
     const mat = new THREE.MeshLambertMaterial({ color: 0xf3e3bf });
@@ -42,7 +45,7 @@ export class Hose {
   update(dt: number, ax: number, ay: number, az: number, ex: number, ey: number, ez: number) {
     const s = this.sim;
     const dist = Math.hypot(ex - ax, ez - az);
-    const L = Math.min(s.hoseLen + 0.6, Math.max(dist + 0.4, dist * 1.12 + 1.2));
+    const L = Math.min(this.maxLen() + 0.6, Math.max(dist + 0.4, dist * 1.12 + 1.2));
     const seg = L / (N - 1);
     const g = -22 * dt * dt;
     for (let i = 1; i < N - 1; i++) {

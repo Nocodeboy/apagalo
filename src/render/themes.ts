@@ -1,6 +1,7 @@
-import type { ThemeId } from '../sim/types';
+import type { EntType, ThemeId } from '../sim/types';
 
 export interface Theme {
+  id: ThemeId;
   sky: number;
   fog: number;
   fogNear: number;
@@ -29,6 +30,10 @@ export interface Theme {
   roof: number[];
   night: boolean;
   fireLight: number;
+  /** strings of flags between the lamps (festive places only) */
+  bunting?: boolean;
+  /** what stands around the map: trees (instanced), and a row of buildings or none */
+  around?: { props: EntType[]; blocks?: 'house' | 'tower' | 'container' | null; dense?: number };
 }
 
 const DAY = {
@@ -49,6 +54,9 @@ const DAY = {
 export const THEMES: Record<ThemeId, Theme> = {
   plaza: {
     ...DAY,
+    id: 'plaza',
+    bunting: true,
+    around: { props: ['tree', 'tree', 'pine'], blocks: 'house' },
     outside: 0x8fb45a,
     grass: ['#7fb24e', '#6aa041'],
     dry: ['#c9b35a', '#b39b45'],
@@ -67,6 +75,8 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
   granja: {
     ...DAY,
+    id: 'granja',
+    around: { props: ['tree', 'tree', 'pine'], blocks: 'house' },
     sky: 0xf6cf96,
     fog: 0xf3d5a6,
     sun: 0xffd29a,
@@ -93,6 +103,8 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
   gasolinera: {
     ...DAY,
+    id: 'gasolinera',
+    around: { props: ['tree', 'tree', 'pine'], blocks: 'house' },
     sky: 0xa8dcf5,
     outside: 0x98b85c,
     grass: ['#86b551', '#74a346'],
@@ -112,6 +124,8 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
   poligono: {
     ...DAY,
+    id: 'poligono',
+    around: { props: ['pine', 'tree'] },
     sky: 0xb9c6cf,
     fog: 0xc3ccd2,
     sun: 0xf1eee6,
@@ -138,6 +152,8 @@ export const THEMES: Record<ThemeId, Theme> = {
   },
   castanar: {
     ...DAY,
+    id: 'castanar',
+    around: { props: ['tree', 'tree', 'pine'], dense: 3 },
     sky: 0xf1c7a1,
     fog: 0xe9c6a4,
     fogNear: 30,
@@ -165,6 +181,9 @@ export const THEMES: Record<ThemeId, Theme> = {
     roof: [0x4f6b3a, 0x5b4a3a],
   },
   sanjuan: {
+    id: 'sanjuan',
+    bunting: true,
+    around: { props: ['palm', 'pine'], blocks: 'house' },
     sky: 0x0d1733,
     fog: 0x121c3a,
     fogNear: 30,
@@ -193,6 +212,101 @@ export const THEMES: Record<ThemeId, Theme> = {
     roof: [0xb8573a, 0xa24c34],
     night: true,
     fireLight: 2.2,
+  },
+  // ---- v2 ----
+  // The docks at sunset: warm low sun, teal sea to the north, concrete quay, weathered planks
+  puerto: {
+    ...DAY,
+    id: 'puerto',
+    around: { props: ['pine', 'tree'], blocks: 'container' },
+    sky: 0xf4ae76,
+    fog: 0xf1bb90,
+    fogNear: 38,
+    fogFar: 92,
+    sun: 0xffc48c,
+    sunI: 2.05,
+    sunDir: [-0.85, 0.62, -0.35],
+    hemiSky: 0xffd8b0,
+    hemiGround: 0x55606e,
+    hemiI: 1.05,
+    outside: 0x8d8f93,
+    outsideNorthWater: true,
+    grass: ['#7ea44f', '#6c9243'],
+    dry: ['#c7b061', '#b39b4d'],
+    leaves: ['#b57b3c', '#d49a45', '#9a5a2e'],
+    dirt: '#a88f6a',
+    road: '#4d525a',
+    stone: ['#d3c7b1', '#c3b7a0'],
+    concrete: '#bdb8ad',
+    sand: '#e2cf9f',
+    water: '#2f8fa5',
+    wood: '#9a6d44',
+    foliage: [0x5f9a44, 0x4f8a3c],
+    trunk: 0x6e4a2c,
+    wall: [0xece6d8, 0xdccfb8, 0xc9d8de],
+    roof: [0x2f6f8f, 0xb8573a, 0x3f7a5a],
+  },
+  // Downtown on a crisp day: blue-grey glass, asphalt and pale sidewalks
+  ciudad: {
+    ...DAY,
+    id: 'ciudad',
+    around: { props: ['tree'], blocks: 'tower' },
+    sky: 0x96c6ee,
+    fog: 0xb9d5ec,
+    fogNear: 44,
+    fogFar: 100,
+    sun: 0xfff6e8,
+    sunI: 2.0,
+    sunDir: [-0.45, 1, 0.55],
+    hemiSky: 0xdcecff,
+    hemiGround: 0x565e6a,
+    hemiI: 1.25,
+    outside: 0x6c727b,
+    grass: ['#78a84c', '#669940'],
+    dry: ['#bfb062', '#aa9b50'],
+    leaves: ['#b57b3c', '#d49a45', '#9a5a2e'],
+    dirt: '#9a8a70',
+    road: '#43474e',
+    stone: ['#d2d5d9', '#c4c8cd'],
+    concrete: '#b9bdc3',
+    sand: '#e2d3ae',
+    water: '#4aa0d0',
+    wood: '#a0764a',
+    foliage: [0x5a9e45, 0x4c8f3e, 0x6aad4c],
+    trunk: 0x6a4a30,
+    wall: [0x8fb3d2, 0xcfd6de, 0x9fb0c2, 0xdcc9b0],
+    roof: [0x5a6470, 0x4a525c],
+  },
+  // The rail yard on a hazy morning: brick, rust, gravel and old wood
+  estacion: {
+    ...DAY,
+    id: 'estacion',
+    around: { props: ['tree', 'pine'], blocks: 'house' },
+    sky: 0xe0d5ba,
+    fog: 0xe4dac4,
+    fogNear: 36,
+    fogFar: 90,
+    sun: 0xffe0ae,
+    sunI: 1.95,
+    sunDir: [-0.6, 0.9, 0.3],
+    hemiSky: 0xf2e8d2,
+    hemiGround: 0x6c5e48,
+    hemiI: 1.15,
+    outside: 0x8b8068,
+    grass: ['#94a359', '#81904c'],
+    dry: ['#c9b166', '#b49c53'],
+    leaves: ['#b57b3c', '#d49a45', '#9a5a2e'],
+    dirt: '#9c8565',
+    road: '#4f5258',
+    stone: ['#d9cfbb', '#cbc0a8'],
+    concrete: '#bfb9ac',
+    sand: '#e2cf9f',
+    water: '#4f95b0',
+    wood: '#8f6a45',
+    foliage: [0x6f8f44, 0x5d7d3a, 0x7d9a4a],
+    trunk: 0x5e4630,
+    wall: [0xb4553c, 0xa44a34, 0xc26a4b],
+    roof: [0x5b5f66, 0x3f4a55],
   },
 };
 

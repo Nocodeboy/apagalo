@@ -1,8 +1,10 @@
 // Shop (upgrades, free coins, store) and the one-time starter pack offer.
-import { MAX_UPGRADE, UPGRADE_IDS, UPGRADE_STEP, upgradeCost, type UpgradeId, type UpgradeLevels } from '../economy';
-import { num, t } from '../i18n';
+import { CREW_INFO } from '../content';
+import { crewCost, MAX_CREW, MAX_UPGRADE, UPGRADE_IDS, UPGRADE_STEP, upgradeCost, type UpgradeId, type UpgradeLevels } from '../economy';
+import { num, t, tx } from '../i18n';
 import { PRODUCTS, type Product, type ProductId } from '../monetize/types';
-import { IC } from './icons';
+import { CREW_IDS, type CrewId } from '../sim/types';
+import { CREW_ICON, IC } from './icons';
 import { adLabel, el, esc, overlay, show, toast } from './ui';
 
 const UP_ICON: Record<UpgradeId, string> = { hose: IC.reel, power: IC.gauge, speed: IC.boot, time: IC.clock };
@@ -31,6 +33,10 @@ export interface ShopOpts {
   /** products the store returned; null when this platform has no store */
   products: Product[] | null;
   onUpgrade: (id: UpgradeId) => void;
+  /** crew: levels hired (0 = not yet); null while the crew is still locked (with the level it opens at) */
+  crew: Record<CrewId, number> | null;
+  crewFrom: number;
+  onCrew: (id: CrewId) => void;
   onFree: () => void;
   onBuy: (id: ProductId) => void;
   onRestore: () => void;
@@ -51,6 +57,20 @@ export function shopScreen(o: ShopOpts) {
         : `<button class="btn amber sm buy${o.coins < cost ? ' poor' : ''}" data-up="${id}" aria-label="${esc(t('upBuy', { name: t(`up_${id}`), n: num(cost) }))}">${IC.coin}${num(cost)}</button>`;
     return row(UP_ICON[id], t(`up_${id}`), t(`up_${id}_d`), side, `<span class="lvl-line"><span class="pips">${pips}</span>${lvl ? `<span class="val">${upValue(id, lvl)}</span>` : ''}</span>`);
   }).join('');
+
+  const crew = o.crew
+    ? CREW_IDS.map((id) => {
+        const lvl = o.crew![id];
+        const cost = crewCost(id, lvl);
+        const pips = Array.from({ length: MAX_CREW }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('');
+        const info = CREW_INFO[id];
+        const side =
+          cost === null
+            ? `<span class="maxed">${t('upMax')}</span>`
+            : `<button class="btn amber sm buy${o.coins < cost ? ' poor' : ''}" data-crew="${id}" aria-label="${esc(t('crewBuy', { name: tx(info.name), n: num(cost) }))}">${IC.coin}${num(cost)}</button>`;
+        return row(CREW_ICON[id], tx(info.name), lvl ? `${tx(info.desc)} · ${tx(info.step)}` : tx(info.desc), side, `<span class="lvl-line"><span class="pips">${pips}</span>${lvl ? '' : `<span class="val">${t('crewHire')}</span>`}</span>`);
+      }).join('')
+    : `<p class="muted note">${IC.crew.replace('<svg', '<svg style="width:18px;height:18px;vertical-align:-3px"')} ${esc(t('crewFrom', { n: o.crewFrom }))}</p>`;
 
   const free = o.free
     ? row(
@@ -76,6 +96,8 @@ export function shopScreen(o: ShopOpts) {
         <div class="eyebrow">${t('upgrades')}</div>
         ${ups}
         <p class="muted note">${t('noUpgradesNote')}</p>
+        <div class="eyebrow">${t('crew')}</div>
+        ${crew}
         ${free}
         ${store}
         <div class="actions"><button class="btn ghost" data-a="back" data-focus>${IC.back}${t('back')}</button></div>
@@ -86,6 +108,12 @@ export function shopScreen(o: ShopOpts) {
     b.addEventListener('click', () => {
       if (b.classList.contains('poor')) toast(t('notEnough'), 'warn');
       else o.onUpgrade(b.dataset.up as UpgradeId);
+    }),
+  );
+  n.querySelectorAll<HTMLElement>('[data-crew]').forEach((b) =>
+    b.addEventListener('click', () => {
+      if (b.classList.contains('poor')) toast(t('notEnough'), 'warn');
+      else o.onCrew(b.dataset.crew as CrewId);
     }),
   );
   const lock = () => n.querySelectorAll<HTMLButtonElement>('button.buy, [data-a=restore]').forEach((b) => (b.disabled = true));

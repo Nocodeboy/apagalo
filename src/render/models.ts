@@ -353,6 +353,274 @@ function car(v: number): Part[] {
   return P;
 }
 
+// ---------- v2: the docks ----------
+/** Fishing boat along X: hull with a pointed bow (+x), wheelhouse aft, mast and a boom. */
+function boat(len: number, wid: number, v: number): Part[] {
+  const P: Part[] = [];
+  const hullC = pick([0xf4f1ea, 0x2f6fb5, 0xd8433a, 0x3a8a5a], v);
+  const trim = pick([0x2f6fb5, 0xf4f1ea, 0xf4f1ea, 0xf2c21a], v);
+  const L = len - 0.25;
+  const B = wid - 0.35;
+  // hull with a pointed bow (+x) and a light wooden deck, so it reads as a boat from above
+  P.push(part(box(L - 1.0, 0.75, B), hullC, -0.5, 0.42, 0));
+  const bow = cone(B / 2, 1.1, 4);
+  bow.rotateY(PI / 4);
+  bow.scale(0.75 / B, 1, 1);
+  P.push(part(bow, hullC, L / 2 - 0.45, 0.42, 0, 0, 0, -PI / 2));
+  P.push(part(box(L - 1.0, 0.1, B + 0.08), trim, -0.5, 0.8, 0));
+  P.push(part(box(L - 1.25, 0.06, B - 0.22), 0xd9b27a, -0.55, 0.82, 0));
+  // wheelhouse aft with a coloured roof
+  P.push(part(box(1.05, 0.8, B - 0.3), WHITE, -L / 2 + 0.95, 1.25, 0));
+  P.push(part(box(1.2, 0.1, B - 0.15), trim === WHITE ? hullC : trim, -L / 2 + 0.95, 1.7, 0));
+  P.push(part(box(0.05, 0.3, B - 0.45), WINDOW, -L / 2 + 1.49, 1.4, 0));
+  P.push(part(cyl(0.05, 0.06, 2.2, 5), 0xd9d2c4, 0.3, 1.85, 0));
+  P.push(part(box(1.5, 0.05, 0.05), 0xd9d2c4, 0.85, 2.2, 0, 0, 0, -0.35));
+  // nets and floats
+  P.push(part(box(0.7, 0.25, 0.6), 0x3f6e8a, 0.9, 0.95, 0));
+  for (const z of [-B / 2 + 0.05, B / 2 - 0.05]) P.push(part(sphere(0.12, 6, 4), 0xf07a1a, 0.2, 0.72, z));
+  return P;
+}
+/** The ferry: a long white ship with two decks, a blue stripe and a funnel. */
+function ferry(len: number, wid: number): Part[] {
+  const P: Part[] = [];
+  const L = len - 0.3;
+  const B = wid - 0.4;
+  P.push(part(box(L - 2, 1.4, B), 0xf4f1ea, -1, 0.75, 0));
+  P.push(part(cone(B / 2, 2.4, 4), 0xf4f1ea, L / 2 - 1.1, 0.75, 0, 0, PI / 4, -PI / 2));
+  P.push(part(box(L - 2, 0.35, B + 0.04), 0x2f6fb5, -1, 0.95, 0));
+  P.push(part(box(L - 5, 1.1, B - 1), WHITE, -2, 2.0, 0));
+  for (let x = -L / 2 + 2; x < L / 2 - 4; x += 0.9) for (const z of [-(B - 1) / 2 - 0.02, (B - 1) / 2 + 0.02]) P.push(part(box(0.5, 0.35, 0.04), WINDOW, x, 2.1, z));
+  P.push(part(box(L - 8, 0.9, B - 2), WHITE, -3, 3.0, 0));
+  P.push(part(cyl(0.55, 0.65, 1.4, 8), 0xd8433a, -L / 2 + 3.5, 3.9, 0));
+  P.push(part(cyl(0.58, 0.58, 0.25, 8), 0x2b2b30, -L / 2 + 3.5, 4.55, 0));
+  return P;
+}
+const CONTAINER_C = [0xc8452e, 0x2f6fb5, 0xe08a2a, 0x3a8a5a, 0x8a8f96, 0x6a3f8a];
+/** Shipping containers: one row on the ground, another stacked on part of it. */
+function container(w: number, d: number, v: number): Part[] {
+  const P: Part[] = [];
+  const c = pick(CONTAINER_C, v);
+  const c2 = pick(CONTAINER_C, v + 3);
+  const long = w >= d;
+  const W = w - 0.15;
+  const D = d - 0.15;
+  P.push(part(box(W, 2.3, D), c, 0, 1.15, 0));
+  // ribs along the long side
+  const n = Math.floor((long ? W : D) / 0.45);
+  for (let k = 0; k <= n; k++) {
+    const t = -((long ? W : D) / 2) + (k * (long ? W : D)) / n;
+    if (long) for (const z of [-D / 2 - 0.02, D / 2 + 0.02]) P.push(part(box(0.06, 2.2, 0.04), shade(c, 0.8), t, 1.15, z));
+    else for (const x of [-W / 2 - 0.02, W / 2 + 0.02]) P.push(part(box(0.04, 2.2, 0.06), shade(c, 0.8), x, 1.15, t));
+  }
+  if (v % 3 !== 0) P.push(part(box(long ? W * 0.62 : W, 2.2, long ? D : D * 0.62), c2, long ? -W * 0.18 : 0, 3.4, long ? 0 : -D * 0.18));
+  return P;
+}
+function shade(c: number, k: number): number {
+  const r = Math.min(255, Math.round(((c >> 16) & 255) * k));
+  const g = Math.min(255, Math.round(((c >> 8) & 255) * k));
+  const b = Math.min(255, Math.round((c & 255) * k));
+  return (r << 16) | (g << 8) | b;
+}
+/** Quayside gantry crane: two legs, a high beam and the boom reaching over the water (north). */
+function crane(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const Y = 0xf2b705;
+  for (const x of [-w / 2 + 0.3, w / 2 - 0.3]) {
+    P.push(part(box(0.3, 5.6, 0.3), Y, x, 2.8, d / 2 - 0.3));
+    P.push(part(box(0.3, 5.6, 0.3), Y, x, 2.8, -d / 2 + 0.3));
+    P.push(part(box(0.5, 0.35, d), 0x3a3a3a, x, 0.18, 0));
+  }
+  P.push(part(box(w, 0.5, 0.5), Y, 0, 5.6, 0));
+  P.push(part(box(0.6, 0.45, d + 6), Y, 0, 5.9, -3));
+  P.push(part(box(1.2, 0.9, 1.1), 0xe8e2d4, 0, 5.2, -1));
+  P.push(part(box(0.05, 3.0, 0.05), 0x2b2b30, 0, 4.2, -5.5));
+  P.push(part(box(1.4, 0.4, 0.9), 0x2b2b30, 0, 2.7, -5.5));
+  return P;
+}
+/** The sea pump: a yellow engine on skids with its suction hose going into the water to the north. */
+function seapump(): Part[] {
+  return [
+    part(box(0.95, 0.12, 0.75), 0x5a5a5a, 0, 0.06, 0),
+    part(box(0.75, 0.55, 0.6), 0xf2c21a, 0, 0.42, 0),
+    part(cyl(0.2, 0.2, 0.45, 8), 0x3a3a3a, 0.1, 0.45, 0.05, PI / 2, 0, 0),
+    part(box(0.35, 0.18, 0.25), 0xd8342a, -0.2, 0.78, 0),
+    part(cyl(0.09, 0.09, 0.9, 6), 0x2b2b30, 0, 0.35, -0.6, PI / 2, 0, 0),
+    part(cyl(0.09, 0.09, 0.8, 6), 0x2b2b30, 0, -0.05, -1.05),
+  ];
+}
+function bollard(): Part[] {
+  return [part(cyl(0.16, 0.2, 0.5, 8), 0x2b2b30, 0, 0.25, 0), part(cyl(0.24, 0.2, 0.12, 8), 0x2b2b30, 0, 0.55, 0), part(box(0.5, 0.06, 0.06), 0x9a9aa0, 0, 0.35, 0)];
+}
+/** A lighthouse: striped round tower, gallery and the lamp room. */
+function lighthouse(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const r = Math.min(w, d) / 2 - 0.2;
+  P.push(part(cyl(r + 0.2, r + 0.3, 0.5, 10), 0x8a8580, 0, 0.25, 0));
+  for (let k = 0; k < 5; k++) P.push(part(cyl(r - k * 0.07, r - k * 0.07 + 0.07, 1.4, 10), k % 2 ? 0xd8433a : WHITE, 0, 1.2 + k * 1.4, 0));
+  P.push(part(cyl(r * 0.9, r * 0.9, 0.12, 10), 0x2b2b30, 0, 7.6, 0));
+  P.push(part(cyl(r * 0.55, r * 0.55, 0.8, 8), 0xfff2a0, 0, 8.1, 0));
+  P.push(part(cone(r * 0.65, 0.7, 8), 0xd8433a, 0, 8.85, 0));
+  return P;
+}
+
+// ---------- v2: downtown ----------
+/** Office tower: tall box with a grid of windows (some lit), parapet and roof units. */
+function tower(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const wall = pick(t.wall, v);
+  const H = 6.6 + (v % 3) * 0.8;
+  const W = w - 0.25;
+  const D = d - 0.25;
+  P.push(part(box(W, H, D), wall, 0, H / 2, 0));
+  P.push(part(box(W + 0.12, 0.25, D + 0.12), shade(wall, 0.75), 0, H + 0.1, 0));
+  P.push(part(box(W, 0.9, D), shade(wall, 0.85), 0, 0.45, 0));
+  const lit = (k: number) => ((k * 7 + v * 3) % 5 === 0 ? WINDOW_LIT : WINDOW);
+  let k = 0;
+  for (let y = 1.6; y < H - 0.5; y += 1.05) {
+    for (let x = -W / 2 + 0.5; x < W / 2 - 0.3; x += 0.8) {
+      P.push(part(box(0.5, 0.62, 0.05), lit(k++), x, y, D / 2 + 0.01));
+      P.push(part(box(0.5, 0.62, 0.05), lit(k++), x, y, -D / 2 - 0.01));
+    }
+    for (let z = -D / 2 + 0.5; z < D / 2 - 0.3; z += 0.8) {
+      P.push(part(box(0.05, 0.62, 0.5), lit(k++), W / 2 + 0.01, y, z));
+      P.push(part(box(0.05, 0.62, 0.5), lit(k++), -W / 2 - 0.01, y, z));
+    }
+  }
+  // ground floor: glass doors
+  P.push(part(box(Math.min(1.6, W - 0.6), 0.75, 0.05), WINDOW_LIT, 0, 0.45, D / 2 + 0.02));
+  P.push(part(box(0.9, 0.5, 0.8), 0x9aa3a8, W / 4, H + 0.45, -D / 5));
+  P.push(part(box(0.5, 0.35, 0.5), 0x7a8288, -W / 4, H + 0.35, D / 6));
+  return P;
+}
+/** Downtown apartment block: three floors, flat roof, balconies. */
+function apartments(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const wall = pick(t.wall, v + 2);
+  const H = 3.4;
+  const W = w - 0.3;
+  const D = d - 0.3;
+  P.push(part(box(W, H, D), wall, 0, H / 2, 0));
+  P.push(part(box(W + 0.1, 0.2, D + 0.1), shade(wall, 0.8), 0, H + 0.1, 0));
+  for (let x = -W / 2 + 0.55; x < W / 2 - 0.3; x += 1.0)
+    for (const y of [1.2, 2.4]) {
+      P.push(part(box(0.55, 0.6, 0.05), (x * 3 + y) % 2 > 1 ? WINDOW_LIT : WINDOW, x, y, D / 2 + 0.02));
+      P.push(part(box(0.7, 0.06, 0.25), 0x6a6f78, x, y - 0.38, D / 2 + 0.12));
+    }
+  P.push(part(box(0.8, 1.1, 0.06), DOOR, 0, 0.55, D / 2 + 0.03));
+  return P;
+}
+/** A theatre: stone facade with columns, a pediment and a red banner. */
+function theatre(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const stone = 0xe6dcc6;
+  const W = w - 0.3;
+  const D = d - 0.3;
+  P.push(part(box(W, 4.2, D - 1.2), stone, 0, 2.1, -0.6));
+  P.push(part(box(W, 0.4, D), 0xd4c8b0, 0, 0.2, 0));
+  for (let x = -W / 2 + 0.6; x <= W / 2 - 0.5; x += (W - 1.1) / 5) P.push(part(cyl(0.2, 0.22, 3.4, 8), WHITE, x, 2.1, D / 2 - 0.35));
+  P.push(part(box(W, 0.45, 1.1), 0xd4c8b0, 0, 3.95, D / 2 - 0.5));
+  P.push(part(prism(W, 1.2, 0.9), 0xd4c8b0, 0, 4.2, D / 2 - 0.5));
+  P.push(part(box(W * 0.5, 0.7, 0.06), 0xc0282a, 0, 3.3, D / 2 + 0.05));
+  P.push(part(box(W - 0.4, 0.5, D - 1.6), 0xb95a36, 0, 4.45, -0.8));
+  return P;
+}
+function trafficLight(): Part[] {
+  return [
+    part(cyl(0.05, 0.06, 2.6, 6), 0x2e3238, 0, 1.3, 0),
+    part(box(0.2, 0.62, 0.2), 0x2e3238, 0, 2.5, 0.08),
+    part(sphere(0.06, 6, 4), 0xe23a2e, 0, 2.7, 0.19),
+    part(sphere(0.06, 6, 4), 0xf2c21a, 0, 2.5, 0.19),
+    part(sphere(0.06, 6, 4), 0x3cc46e, 0, 2.3, 0.19),
+  ];
+}
+
+// ---------- v2: the rail yard ----------
+/** Brick hall: the station building (clock and platform roof) or a goods shed. */
+function brickHall(w: number, d: number, v: number, t: Theme, shed = false): Part[] {
+  const P: Part[] = [];
+  const brick = pick(t.wall, v);
+  const W = w - 0.3;
+  const D = d - 0.3;
+  const H = shed ? 3.4 : 3.0;
+  P.push(part(box(W, H, D), brick, 0, H / 2, 0));
+  P.push(part(box(W + 0.1, 0.18, D + 0.1), 0xe0d6c2, 0, H - 0.1, 0));
+  P.push(part(prism(W + 0.3, D + 0.4, shed ? 1.1 : 1.3), pick(t.roof, v), 0, H, 0));
+  for (let x = -W / 2 + 0.7; x < W / 2 - 0.4; x += 1.2) {
+    P.push(part(box(0.55, 0.9, 0.06), WINDOW, x, 1.6, D / 2 + 0.02));
+    P.push(part(cyl(0.28, 0.28, 0.06, 8), 0xe0d6c2, x, 2.1, D / 2 + 0.03, PI / 2, 0, 0));
+  }
+  if (shed) P.push(part(box(Math.min(3, W - 1), 2.4, 0.06), 0x6e4a2c, 0, 1.2, D / 2 + 0.03));
+  else {
+    P.push(part(box(1.0, 1.0, 0.8), brick, 0, H + 1.3, 0));
+    P.push(part(cyl(0.34, 0.34, 0.06, 12), WHITE, 0, H + 1.3, 0.42, PI / 2, 0, 0));
+    P.push(part(box(0.04, 0.26, 0.02), DARK, 0, H + 1.38, 0.46));
+    P.push(part(prism(1.2, 1.0, 0.5), pick(t.roof, v), 0, H + 1.8, 0));
+  }
+  return P;
+}
+/** Freight wagon along X: boxcar, tank wagon or open wagon with logs. */
+function wagon(len: number, wid: number, v: number): Part[] {
+  const P: Part[] = [];
+  const L = len - 0.3;
+  const B = Math.min(1.7, wid - 0.2);
+  const kind = v % 3;
+  P.push(part(box(L, 0.25, B), 0x2b2b30, 0, 0.6, 0));
+  for (const x of [-L / 2 + 0.6, -L / 2 + 1.1, L / 2 - 1.1, L / 2 - 0.6]) for (const z of [-B / 2 + 0.1, B / 2 - 0.1]) P.push(part(cyl(0.3, 0.3, 0.1, 10), 0x1f1f22, x, 0.32, z, PI / 2, 0, 0));
+  if (kind === 0) {
+    const c = pick([0x8a3a2a, 0x3a5a8a, 0x6a6a3a], v >> 1);
+    P.push(part(box(L, 1.6, B), c, 0, 1.55, 0));
+    P.push(part(box(L + 0.05, 0.12, B + 0.1), shade(c, 0.7), 0, 2.4, 0));
+    P.push(part(box(1.2, 1.3, 0.05), shade(c, 0.8), 0, 1.5, B / 2 + 0.01));
+  } else if (kind === 1) {
+    P.push(part(cyl(B / 2, B / 2, L - 0.3, 10), 0xd9d2c4, 0, 1.55, 0, 0, 0, PI / 2));
+    P.push(part(cyl(0.25, 0.25, 0.3, 8), 0x9a9aa0, 0, 2.4, 0));
+  } else {
+    P.push(part(box(L, 0.9, B), 0x5a4a3a, 0, 1.15, 0));
+    for (let k = 0; k < 4; k++) P.push(part(cyl(0.18, 0.18, L - 0.4, 6), 0x9a6a3e, 0, 1.7 + (k % 2) * 0.1, -B / 2 + 0.35 + k * 0.35, 0, 0, PI / 2));
+  }
+  return P;
+}
+/** Platform post with the station sign and a lamp (walkable around it). */
+function canopy(): Part[] {
+  return [
+    part(cyl(0.06, 0.07, 2.7, 6), 0x2e4a3a, 0, 1.35, 0),
+    part(box(1.3, 0.34, 0.06), 0x2f5f9f, 0, 2.35, 0.06),
+    part(box(1.1, 0.12, 0.07), WHITE, 0, 2.35, 0.07),
+    part(box(0.5, 0.08, 0.3), 0x2e4a3a, 0.15, 2.72, 0),
+    part(sphere(0.09, 6, 4), 0xfff2c0, 0.3, 2.64, 0),
+    part(box(0.95, 0.07, 0.35), 0xa8723f, 0, 0.45, 0.45),
+    part(box(0.06, 0.45, 0.3), 0x3a3a3a, -0.38, 0.22, 0.45),
+    part(box(0.06, 0.45, 0.3), 0x3a3a3a, 0.38, 0.22, 0.45),
+  ];
+}
+function railSignal(): Part[] {
+  return [part(cyl(0.05, 0.06, 2.4, 6), 0x2e3238, 0, 1.2, 0), part(box(0.24, 0.5, 0.18), 0x1f1f22, 0, 2.35, 0.05), part(sphere(0.07, 6, 4), 0xe23a2e, 0, 2.47, 0.15), part(sphere(0.07, 6, 4), 0x3cc46e, 0, 2.25, 0.15)];
+}
+
+// ---------- v2: events ----------
+/** A gas riser with its valve wheel and warning plate. */
+function gasPipe(): Part[] {
+  return [
+    part(box(0.5, 0.08, 0.5), 0x8a8a8a, 0, 0.04, 0),
+    part(cyl(0.08, 0.08, 0.8, 8), 0xf2c21a, 0, 0.45, 0),
+    part(cyl(0.08, 0.08, 0.5, 8), 0xf2c21a, 0.2, 0.75, 0, 0, 0, PI / 2),
+    part(cyl(0.16, 0.16, 0.04, 10), 0xd8342a, 0.2, 0.92, 0),
+    part(box(0.28, 0.2, 0.03), 0xf2c21a, 0, 0.45, 0.1),
+  ];
+}
+function fishShed(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const wall = pick(t.wall, v);
+  const W = w - 0.3;
+  const D = d - 0.3;
+  P.push(part(box(W, 2.4, D), wall, 0, 1.2, 0));
+  P.push(part(prism(W + 0.3, D + 0.4, 0.9), pick(t.roof, v), 0, 2.4, 0));
+  for (let x = -W / 2 + 0.6; x < W / 2 - 0.3; x += 1.1) P.push(part(box(0.5, 0.5, 0.05), WINDOW, x, 1.6, D / 2 + 0.02));
+  P.push(part(box(Math.min(2, W - 1), 1.7, 0.06), 0x3f6e8a, -W / 5, 0.85, D / 2 + 0.03));
+  P.push(part(box(W * 0.5, 0.35, 0.05), 0x2f6f8f, W / 5, 2.1, D / 2 + 0.03));
+  return P;
+}
+
 export interface ModelSpec {
   geo: THREE.BufferGeometry;
   rotY: number;
@@ -365,10 +633,10 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
   // multi-cell buildings are authored along X with the front facing +Z.
   switch (type) {
     case 'house':
-      P = house(w, h, v, t);
+      P = t.id === 'ciudad' ? apartments(w, h, v, t) : t.id === 'estacion' ? brickHall(w, h, v, t) : t.id === 'puerto' ? fishShed(w, h, v, t) : house(w, h, v, t);
       break;
     case 'church':
-      P = church(w, h);
+      P = t.id === 'puerto' ? lighthouse(w, h) : t.id === 'ciudad' ? theatre(w, h) : church(w, h);
       break;
     case 'barn':
       P = barn(w, h);
@@ -380,7 +648,7 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       P = stall(w, h, v, true);
       break;
     case 'warehouse':
-      P = warehouse(w, h, v, t);
+      P = t.id === 'estacion' ? brickHall(w, h, v, t, true) : warehouse(w, h, v, t);
       break;
     case 'shop':
       P = shop(w, h);
@@ -395,8 +663,38 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       P = fountain(Math.min(w, h));
       break;
     case 'car':
-      P = car(v);
+      P = car(t.id === 'ciudad' && v % 3 !== 2 ? 3 : v);
       rotY = w >= h ? 0 : PI / 2;
+      break;
+    // ---- v2 ----
+    case 'boat':
+      P = w * h > 30 ? ferry(Math.max(w, h), Math.min(w, h)) : boat(Math.max(w, h), Math.min(w, h), v);
+      rotY = w >= h ? 0 : PI / 2;
+      break;
+    case 'container':
+      P = container(w, h, v);
+      break;
+    case 'crane':
+      P = crane(w, h);
+      break;
+    case 'seapump':
+      P = seapump();
+      break;
+    case 'post':
+      P = t.id === 'ciudad' ? trafficLight() : t.id === 'estacion' ? railSignal() : bollard();
+      break;
+    case 'tower':
+      P = tower(w, h, v, t);
+      break;
+    case 'wagon':
+      P = wagon(Math.max(w, h), Math.min(w, h), v);
+      rotY = w >= h ? 0 : PI / 2;
+      break;
+    case 'canopy':
+      P = canopy();
+      break;
+    case 'leak':
+      P = gasPipe();
       break;
     case 'tree':
       P = tree(v, t);
@@ -555,7 +853,7 @@ export function characterMesh(type: EntType, v: number): THREE.Group {
       break;
     }
     default: {
-      // person / bystander (chibi)
+      // person / bystander (chibi); onlookers hold a phone up, neighbours carry a bucket, people at windows wave
       const shirt = pick(SHIRTS, v);
       const skin = pick(SKIN, v >> 1);
       const hair = pick([0x3a2a1e, 0x1f1f22, 0x8a5a2a, 0xd9b26a, 0x9a9a9a], v >> 2);
@@ -570,6 +868,9 @@ export function characterMesh(type: EntType, v: number): THREE.Group {
         part(box(0.02, 0.06, 0.05), DARK, 0.25, 1.26, 0.09),
         part(box(0.02, 0.06, 0.05), DARK, 0.25, 1.26, -0.09),
       ];
+      if (type === 'onlooker') P.push(part(box(0.06, 0.2, 0.12), 0x1f1f22, 0.3, 1.2, 0.22), part(box(0.1, 0.36, 0.1), shirt, 0.18, 1.05, 0.25, 0, 0, 0.9));
+      if (type === 'neighbor') P.push(part(cyl(0.16, 0.12, 0.3, 8), 0x2f7bd8, 0.1, 0.55, 0.38), part(box(0.02, 0.2, 0.26), 0x9a9aa0, 0.1, 0.78, 0.38));
+      if (type === 'window') P.push(part(box(0.12, 0.45, 0.12), shirt, 0, 1.45, 0.34, 0.5, 0, 0));
     }
   }
   const m = new THREE.Mesh(merge(P), mat);
@@ -592,10 +893,19 @@ export interface HeroRig {
   tint: THREE.MeshLambertMaterial;
 }
 
-export function heroRig(): HeroRig {
+/** Colours of a firefighter: the player (navy with a red helmet) or the partner from the crew. */
+export interface HeroPalette {
+  suit: number;
+  stripe: number;
+  helmet: number;
+}
+export const PLAYER_PALETTE: HeroPalette = { suit: 0x243a5e, stripe: 0xf5e23a, helmet: 0xd8342a };
+export const PARTNER_PALETTE: HeroPalette = { suit: 0x7a2e1e, stripe: 0xf5e23a, helmet: 0xf2c21a };
+
+export function heroRig(pal: HeroPalette = PLAYER_PALETTE): HeroRig {
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-  const navy = 0x243a5e;
-  const stripe = 0xf5e23a;
+  const navy = pal.suit;
+  const stripe = pal.stripe;
   const mk = (P: Part[]) => {
     const m = new THREE.Mesh(merge(P), mat);
     m.castShadow = true;
@@ -638,8 +948,8 @@ export function heroRig(): HeroRig {
       part(box(0.02, 0.08, 0.06), DARK, 0.26, 0.02, -0.09),
       part(box(0.02, 0.02, 0.12), 0xc0705a, 0.26, -0.1, 0),
       // helmet
-      part(sphere(0.31, 10, 6, ), 0xd8342a, 0, 0.08, 0, 0, 0, 0, 1, 0.8, 1),
-      part(cyl(0.4, 0.42, 0.05, 12), 0xd8342a, -0.04, 0.02, 0),
+      part(sphere(0.31, 10, 6, ), pal.helmet, 0, 0.08, 0, 0, 0, 0, 1, 0.8, 1),
+      part(cyl(0.4, 0.42, 0.05, 12), pal.helmet, -0.04, 0.02, 0),
       part(box(0.05, 0.22, 0.16), 0xf5e23a, 0.3, 0.2, 0),
       part(box(0.36, 0.05, 0.08), 0xb82520, 0, 0.36, 0),
     ]),
@@ -669,4 +979,124 @@ export function leverHandle(): THREE.Mesh {
   );
   m.castShadow = true;
   return m;
+}
+
+// ---------- v2: moving things ----------
+const mk = (P: Part[]) => {
+  const m = new THREE.Mesh(merge(P), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+  m.castShadow = true;
+  return m;
+};
+
+/** A train `len` cells long along +x (front at x = 0, the rest behind it towards -x). */
+export function trainGroup(len: number, freight: boolean): THREE.Group {
+  const g = new THREE.Group();
+  const B = 1.7;
+  const P: Part[] = [];
+  // locomotive
+  const loco = freight ? 0xd8433a : 0x2f6fb5;
+  P.push(part(box(3.2, 0.35, B), 0x2b2b30, -1.6, 0.55, 0));
+  P.push(part(box(3.0, 1.9, B - 0.1), loco, -1.7, 1.7, 0));
+  P.push(part(box(0.9, 1.2, B - 0.05), 0xf2c21a, -0.35, 1.3, 0));
+  P.push(part(box(0.06, 0.6, B - 0.5), WINDOW_LIT, -0.2, 2.2, 0));
+  P.push(part(box(0.1, 0.18, 0.3), 0xfff3c0, 0.02, 1.1, 0.5), part(box(0.1, 0.18, 0.3), 0xfff3c0, 0.02, 1.1, -0.5));
+  for (const x of [-0.7, -2.6]) for (const z of [-B / 2 + 0.1, B / 2 - 0.1]) P.push(part(cyl(0.34, 0.34, 0.12, 10), 0x1f1f22, x, 0.36, z, PI / 2, 0, 0));
+  // carriages
+  let x = -3.3;
+  let k = 0;
+  while (-x < len - 0.5) {
+    const L = Math.min(3.4, len + x);
+    const c = freight ? pick([0x8a3a2a, 0x3a5a8a, 0x6a6a3a, 0xc8452e], k) : 0xd9dde3;
+    P.push(part(box(L - 0.2, 0.3, B), 0x2b2b30, x - L / 2, 0.55, 0));
+    P.push(part(box(L - 0.25, 1.8, B - 0.1), c, x - L / 2, 1.6, 0));
+    if (!freight) {
+      P.push(part(box(L - 0.25, 0.25, B - 0.08), 0x2f6fb5, x - L / 2, 1.0, 0));
+      for (let wx = x - 0.5; wx > x - L + 0.4; wx -= 0.7) for (const z of [-B / 2 + 0.03, B / 2 - 0.03]) P.push(part(box(0.45, 0.45, 0.05), WINDOW_LIT, wx, 1.9, z));
+    }
+    for (const wx of [x - 0.5, x - L + 0.5]) for (const z of [-B / 2 + 0.1, B / 2 - 0.1]) P.push(part(cyl(0.3, 0.3, 0.1, 10), 0x1f1f22, wx, 0.32, z, PI / 2, 0, 0));
+    x -= L;
+    k++;
+  }
+  g.add(mk(P));
+  return g;
+}
+
+/** The pick-ups on the ground: each one a small, readable object. */
+export function powerModel(kind: string): THREE.Group {
+  const g = new THREE.Group();
+  let P: Part[];
+  switch (kind) {
+    case 'turbo':
+      P = [part(cyl(0.22, 0.22, 0.5, 10), 0x2f7bd8, 0, 0.25, 0), part(cyl(0.1, 0.1, 0.18, 8), 0x9aa3a8, 0, 0.58, 0), part(box(0.12, 0.3, 0.03), 0xf2c21a, 0, 0.3, 0.22, 0, 0, 0.4)];
+      break;
+    case 'boots':
+      P = [part(box(0.22, 0.42, 0.24), 0xd8342a, -0.04, 0.3, 0), part(box(0.42, 0.14, 0.26), 0xd8342a, 0.07, 0.07, 0), part(box(0.24, 0.05, 0.27), 0xf5e23a, -0.04, 0.4, 0)];
+      break;
+    case 'clock':
+      P = [part(cyl(0.3, 0.3, 0.1, 14), 0xf2c21a, 0, 0.35, 0, PI / 2, 0, 0), part(cyl(0.24, 0.24, 0.11, 14), WHITE, 0, 0.35, 0.01, PI / 2, 0, 0), part(box(0.03, 0.18, 0.02), DARK, 0, 0.42, 0.07), part(box(0.1, 0.1, 0.06), 0xf2c21a, 0, 0.7, 0)];
+      break;
+    case 'extinguisher':
+      P = [part(cyl(0.15, 0.15, 0.55, 10), 0xd8342a, 0, 0.28, 0), part(sphere(0.15, 10, 4), 0xd8342a, 0, 0.56, 0), part(box(0.2, 0.06, 0.06), 0x2b2b30, 0.05, 0.72, 0), part(cyl(0.03, 0.03, 0.3, 5), 0x2b2b30, 0.15, 0.55, 0, 0, 0, 0.8)];
+      break;
+    case 'suit':
+      P = [part(box(0.4, 0.45, 0.22), 0xc9ccd0, 0, 0.3, 0), part(sphere(0.18, 8, 6), 0xc9ccd0, 0, 0.66, 0), part(box(0.22, 0.1, 0.05), 0xf2c21a, 0, 0.66, 0.15), part(box(0.42, 0.06, 0.24), 0xf5e23a, 0, 0.25, 0)];
+      break;
+    default: // heli
+      P = [part(sphere(0.2, 8, 6), 0xd8342a, 0, 0.35, 0, 0, 0, 0, 1.4, 0.9, 1), part(box(0.5, 0.06, 0.06), 0xd8342a, -0.35, 0.38, 0), part(box(0.7, 0.03, 0.06), DARK, 0, 0.58, 0), part(box(0.06, 0.03, 0.7), DARK, 0, 0.58, 0)];
+  }
+  g.add(mk(P));
+  return g;
+}
+
+/** Fire-fighting helicopter (red, with the water bucket hanging under it). The rotor is `rotor`. */
+export function heliModel(): { group: THREE.Group; rotor: THREE.Object3D; bucket: THREE.Object3D } {
+  const g = new THREE.Group();
+  g.add(
+    mk([
+      part(sphere(0.8, 10, 8), 0xd8342a, 0, 0, 0, 0, 0, 0, 1.5, 0.9, 1),
+      part(box(2.4, 0.25, 0.25), 0xd8342a, -1.9, 0.2, 0),
+      part(box(0.15, 0.7, 0.5), 0xd8342a, -3.0, 0.45, 0),
+      part(sphere(0.5, 8, 6), WINDOW_LIT, 0.7, 0.2, 0, 0, 0, 0, 1, 0.8, 1.2),
+      part(box(1.6, 0.06, 0.08), 0x3a3a3a, 0, -0.85, 0.5),
+      part(box(1.6, 0.06, 0.08), 0x3a3a3a, 0, -0.85, -0.5),
+      part(box(0.2, 0.2, 0.9), WHITE, 0.2, -0.1, 0),
+    ]),
+  );
+  const rotor = mk([part(box(5.2, 0.05, 0.3), 0x2b2b30, 0, 0, 0), part(box(0.3, 0.05, 5.2), 0x2b2b30, 0, 0, 0), part(cyl(0.12, 0.12, 0.4, 6), 0x2b2b30, 0, -0.2, 0)]);
+  rotor.position.set(0, 0.95, 0);
+  g.add(rotor);
+  const bucket = mk([part(cyl(0.02, 0.02, 1.8, 4), 0x2b2b30, 0, 0.9, 0), part(cyl(0.45, 0.35, 0.6, 10), 0xf2c21a, 0, 0, 0)]);
+  bucket.position.set(0, -2.8, 0);
+  g.add(bucket);
+  return { group: g, rotor, bucket };
+}
+
+/** The crew's drone: four rotors and a small water tank. */
+export function droneModel(): THREE.Group {
+  const g = new THREE.Group();
+  const P: Part[] = [part(box(0.5, 0.14, 0.5), 0x2b2b30, 0, 0, 0), part(cyl(0.16, 0.16, 0.2, 8), 0x3fb6ff, 0, -0.16, 0)];
+  for (const [x, z] of [
+    [0.4, 0.4],
+    [-0.4, 0.4],
+    [0.4, -0.4],
+    [-0.4, -0.4],
+  ]) {
+    P.push(part(box(0.5, 0.05, 0.06), 0x5a5a5a, x / 2, 0, z / 2, 0, Math.atan2(z, x), 0));
+    P.push(part(cyl(0.22, 0.22, 0.03, 10), 0xf2c21a, x, 0.08, z));
+  }
+  g.add(mk(P));
+  return g;
+}
+
+/** Rescue dog vest (red with a white cross), to put on the dog model. */
+export function dogVest(): THREE.Mesh {
+  return mk([part(box(0.4, 0.2, 0.32), 0xd8342a, 0, 0.5, 0), part(box(0.2, 0.05, 0.04), WHITE, 0, 0.61, 0), part(box(0.05, 0.05, 0.2), WHITE, 0, 0.61, 0)]);
+}
+
+/** The aerial platform that goes up to a window: a basket on a scissor lift (scaled in y by the view). */
+export function platformModel(): { base: THREE.Mesh; lift: THREE.Mesh; basket: THREE.Mesh } {
+  const base = mk([part(box(0.9, 0.12, 0.9), 0xf2c21a, 0, 0.06, 0), part(box(0.8, 0.04, 0.05), DARK, 0, 0.13, 0.3), part(box(0.8, 0.04, 0.05), DARK, 0, 0.13, -0.3)]);
+  const lift = mk([part(box(0.08, 1, 0.08), 0xd9d2c4, 0, 0.5, 0.25, 0, 0, 0.35), part(box(0.08, 1, 0.08), 0xd9d2c4, 0, 0.5, 0.25, 0, 0, -0.35), part(box(0.08, 1, 0.08), 0xd9d2c4, 0, 0.5, -0.25, 0, 0, 0.35), part(box(0.08, 1, 0.08), 0xd9d2c4, 0, 0.5, -0.25, 0, 0, -0.35)]);
+  const basket = mk([part(box(0.9, 0.08, 0.8), 0xf2c21a, 0, 0, 0), part(box(0.9, 0.35, 0.05), 0xf2c21a, 0, 0.2, 0.38), part(box(0.9, 0.35, 0.05), 0xf2c21a, 0, 0.2, -0.38), part(box(0.05, 0.35, 0.8), 0xf2c21a, 0.43, 0.2, 0)]);
+  return { base, lift, basket };
 }

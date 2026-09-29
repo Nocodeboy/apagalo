@@ -1,5 +1,6 @@
 import type { Owned, UpgradeLevels } from './economy';
-import type { Lang } from './sim/types';
+import { migrate } from './progress';
+import { CREW_IDS, type CrewId, type Lang } from './sim/types';
 
 export interface Settings {
   sfx: boolean;
@@ -57,6 +58,27 @@ export interface Save {
   dailyTimes: number[];
   /** store purchase tokens already granted (newest last), so a purchase is never granted twice */
   iapTokens: string[];
+  // ---- v2 (docs/diseno-v2.md §5.9) ----
+  /** version of the route whose levels were opened for this save (src/progress.ts) */
+  route: number;
+  /** id of the furthest open level at the last save: a route change keeps everything up to it open */
+  reach: string;
+  /** levels opened by a route change (inserted behind the point the player had reached) */
+  open: string[];
+  /** crew hired (level 1-3, 0 = not hired) and who goes to the levels, in order */
+  crew: Record<CrewId, number>;
+  team: CrewId[];
+  /** newspaper front pages won (big fires), by level id. The photo lives apart (src/ui/frontpage.ts) */
+  pages: Record<string, FrontPage>;
+  /** "what's new" notice seen for this version (2 = 2.0) */
+  whatsNew: number;
+}
+export interface FrontPage {
+  /** Date.now() when it was won */
+  t: number;
+  stars: number;
+  saved: number;
+  score: number;
 }
 
 const KEY = 'apagalo.v1';
@@ -79,16 +101,38 @@ function fresh(): Save {
     starterOffered: false,
     dailyTimes: [],
     iapTokens: [],
+    route: 0,
+    reach: '',
+    open: [],
+    crew: { partner: 0, dog: 0, drone: 0 },
+    team: [],
+    pages: {},
+    whatsNew: 0,
   };
 }
 
 const nums = (a: unknown): number[] => (Array.isArray(a) ? a.filter((x): x is number => Number.isFinite(x)) : []);
 const strs = (a: unknown): string[] => (Array.isArray(a) ? a.filter((x): x is string => typeof x === 'string' && x !== '') : []);
 
-/** Fills in what older saves (or the portal copy from an older version) do not have. */
+const lvl = (n: unknown) => (Number.isFinite(n) ? Math.max(0, Math.min(3, Math.floor(n as number))) : 0);
+function pages(p: unknown): Record<string, FrontPage> {
+  const out: Record<string, FrontPage> = {};
+  if (!p || typeof p !== 'object') return out;
+  for (const [k, v] of Object.entries(p as Record<string, Partial<FrontPage>>)) if (v && Number.isFinite(v.t)) out[k] = { t: Number(v.t), stars: Number(v.stars) || 0, saved: Number(v.saved) || 0, score: Number(v.score) || 0 };
+  return out;
+}
+
+/** Fills in what older saves (or the portal copy from an older version) do not have, and applies route changes. */
 function normalize(s: Partial<Save>): Save {
+  const out = fill(s);
+  migrate(out);
+  return out;
+}
+
+function fill(s: Partial<Save>): Save {
   const f = fresh();
   const ads = { ...f.ads, ...s.ads };
+  const crew = (s.crew ?? {}) as Partial<Record<CrewId, number>>;
   return {
     ...f,
     ...s,
@@ -100,10 +144,17 @@ function normalize(s: Partial<Save>): Save {
     coins: Number.isFinite(s.coins) ? Math.max(0, Math.floor(s.coins!)) : 0,
     dailyTimes: nums(s.dailyTimes),
     iapTokens: strs(s.iapTokens),
+    route: Number.isFinite(s.route) ? Number(s.route) : 0,
+    reach: typeof s.reach === 'string' ? s.reach : '',
+    open: strs(s.open),
+    crew: Object.fromEntries(CREW_IDS.map((id) => [id, lvl(crew[id])])) as Record<CrewId, number>,
+    team: strs(s.team).filter((id): id is CrewId => (CREW_IDS as string[]).includes(id)),
+    pages: pages(s.pages),
+    whatsNew: Number.isFinite(s.whatsNew) ? Number(s.whatsNew) : 0,
   };
 }
 
-let mem: Save = fresh();
+let mem: Save = normalize({});
 
 export function load(): Save {
   try {
@@ -179,7 +230,7 @@ export function data(): Save {
  */
 export function reset() {
   const { settings, owned, ads, starterOffered, dailyTimes, iapTokens } = mem;
-  mem = { ...fresh(), settings, owned, ads, starterOffered, dailyTimes, iapTokens, firstOpen: false };
+  mem = normalize({ ...fresh(), settings, owned, ads, starterOffered, dailyTimes, iapTokens, firstOpen: false, whatsNew: 2 });
   save();
 }
 
