@@ -115,7 +115,7 @@ Idiomas de la ficha de Play: en-US (predeterminado), en-GB, es-ES y es-419 ahora
 
 | Canal | Qué hacemos | Cuándo | Cómo se mide |
 |---|---|---|---|
-| **CrazyGames** | Basic Launch con el nombre y la ficha nuevos. Más de 50 millones de jugadores al mes sin coste de adquisición ([CrazyGames FAQ][cg-faq]) | Enviar ya (semana 1) | Su panel (partidas, tiempo de juego, D1, conversión) y `apagalo_kpis` con `platform = crazygames` |
+| **CrazyGames** | Basic Launch con el nombre y la ficha nuevos. Más de 50 millones de jugadores al mes sin coste de adquisición ([CrazyGames FAQ][cg-faq]) | Enviar ya (semana 1) | Su panel (partidas, tiempo de juego, D1, conversión) y Supabase (tabla `events` con `game = 'apagalo'` y `platform = 'crazygames'`) |
 | **Google Play (ASO)** | Ficha en inglés, capturas en inglés, experimentos cuando esté publicada | Ficha ya; experimentos desde P+1 | Play Console: visitantes, instalaciones, conversión por país y origen, comparada con apps parecidas ([Play, adquisición][play-acq]) |
 | **Vídeo corto en inglés** (TikTok, YouTube Shorts, Instagram Reels) | 4 vídeos por semana con juego real, desde una cuenta del juego en inglés. Detalle en [contenido-redes.md](contenido-redes.md) | Desde la semana 1 | Retención de cada vídeo y clics con `utm_*` |
 | **X en español (@nocodeboy)** | Build in public: el nombre nuevo, los 12 testers, los KPIs de cada semana, el bot que prueba los niveles, cómo se hace con IA | 2-3 publicaciones por semana | Testers nuevos, reseñas, clics |
@@ -191,7 +191,7 @@ Para planificar se usa 1,68 $ (Norteamérica, Adjust), igual que [monetizacion.m
 
 **Condiciones para gastar** (las de [monetizacion.md](monetizacion.md), regla 1): la app está en producción, lleva anuncios y compras al menos 14 días, tiene al menos 300 instalaciones orgánicas con monetización, D1 ≥ 30 % y D7 ≥ 8 %. Además, antes de gastar un euro:
 
-1. `first_open` guarda región o país aproximado, idioma y el origen del Install Referrer (`utm_source`, `utm_campaign` o el identificador de clic de Google Ads) en Supabase, y `apagalo_cohortes` se puede partir por región y origen.
+1. `first_open` guarda región o país aproximado, idioma y el origen del Install Referrer (`utm_source`, `utm_campaign` o el identificador de clic de Google Ads) en Supabase, y la vista `cohortes` se puede partir por región y origen.
 2. Eventos de anuncios y compras en Supabase (`ad_shown`, `ad_rewarded`, `iap_purchase`) para calcular el ROAS D7 de la cohorte.
 3. Al menos 5 vídeos verticales que hayan funcionado en orgánico (ver [contenido-redes.md](contenido-redes.md)).
 
@@ -282,11 +282,11 @@ P = semana del paso a producción en Google Play. Estimación: lunes 26 oct 2026
 
 | Área | KPI | Objetivo | Referencia | Dónde se mide |
 |---|---|---|---|---|
-| CrazyGames (Basic Launch) | Conversión: juegan al menos 1 minuto | ≥ 80 % (matar si < 70 %) | Los mejores superan el 80 % ([CrazyGames][cg-basic]); [concepto.md](concepto.md) | Panel de CrazyGames; `apagalo_kpis` |
+| CrazyGames (Basic Launch) | Conversión: juegan al menos 1 minuto | ≥ 80 % (matar si < 70 %) | Los mejores superan el 80 % ([CrazyGames][cg-basic]); [concepto.md](concepto.md) | Panel de CrazyGames; vista `kpis` |
 | CrazyGames | Tiempo medio de juego | ≥ 10 min (matar si < 4) | «10+ minutos» en los que triunfan ([CrazyGames][cg-basic]) | Ídem |
-| CrazyGames | D1 | ≥ 10 % | 10-15 % en los juegos fuertes ([CrazyGames][cg-basic]) | Ídem y `apagalo_cohortes` |
-| Producto (Android, orgánico) | D1 / D7 / D30 | ≥ 30 % / ≥ 8 % / ≥ 2,5 % | Mínimos de [monetizacion.md](monetizacion.md). D1 de los juegos arcade en 2025: 20 % ([Adjust 2026][adjust-2026]); 25 % mejor de todos los juegos en D7: 7-8 % ([GameAnalytics][ga-2025]) | `apagalo_cohortes` por región y origen |
-| Producto | % que completa el nivel 1 | ≥ 40 % | [concepto.md](concepto.md) | `apagalo_niveles` |
+| CrazyGames | D1 | ≥ 10 % | 10-15 % en los juegos fuertes ([CrazyGames][cg-basic]) | Ídem y la vista `cohortes` |
+| Producto (Android, orgánico) | D1 / D7 / D30 | ≥ 30 % / ≥ 8 % / ≥ 2,5 % | Mínimos de [monetizacion.md](monetizacion.md). D1 de los juegos arcade en 2025: 20 % ([Adjust 2026][adjust-2026]); 25 % mejor de todos los juegos en D7: 7-8 % ([GameAnalytics][ga-2025]) | Vista `cohortes` por región y origen |
+| Producto | % que completa el nivel 1 | ≥ 40 % | [concepto.md](concepto.md) | Vista `niveles` |
 | Ficha de Play | Conversión visitante → instalación en EE. UU. y Reino Unido | Por encima de la mediana de apps parecidas | Comparativa de Play Console ([Play, adquisición][play-acq]) | Play Console → estadísticas de la ficha |
 | Ficha de Play | Nota media | ≥ 4,3 | Los competidores que funcionan: 4,2-4,6 (tabla de competencia) | Play Console → valoraciones |
 | Ficha de Play | Fallos / ANR percibidos | < 1,09 % / < 0,47 % | [Android vitals][vitals] | Play Console → Android vitals |

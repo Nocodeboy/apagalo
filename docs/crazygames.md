@@ -112,4 +112,4 @@ Los criterios están escritos antes de probar (`docs/concepto.md`):
 - **Matar** si la sesión media baja de 4 minutos.
 - **Iterar** si el D1 está entre el 6 y el 10 %. **Seguir** (prueba en Google Play) si el D1 es ≥ 10 % y la sesión media ≥ 8 minutos.
 
-En Supabase: `select * from apagalo_kpis;`, `select * from apagalo_niveles;` y `select * from apagalo_cohortes;`.
+En Supabase (proyecto `nocodeboy-games`): `select * from kpis where juego = 'apagalo';`, `select * from niveles where juego = 'apagalo';` y `select * from cohortes where juego = 'apagalo';`.

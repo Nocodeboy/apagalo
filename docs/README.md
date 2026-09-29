@@ -16,6 +16,8 @@
 
 Lo técnico (estructura del código, comandos, analítica, calidad gráfica) está en el [README principal](../README.md), y las herramientas en [tools/README.md](../tools/README.md).
 
+Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arrancar un juego nuevo, infraestructura y el resumen de lo aprendido aquí) está en el repositorio privado `Nocodeboy/nocodeboy-games`. Los documentos de esta carpeta siguen siendo la referencia completa de cada tema.
+
 ## Estado general (29 sept 2026)
 
 La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles. Está publicada en la web (29 sept); en Google Play y CrazyGames sigue la 1.2.0.
@@ -25,9 +27,9 @@ La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, 
 | Web | 1.3.0 en https://apagalo.vercel.app (29 sept), sin anuncios, con analítica y la página `/testers` | Probarla y mirar en Supabase si los niveles nuevos suben la retención |
 | Google Play | 1.2.0 en prueba cerrada (aprobada el 25 sept). Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers y añadir el grupo de LaunchReady. Antes de subir la 1.3.0: cuenta de AdMob, productos y declaraciones (`android-monetizacion.md`) |
 | CrazyGames | Borrador completo con la 1.2.0 (build, revisión de calidad y ficha) | Cambiar a «Put It Out! Firefighter» con la 1.3.0 y las portadas en inglés, repetir la revisión de calidad, rellenar el cobro (Tipalti) y enviar |
-| GitHub | https://github.com/Nocodeboy/apagalo | Subir cada cambio con el `.bat` que se deja en `Juego 4` |
+| GitHub | https://github.com/Nocodeboy/apagalo. El estudio está en `Nocodeboy/nocodeboy-games` (privado) | Subir cada cambio de *¡Apágalo!* con el `.bat` que se deja en `Juego 4`. Los otros juegos tienen su propio repositorio privado (`Nocodeboy/marchando`, `Nocodeboy/pastorealo`) |
 
-Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis` y `apagalo_niveles` en Supabase y aplicar los criterios de `concepto.md`.
+Decisión pendiente (después de 7-14 días con jugadores): mirar las vistas `kpis` y `niveles` (juego `apagalo`) en Supabase y aplicar los criterios de `concepto.md`.
 
 ## Dónde vive cada cosa
 
@@ -37,7 +39,7 @@ Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis`
 | Archivos para publicar (zip, vídeos, `.aab`, imágenes) | `Documentos\Juego 4\publicacion` en el portátil. Se pueden regenerar desde el código |
 | Clave de firma de Android | `Documentos\Juego 4\NO-COMPARTIR` en el portátil. Guarda una copia fuera del ordenador |
 | Web | Vercel, proyecto `apagalo` |
-| Analítica | Supabase, proyecto Tools-NoCode (tablas y vistas `apagalo_*`) |
+| Analítica | Supabase, proyecto `nocodeboy-games` del estudio (tablas y vistas comunes con la columna `game`/`juego`). Las versiones instaladas hasta la 1.2.0 envían a los `apagalo_*` de Tools-NoCode, que lo reenvían allí |
 | Google Play | Play Console, cuenta NoCodeBuilder |
 | Testers | Grupo de Google `apagalo-testers` (https://groups.google.com/g/apagalo-testers) |
 | CrazyGames | Portal de desarrolladores de CrazyGames, con tu cuenta |

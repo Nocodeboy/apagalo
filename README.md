@@ -10,6 +10,8 @@ Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y
 
 Estado detallado, siguientes pasos y dónde vive cada cosa (cuentas, carpetas, servicios): [docs/README.md](docs/README.md).
 
+Forma parte del estudio de juegos de @nocodeboy, junto con *¡Marchando!* y *¡Pastoréalo!*, que salen de este mismo motor. Este repositorio es solo *¡Apágalo!*. Lo común a todos los juegos (catálogo, proceso, motor y lo aprendido) está en el repositorio privado `Nocodeboy/nocodeboy-games`, y cada juego tiene el suyo.
+
 ## Estructura
 
 ```
@@ -143,25 +145,27 @@ Prueba de punta a punta: `python3 tools/test_monetize.py` (con `dist/` servido),
 
 ## Analítica
 
-`src/analytics.ts` manda los eventos por lotes a Supabase (proyecto Tools-NoCode) a través de dos funciones: `apagalo_track` (eventos) y `apagalo_submit_daily` (resultado del reto diario, que devuelve en qué puesto quedas). Las tablas `apagalo_events` y `apagalo_daily_scores` tienen RLS sin políticas: la clave pública no puede leerlas ni escribir en ellas directamente, solo llamar a esas funciones, que validan los datos.
+`src/analytics.ts` manda los eventos por lotes a Supabase, al proyecto `nocodeboy-games` que comparten todos los juegos del estudio (región UE), a través de dos funciones: `track` (eventos) y `submit_daily` (resultado del reto diario, que devuelve en qué puesto quedas), siempre con `p_game = 'apagalo'`. Las tablas `events` y `daily_scores` tienen RLS sin políticas: la clave pública no puede leerlas ni escribir en ellas directamente, solo llamar a esas funciones, que validan los datos. El esquema está en `supabase/migrations/` del repositorio del estudio (`Nocodeboy/nocodeboy-games`, documentado en su `docs/datos.md`).
+
+Hasta la 1.2.0 (y la web 1.3.0 publicada el 29 sept antes de juntar este cambio) el juego enviaba a `apagalo_track` y `apagalo_submit_daily` del proyecto Tools-NoCode. Esas funciones siguen funcionando para las versiones ya instaladas y reenvían cada llamada al proyecto del estudio, así que todos los datos están allí. Cuando dejen de llegar llamadas, se borran los `apagalo_*` de Tools-NoCode (pasos en `docs/datos.md` del estudio).
 
 Eventos: `first_open`, `session_start`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). `first_open` y `session_start` llevan además el idioma del dispositivo (`loc`, p. ej. `en-US`) y su zona horaria (`tz`, p. ej. `America/New_York`), que dan la región aproximada. El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
 
 Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}` (el intersticial, solo si de verdad se ha mostrado), `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_pending {id}` (pago pendiente), `iap_fail {id}`, `iap_recover {id}` (compra pagada entregada al arrancar o al volver a la app) y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
 
-Consultas listas en Supabase:
+Consultas listas en Supabase (proyecto `nocodeboy-games`; sin el `where` salen todos los juegos, para comparar):
 
 ```sql
-select * from apagalo_kpis;      -- jugadores, % que sigue al minuto 1, % que completa el nivel 1, sesión media, D1
-select * from apagalo_niveles;   -- embudo por nivel: empiezan, ganan, pierden, estrellas, % salvado, tiempo
-select * from apagalo_cohortes;  -- nuevos por día con D1 y D7
-select * from apagalo_regiones;   -- jugadores y D1/D7 por grupo de países (EE. UU., resto de primer nivel, España, resto), desde la 1.3.0
-select * from apagalo_paises;     -- lo mismo por país (del idioma del dispositivo)
-select * from apagalo_monetizacion; -- por día y plataforma: anuncios ofrecidos y vistos, recompensas, intersticiales, tienda, mejoras y compras
+select * from kpis where juego = 'apagalo';          -- jugadores, % que sigue al minuto 1, % que completa el nivel 1, sesión media, D1
+select * from niveles where juego = 'apagalo';       -- embudo por nivel: empiezan, ganan, pierden, estrellas, % salvado (resultado_medio), tiempo
+select * from cohortes where juego = 'apagalo';      -- nuevos por día con D1 y D7
+select * from regiones where juego = 'apagalo';      -- jugadores y D1/D7 por grupo de países (EE. UU., resto de primer nivel, España, resto), desde la 1.3.0
+select * from paises where juego = 'apagalo';        -- lo mismo por país (del idioma del dispositivo)
+select * from monetizacion where juego = 'apagalo';  -- por día y plataforma: anuncios ofrecidos y vistos, recompensas, intersticiales, tienda, mejoras y compras
 ```
 
 ## Siguientes pasos
 
 1. Google Play: llegar a 12 testers (y añadir el grupo de LaunchReady), mantenerlos 14 días, recoger sus comentarios y pedir el acceso a producción (guía en `docs/testers.md`). Aprovechar para subir la 1.2.1 (`versionCode` 2) con los cambios que salgan de la prueba.
 2. CrazyGames: completar los datos de cobro y enviar a Basic Launch (`docs/crazygames.md`).
-3. Tras 7-14 días con tráfico, decidir con los criterios de `docs/concepto.md` mirando `apagalo_kpis` y `apagalo_niveles`.
+3. Tras 7-14 días con tráfico, decidir con los criterios de `docs/concepto.md` mirando las vistas `kpis` y `niveles` (juego `apagalo`).
