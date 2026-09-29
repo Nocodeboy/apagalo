@@ -20,7 +20,7 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 |---|---|---|
 | `assets.py` | Iconos de la web, imagen para redes (`og.png`) y las 3 portadas de CrazyGames | `assets/` |
 | `android_icons.py` | Fuentes del icono adaptativo y la pantalla de inicio de Android (para `@capacitor/assets`) | `assets/android/` |
-| `store_shots.py` | Las 6 capturas de móvil y el gráfico destacado de Google Play | `assets/play/` |
+| `store_shots.py` | Las 6 capturas de móvil y el gráfico destacado de Google Play (`levels` rehace solo la del selector de niveles; `GAME_LANG=en` para la ficha en inglés) | `assets/play/` y `assets/play-en/` |
 | `testers_assets.py` | Tarjeta «Se buscan testers» y capturas ligeras de la página `/testers` (no necesita servidor) | `assets/testers/` |
 | `shots2.py` | Capturas de escenarios para revisar el aspecto del juego | `shots/` |
 | `video.py` | Vídeos renderizados fotograma a fotograma desde el juego real. Perfiles: `x` (vertical 1080×1920 con música, para redes), `cg169` y `cg23` (vistas previas de CrazyGames, sin sonido y por debajo de 10 MB) | `build/video/` |

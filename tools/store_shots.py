@@ -1,5 +1,5 @@
 # Google Play assets from the real game: phone screenshots (1080x1920, with HUD) and the feature graphic (1024x500).
-# Usage: python3 tools/store_shots.py [all|shots|feature]   (serve dist/ on :8765 first, or set PORT)
+# Usage: python3 tools/store_shots.py [all|shots|levels|feature]   (serve dist/ on :8765 first, or set PORT)
 # GAME_LANG=en renders the English listing into assets/play-en/ (default: Spanish into assets/play/).
 import asyncio, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -51,6 +51,7 @@ async def main():
             await game_shot(p, '3-sanjuan.png', 5, (0, 9.0), 1.0)
             await game_shot(p, '4-castanar.png', 4, (8, 22), 1.2)
             await game_shot(p, '5-gasolinera.png', 2, (6, 6), 0.95)
+        if which in ('all', 'shots', 'levels'):
             await menu_shot(p, '6-niveles.png', ['[data-a=levels]'])
         if which in ('all', 'feature'):
             A.OUT = OUT
