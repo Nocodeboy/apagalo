@@ -51,13 +51,14 @@ Coge la manguera y apaga el fuego antes de que el viento lo extienda.
 
 ¡Apágalo! es un juego de bomberos en 3D: el fuego se extiende en tiempo real y el viento lo empuja. Coge la manguera, apunta a la base de las llamas y salva el pueblo antes de que sea tarde.
 
-🔥 6 escenarios distintos
+🔥 67 niveles en 6 escenarios
 • Verbena en la plaza
 • La granja de Doña Rosa: rescata a los animales
 • La gasolinera: el combustible no se apaga con agua, usa espuma
 • El polígono: corta la luz antes de mojar el cuadro eléctrico
 • El Castañar: el viento cambia y hay que engancharse a las bocas de riego
 • Noche de San Juan: caen cohetes del cielo
+Cada escenario vuelve diez veces más, cada vez más difícil, y la campaña acaba con «El gran incendio»: todo el pueblo ardiendo de noche, con todas las reglas a la vez.
 
 🚒 3 boquillas
 Chorro para llegar lejos, abanico para protegerte del calor y espuma para los fuegos de combustible.
@@ -71,7 +72,7 @@ Cuanto más pueblo salves y más animales rescates, más estrellas.
 Controles sencillos: un pulgar para moverte y el otro para apuntar y echar agua.
 Sin anuncios y sin compras. Se puede jugar sin conexión.
 
-> A partir de la 1.3.0 esta frase deja de ser cierta: antes de publicar la 1.3.0 hay que cambiarla y actualizar las declaraciones de anuncios, ID de publicidad, seguridad de los datos y clasificación de contenido (lista completa en `docs/monetizacion.md` y `docs/android-monetizacion.md`). La ficha en inglés está en `docs/ficha-tienda-en.md`.
+> La publicada con la 1.2.0 decía «6 escenarios distintos»; la línea de los 67 niveles va con la versión que lleve la campaña. A partir de la 1.3.0 la frase de «Sin anuncios y sin compras» deja de ser cierta: antes de publicar la 1.3.0 hay que cambiarla y actualizar las declaraciones de anuncios, ID de publicidad, seguridad de los datos y clasificación de contenido (lista completa en `docs/monetizacion.md` y `docs/android-monetizacion.md`). La ficha en inglés está en `docs/ficha-tienda-en.md`.
 
 **Categoría:** Juegos › Casual
 **Correo de contacto:** ghptiemblo@gmail.com · **Web:** https://apagalo.vercel.app

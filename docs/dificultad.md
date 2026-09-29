@@ -31,7 +31,7 @@ daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/0/10  rescued 0.
 
 ## Con mejoras
 
-Las mejoras se compran con monedas en la tienda: 4 líneas de 5 niveles cada una, a 200, 500, 1.000, 2.000 y 4.000 monedas (7.700 por línea, 30.800 todas). Solo cuentan en los 6 niveles: el reto diario se juega siempre sin mejoras porque su clasificación es común para todos. Los valores están en `UPGRADE_STEP` de `src/economy.ts`.
+Las mejoras se compran con monedas en la tienda: 4 líneas de 5 niveles cada una, a 200, 500, 1.000, 2.000 y 4.000 monedas (7.700 por línea, 30.800 todas). Cuentan en todos los niveles de la campaña; el reto diario se juega siempre sin mejoras porque su clasificación es común para todos. Los valores están en `UPGRADE_STEP` de `src/economy.ts`.
 
 | Línea | Por nivel | Al máximo |
 |---|---|---|
@@ -70,3 +70,30 @@ Salida de `npx tsx tools/bot.ts 30 --up=max`:
 6 sanjuan PRO          win 100%  saved  90%  left  79s  ★ 0/0/30/0  rescued 0.2/2  boom 0.0  zap 0.0  {"win":30}
 6 sanjuan casual       win  87%  saved  72%  left  79s  ★ 4/8/18/0  rescued 0.2/2  boom 0.0  zap 0.0  {"win":26,"control":4}
 ```
+
+## El final (nivel 67, «El gran incendio»)
+
+`src/sim/campaign/finale.ts`. Mapa de 36×36 (1.296 celdas) con el camión en el cruce del centro y un fuego en cada barrio: la feria con el puesto de churros ardiendo (suroeste), la gasolinera con un coche ardiendo junto a los surtidores y tres bombonas cerca (sureste), las naves con el cuadro eléctrico con corriente y la palanca junto al cruce (noreste) y el casco viejo con la iglesia y una casa ardiendo (noroeste). De noche, con 8 cohetes desde el segundo 35, el viento que gira hacia el norte en el 75 (empuja el fuego del casco viejo hacia la iglesia) y hacia el sur en el 150, 260 s, espuma para 18 s y una boca de riego en cada barrio. Se pierde si lo salvado baja del 56 %; 2 estrellas con el 66 % y 3 con el 75 % sin que se escape nadie (hay un gato, un vecino y un perro que rescatar).
+
+Lo que separa al bot PRO del casual es el orden: el PRO ataca primero los fuegos que amenazan lo que más vale (la iglesia, las naves) aunque estén más lejos, y el casual va al más cercano mientras el casco viejo se quema. Por eso se decide sobre todo por el % salvado, no por el tiempo.
+
+Medido el 26 sept 2026 (en esta rama el final era el nivel 7 porque los escenarios aún estaban vacíos; la dificultad no depende de la posición):
+
+```
+npx tsx tools/bot.ts 10 finale
+7 finale PRO           win  90%  saved  67%  left  56s  ★ 1/3/6/0  rescued 1.0/3  boom 0.0  zap 0.0  {"win":9,"control":1}
+7 finale casual        win  30%  saved  56%  left  73s  ★ 7/3/0/0  rescued 0.0/3  boom 0.0  zap 0.0  {"control":7,"win":3}
+npx tsx tools/bot.ts 30 finale
+7 finale PRO           win  97%  saved  68%  left  61s  ★ 1/6/23/0  rescued 1.0/3  boom 0.0  zap 0.0  {"win":29,"control":1}
+7 finale casual        win  40%  saved  57%  left  68s  ★ 18/12/0/0  rescued 0.0/3  boom 0.0  zap 0.0  {"control":18,"win":12}
+npx tsx tools/bot.ts 30 finale --up=3
+7 finale PRO           win  93%  saved  69%  left  82s  ★ 2/3/25/0  rescued 1.2/3  boom 0.0  zap 0.0  {"win":28,"control":2}
+7 finale casual        win  73%  saved  60%  left  75s  ★ 8/22/0/0  rescued 0.3/3  boom 0.0  zap 0.0  {"win":22,"control":8}
+npx tsx tools/bot.ts 30 finale --up=max
+7 finale PRO           win 100%  saved  69%  left  85s  ★ 0/8/22/0  rescued 1.1/3  boom 0.0  zap 0.0  {"win":30}
+7 finale casual        win  57%  saved  59%  left  87s  ★ 13/15/2/0  rescued 0.4/3  boom 0.0  zap 0.0  {"win":17,"control":13}
+```
+
+- Con 50 partidas: PRO 96 %, casual 36 %. Sin hacer nada se descontrola hacia el segundo 50.
+- Las 3 estrellas no las saca ningún bot (ninguno rescata a los tres y el PRO no pasa del 74 % salvado): quedan para quien juegue muy bien.
+- Rendimiento (Chromium con WebGL por software, calidad media, 360×640): 0,2-0,4 ms por paso de simulación, ~1,5 ms por actualización de la vista y unas 110 llamadas de dibujo con 56.000 triángulos, frente a 60-75 llamadas y 33.000-80.000 triángulos de los niveles originales.

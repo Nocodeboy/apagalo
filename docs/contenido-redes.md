@@ -20,10 +20,10 @@ Nota: decide el nombre de usuario antes de publicar nada. Propuesta: `@putitoutg
 Fire spreads with the wind. Grab the hose. Free 3D firefighter game.
 ```
 
-**Bio de X** (154 caracteres):
+**Bio de X** (153 caracteres):
 
 ```text
-Put It Out! A 3D firefighting game where the fire spreads with the wind. 6 missions + a daily challenge. Free in your browser, Android soon. By @nocodeboy
+Put It Out! A 3D firefighting game where the fire spreads with the wind. 67 levels + a daily challenge. Free in your browser, Android soon. By @nocodeboy
 ```
 
 - Foto de perfil: el icono del juego (`assets/icon-512.png`). Cabecera de X y YouTube: el gráfico destacado en inglés cuando esté (ver [ficha-tienda-en.md](ficha-tienda-en.md)).
@@ -58,7 +58,7 @@ Para vídeos en inglés hay que cambiar el script (no lo he tocado; es un encarg
 
 - En `SAVE`, `lang:'es'` → `lang:'en'`, y en `open_level`, `locale='es-ES'` → `locale='en-US'`. Así el HUD y el logo salen en inglés («PUT IT OUT!», «CONTROL», «Jet / Fog / Foam»).
 - Textos de los clips (`cap`): «¡EL PUEBLO ARDE!» → `THE TOWN\nIS ON FIRE!`; «EL VIENTO LO EXTIENDE» → `THE WIND\nSPREADS IT`; «¡LLUEVEN COHETES!» → `IT'S RAINING\nFIREWORKS!`.
-- Tarjeta final (`STYLE`): título `PUT IT OUT!`, `Play free<br>on your phone or PC`, la URL y `No download · 6 missions + daily challenge`. Desde P, la insignia oficial de Google Play en lugar de «No download».
+- Tarjeta final (`STYLE`): título `PUT IT OUT!`, `Play free<br>on your phone or PC`, la URL y `No download · 67 levels + daily challenge`. Desde P, la insignia oficial de Google Play en lugar de «No download».
 - Salida con otro nombre (por ejemplo `putitout-promo-x-en.mp4`) para no pisar el español.
 - Mejor aún: un parámetro `LANG=en` que haga todo eso, y una opción para grabar sin el bot (hoy `recStart` siempre pone al bot a jugar, así que la cámara rápida «sin bombero» del vídeo P06 no sale de aquí).
 

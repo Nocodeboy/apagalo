@@ -1,10 +1,12 @@
 # Loads the CrazyGames build with a mocked SDK and checks the call sequence + no errors.
 # Ads are off by default (__CG_ADS__, Basic Launch): no ad request may reach the SDK.
 # With --ads (build made with CG_ADS=1) it checks the rewarded x2 through the SDK ad module instead.
+# Serve dist/ on :8765 first (or set PORT).
 import asyncio
+import os
 import sys
 from playwright.async_api import async_playwright
-URL = 'http://127.0.0.1:8765/crazygames/index.html'
+URL = f"http://127.0.0.1:{os.environ.get('PORT', '8765')}/crazygames/index.html"
 ADS = '--ads' in sys.argv
 MOCK = """window.__cg=[];window.CrazyGames={SDK:{environment:'crazygames',init:async()=>{__cg.push('init')},data:{getItem:k=>null,setItem:(k,v)=>__cg.push('setItem')},game:{
 loadingStart:()=>__cg.push('loadingStart'),loadingStop:()=>__cg.push('loadingStop'),gameplayStart:()=>__cg.push('gameplayStart'),
@@ -32,6 +34,7 @@ async def main():
         if ADS and await page.query_selector('[data-a=double]'):
             await page.click('[data-a=double]'); await page.wait_for_timeout(1200)
         st = await page.evaluate("({cg: window.__cg, mode: window.__apagalo.mode, coins: window.__apagalo.save.coins, x2: !!document.querySelector('[data-a=double]'), links: [...document.querySelectorAll('a[href^=http]')].map(a=>a.href), share: !!document.querySelector('[data-a=share]')})")
+        os.makedirs('build', exist_ok=True)
         await page.screenshot(path='build/cg-end.png')
         print(st)
         ad_calls = [c for c in st['cg'] if c.startswith('requestAd')]

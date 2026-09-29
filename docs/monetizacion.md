@@ -138,6 +138,24 @@ Los perfiles son estimaciones: finales de nivel al día, % de victorias, estrell
 - **Hay un techo de gasto.** Todo se compra con unos 22 $ en `coins_l` (30.800 / 1.401). Después no hay nada en qué gastar, y el reto diario no usa mejoras. Un pagador que lo tiene todo ya no vuelve a comprar.
 - **`free_coins` es generoso.** 3 × 150 = 450 monedas al día, el 44 % de lo que gana un jugador típico. `coins_s` (1.000) equivale a poco más de 2 días viendo esos anuncios.
 
+### Con la campaña de 67 niveles (26 sept 2026)
+
+Cálculo a mano con las fórmulas de `src/economy.ts` (estimación, no medido con jugadores). Supuestos de un jugador típico: gana el 65 % de los intentos (más al principio, menos al final), así que para pasar los 67 niveles juega unas 103 partidas (67 victorias y 36 derrotas); gana con 1,95 estrellas y el 75 % salvado de media (unas 190 monedas) y pierde con la mitad salvada (75 monedas).
+
+| Fuente | Monedas |
+|---|---:|
+| 67 victorias (primera vez) | ~12.600 |
+| 36 derrotas por el camino | ~2.700 |
+| **Campaña sin anuncios ni reto diario** | **~15.300** |
+| + reto diario en los ~23 días de juego (4,5 partidas al día, ~200 por reto) | ~4.600 |
+| + x2 en el 30 % de los finales | ~4.600 |
+| + monedas gratis (450 al día) si las ve todas | ~10.000 |
+
+- **El ritmo encaja con la campaña.** Con ~150 monedas por partida (sin x2), el nivel 1 de las cuatro mejoras (800) llega hacia el nivel 5, el nivel 2 (2.800 en total) hacia el 13, el nivel 3 (6.800) hacia el 30 y el nivel 4 (14.800) al final de la campaña. Siempre hay algo que comprar mientras los niveles se endurecen.
+- **El máximo (30.800) sigue siendo un objetivo largo.** Sin anuncios, la campaña cubre la mitad; el nivel 5 (4.000 por mejora, 16.000 en total) queda para el reto diario, el x2, las monedas gratis o las compras. Quien ve anuncios llega al máximo más o menos al acabar la campaña.
+- **No hace falta tocar precios ni pagos.** Con 6 niveles, las mejoras eran casi solo un objetivo de repetir niveles; ahora las paga la propia campaña sin regalarlas. La dificultad del final medida con el bot con mejoras a nivel 3 y al máximo está en `dificultad.md`: ayudan, pero el nivel 67 sigue costando.
+- El techo de gasto no cambia (22 $ en `coins_l` compran todo). Con más contenido cobra más sentido E1 (cosméticos como sumidero) que subir precios.
+
 ### Recomendaciones (no están en el diseño actual)
 
 - **E1. Sumideros antes de lanzar las compras.** Seguir con monedas (A3, 250). Cosméticos del camión, el traje y el chorro, de 1.500 a 8.000 monedas. Más adelante, mejoras nuevas ligadas a boquillas o niveles nuevos (fase 2 de la estrategia: niveles generados y validados por el bot).

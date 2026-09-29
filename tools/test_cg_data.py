@@ -1,11 +1,13 @@
 # CrazyGames build + mocked SDK Data module: the portal copy of the save must win on load,
 # a first-time portal player must get their local save copied in, and new progress must be written back.
+# Serve dist/ on :8765 first (or set PORT).
 import asyncio
 import json
+import os
 
 from playwright.async_api import async_playwright
 
-URL = 'http://127.0.0.1:8765/crazygames/index.html'
+URL = f"http://127.0.0.1:{os.environ.get('PORT', '8765')}/crazygames/index.html"
 KEY = 'apagalo.v1'
 
 

@@ -59,7 +59,7 @@ STYLE = '''<style id="vidstyle">
 </style>
 <div id="cap"><span></span></div>
 <div id="endcard"><h1><b>¡</b>APÁGALO<b>!</b></h1><div class="tape"></div>
-<p>Juega gratis<br>en el móvil o el PC</p><div class="url">apagalo.vercel.app</div><small>Sin descargas · 6 escenarios + reto diario</small></div>'''
+<p>Juega gratis<br>en el móvil o el PC</p><div class="url">apagalo.vercel.app</div><small>Sin descargas · 67 niveles + reto diario</small></div>'''
 
 # page-side helpers: caption animation and end card, both driven by the video clock
 HELPERS = r'''(() => {

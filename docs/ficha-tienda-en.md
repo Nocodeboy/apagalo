@@ -36,30 +36,33 @@ Tres opciones. La primera es la recomendada para en-US; las otras dos sirven par
 |---|---|---:|
 | 1 | `The fire spreads with the wind. Grab the hose, pick a nozzle and save the town.` | 79 |
 | 2 | `3D firefighter game: stop fires that spread in real time and rescue the animals.` | 80 |
-| 3 | `6 fire rescue missions, 3 nozzles and one daily fire that everyone plays.` | 73 |
+| 3 | `67 fire rescue levels, 3 nozzles and one daily fire that everyone plays.` | 72 |
 
 - La 1 vende la mecánica que nos diferencia (viento, boquillas) y es la que mejor convierte en teoría; mete «fire» y «hose», pero no «firefighter».
 - La 2 lleva «firefighter game» y «3D» para posicionar, a cambio de sonar más a lista.
-- La 3 lleva «fire rescue» y el reto diario.
+- La 3 lleva «fire rescue», el tamaño de la campaña y el reto diario.
 
 ## Descripción completa
 
-### Versión A: la que está publicada (1.2.x, sin monedas ni anuncios)
+### Versión A: sin monedas ni anuncios, con la campaña de 67 niveles
 
-2.503 caracteres. «firefighter» 3 veces, «firefighting» 1, «fire truck» 2, «fire rescue» 2, «fireman» 1, «daily challenge» 2.
+2.684 caracteres. «firefighter» 3 veces, «firefighting» 1, «fire truck» 2, «fire rescue» 2, «fireman» 1, «daily challenge» 2.
+
+La publicada con la 1.2.x decía «6 FIRE RESCUE MISSIONS, 6 DIFFERENT RULES» y no tenía la línea de la campaña; se cambia por esta con la versión que lleve los 67 niveles.
 
 ```text
 Put It Out! is a 3D firefighter game where the fire is alive. It spreads from one spot to the next and the wind pushes it in real time. Grab the hose, aim at the base of the flames and decide what to save first, before the whole town goes up.
 
 Your hose is tied to the fire truck, so every step counts. Run, aim, switch nozzles and keep the fire away from the church, the barn and the fuel pumps.
 
-6 FIRE RESCUE MISSIONS, 6 DIFFERENT RULES
+67 FIRE RESCUE LEVELS IN 6 PLACES, EACH WITH ITS OWN RULE
 • Village fair: learn to aim, spray and hold the fire line.
 • Rosa's farm: rescue the sheep, goats, dogs and cats before the flames reach them.
 • Gas station: water only spreads a fuel fire. Switch to foam and keep the gas bottles cool.
 • Industrial park: live power plus water means a shock. Pull the lever first, then spray.
 • Chestnut forest: the wind shifts. Hook your hose up to a hydrant to reach farther.
 • Midsummer night: fireworks rain down on the beach. Wet the marked spots before they land.
+Every place comes back ten more times, each one harder than the last. The campaign ends with The Big One: the whole town on fire at night, with every rule at once.
 
 Every mission has its own light and colors: a summer noon, a golden afternoon on the farm, a cloudy industrial park, an autumn forest and a night on the beach.
 
@@ -89,7 +92,7 @@ EASY TO PICK UP, HARD TO MASTER
 
 This is a firefighting action game, not a truck driving simulator. No traffic, no sirens to switch on: just you, the hose and a fire that keeps moving. If you like firefighter games, fire truck games or fireman games and want to be the one holding the hose, this one is for you.
 
-Made by a solo indie developer. New fire rescue missions are on the way.
+Made by a solo indie developer, with new fire rescue missions on the way.
 ```
 
 Notas:
@@ -100,7 +103,7 @@ Notas:
 
 ### Versión B: con la 1.3 (monedas, mejoras y anuncios con premio)
 
-Es la versión A con este bloque justo antes de «FIREFIGHTER TIPS». Total: 2.804 caracteres.
+Es la versión A con este bloque justo antes de «FIREFIGHTER TIPS». Total: 2.985 caracteres.
 
 ```text
 UPGRADE YOUR GEAR
@@ -170,7 +173,7 @@ Play enseña la traducción que coincide con el idioma del móvil, no con el pa�
 Fire spreads with the wind. Grab the hose, choose your nozzle, save the village.
 ```
 
-- **Descripción completa en-GB:** la versión A con estos 8 cambios (resultado: 2.514 caracteres; con el bloque de la 1.3, 2.815):
+- **Descripción completa en-GB:** la versión A con estos 8 cambios (resultado: 2.695 caracteres; con el bloque de la 1.3, 2.996):
 
 | Donde dice (en-US) | En en-GB |
 |---|---|
@@ -203,12 +206,12 @@ Put It Out! Firefighter
 Grab the hose and stop the fire before the wind spreads it through town!
 ```
 
-**Description** (948 caracteres):
+**Description** (1.011 caracteres):
 
 ```text
 Put It Out! Firefighter is a 3D firefighting game where the fire is alive. Your hose is tied to the fire truck, the wind keeps shifting and the flames spread cell by cell in real time. Aim at the base of the fire, rescue the animals, cool down the gas bottles and don't let anything important burn.
 
-- 6 handcrafted missions: a village fair, a farm full of animals, a gas station, an industrial park, a chestnut forest and a Midsummer night on the beach.
+- 67 handcrafted levels across 6 places: a village fair, a farm full of animals, a gas station, an industrial park, a chestnut forest and a Midsummer night on the beach. The finale sets the whole town on fire at once.
 - Every mission adds a new rule: foam for fuel fires, live electrical boxes, wind shifts and hydrants to reconnect your hose, fireworks falling from the sky.
 - 3 nozzles: jet for reach, fog to shield yourself from the heat, foam for fuel fires.
 - A new daily challenge every day, the same fire for every player. See how you rank against everyone who played today.
@@ -238,7 +241,7 @@ Para la tanda de medición de [marketing.md](marketing.md). Google admite hasta 
 |---|---:|
 | `The wind pushes the flames in real time. Aim at the base and decide what to save first.` | 87 |
 | `Gas station fire? Water makes it worse. Switch to foam before it reaches the pumps.` | 83 |
-| `Six handcrafted missions: farm, forest, fireworks night, gas station and more.` | 78 |
+| `67 levels in 6 places: farm, forest, fireworks night, gas station and more.` | 75 |
 | `Same fire for every player, every day. See where you rank and share your result.` | 80 |
 | `Free firefighter game with quick levels. One thumb moves, the other aims and sprays.` | 84 |
 

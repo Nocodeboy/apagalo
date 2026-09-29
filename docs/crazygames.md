@@ -39,7 +39,7 @@ Grab the hose and stop the fire before it spreads through town!
 **Description:**
 You are the village firefighter. Your hose is tied to the fire truck, the wind keeps shifting and the flames spread cell by cell in real time. Aim at the base of the fire, rescue the animals, cool down the gas bottles and don't let anything important burn.
 
-- 6 handcrafted scenarios: the village fair, a farm, a gas station, an industrial park, a chestnut forest and a Midsummer night full of fireworks.
+- 67 handcrafted levels across 6 places: the village fair, a farm, a gas station, an industrial park, a chestnut forest and a Midsummer night full of fireworks. The finale sets the whole town on fire at once.
 - 3 nozzles: jet for reach, fog to shield yourself from the heat, foam for fuel fires.
 - Every level has its own twist: wind shifts, live electrical boxes, rockets falling from the sky, hydrants to reconnect your hose.
 - A new daily challenge every day, the same for every player.
@@ -56,7 +56,7 @@ You are the village firefighter. Your hose is tied to the fire truck, the wind k
 **Idiomas:** inglés y español.
 
 **Descripción en español** (por si la ficha la permite):
-Eres el bombero del pueblo. La manguera va atada al camión, el viento cambia y las llamas se extienden en tiempo real. Apunta a la base del fuego, rescata a los animales, enfría las bombonas y que no se queme nada importante. 6 escenarios, 3 boquillas (chorro, abanico y espuma) y un reto diario nuevo cada día.
+Eres el bombero del pueblo. La manguera va atada al camión, el viento cambia y las llamas se extienden en tiempo real. Apunta a la base del fuego, rescata a los animales, enfría las bombonas y que no se queme nada importante. 67 niveles en 6 escenarios, 3 boquillas (chorro, abanico y espuma) y un reto diario nuevo cada día.
 
 ## Requisitos técnicos cubiertos
 
