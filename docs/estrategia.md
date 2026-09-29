@@ -19,6 +19,8 @@
 
 **Profundidad.** Hay 6 niveles y un reto diario: se acaba en una o dos tardes. No hay meta (moneda, mejoras, colección, eventos), y eso es justo lo que acerca un juego a lo hipercasual y lo que hace que la retención se caiga a partir del día 3. Para que la publicidad en países caros salga rentable hace falta retención larga. El camino es un **híbrido-casual**: el núcleo casual que ya tenemos más una capa de progresión y compras.
 
+> Actualización 29 sept 2026: la 1.3.0 ya trae monedas, mejoras y una campaña de 67 niveles (ver fase 2). Falta publicarla y medir cuánto sube la retención.
+
 **Medición.** La analítica no guarda país ni idioma, así que hoy no podemos separar a los jugadores de primer nivel del resto.
 
 **Criterios de `concepto.md`.** Están pensados para decidir si el concepto engancha con tráfico gratuito (D1 ≥ 10 % para seguir). Para pagar tráfico en países caros el listón es bastante más alto.
@@ -46,8 +48,8 @@
 
 ### Fase 2: profundidad híbrido-casual (2-4 semanas)
 
-- Moneda por partida y mejoras permanentes: presión y alcance de la manguera, depósito, velocidad, boquillas nuevas.
-- **Niveles generados y validados por el bot.** Ya tenemos un bot que juega y mide la dificultad, una ventaja poco común: permite fabricar muchos niveles y descartar los injugables. El reto diario ya funciona así.
+- ✅ Moneda por partida y mejoras permanentes (manguera, presión, velocidad y tiempo). Pendiente: boquillas nuevas.
+- ✅ **Campaña de 67 niveles** (6 originales, 10 más por escenario y un final), cada uno medido con el bot (`docs/dificultad.md`). Pendiente: niveles generados automáticamente. Ya tenemos un bot que juega y mide la dificultad, una ventaja poco común: permite fabricar muchos niveles y descartar los injugables. El reto diario ya funciona así.
 - Misiones diarias, eventos semanales y colección (camiones, trajes, estaciones).
 - Objetivo: subir el D7 y las sesiones por día, que es lo que sostiene cualquier ingreso.
 

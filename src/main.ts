@@ -1237,6 +1237,7 @@ function tick(dt: number) {
     const states = s.rescuees.map((e) => e.state);
     updateHud({
       stars: s.def.stars,
+      minSaved: s.def.minSaved,
       fled: s.fled,
       control: s.control,
       time: s.timeLeft,

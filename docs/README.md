@@ -16,14 +16,16 @@
 
 Lo técnico (estructura del código, comandos, analítica, calidad gráfica) está en el [README principal](../README.md), y las herramientas en [tools/README.md](../tools/README.md).
 
-## Estado general (26 sept 2026)
+## Estado general (29 sept 2026)
 
-| Canal | Estado | Siguiente paso |
+La **1.3.0** está lista en el código y sin publicar en ningún sitio: nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles.
+
+| Canal | Publicado | Siguiente paso |
 |---|---|---|
-| Web | Publicada en https://apagalo.vercel.app (1.2.0), con analítica y la página `/testers` | Mover tráfico y mirar los datos |
-| Google Play | Prueba cerrada aprobada el 25 sept. Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers, añadir el grupo de LaunchReady y aguantar 14 días. Luego pedir producción |
-| CrazyGames | Borrador completo: build, revisión de calidad y ficha hechas | Rellenar los datos de cobro (Tipalti), aceptar términos y PEGI 12 y enviar |
-| GitHub | Repositorio https://github.com/Nocodeboy/apagalo (26 sept) | Subir aquí cada cambio |
+| Web | 1.2.0 en https://apagalo.vercel.app, con analítica y la página `/testers` | Publicar la 1.3.0 (sin anuncios en la web) |
+| Google Play | 1.2.0 en prueba cerrada (aprobada el 25 sept). Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers y añadir el grupo de LaunchReady. Antes de subir la 1.3.0: cuenta de AdMob, productos y declaraciones (`android-monetizacion.md`) |
+| CrazyGames | Borrador completo con la 1.2.0 (build, revisión de calidad y ficha) | Cambiar a «Put It Out! Firefighter» con la 1.3.0 y las portadas en inglés, repetir la revisión de calidad, rellenar el cobro (Tipalti) y enviar |
+| GitHub | https://github.com/Nocodeboy/apagalo | Subir cada cambio con el `.bat` que se deja en `Juego 4` |
 
 Decisión pendiente (después de 7-14 días con jugadores): mirar `apagalo_kpis` y `apagalo_niveles` en Supabase y aplicar los criterios de `concepto.md`.
 

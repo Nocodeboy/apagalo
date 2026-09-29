@@ -1019,6 +1019,11 @@ p {
 .chip.bad {
   color: #ffd2cc;
 }
+#hud-saved.danger {
+  background: var(--red);
+  color: #fff;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
 .dots {
   display: inline-flex;
   gap: 4px;

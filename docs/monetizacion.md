@@ -295,7 +295,7 @@ Lo que dice la tabla:
 
 - Los anuncios más agresivos no lo arreglan: poner un intersticial en cada final de nivel sube el LTV un 21 % y es probable que cueste retención.
 - Lo que más mueve el LTV es la monetización por jugador activo, es decir, profundidad: más sesiones, más motivos para gastar y compras con más recorrido. Después vienen la retención y el paso a iOS.
-- Con 6 niveles, el juego no se paga con publicidad en países caros. El orden es: fase 2 de la estrategia (profundidad), iOS y, solo después, publicidad para escalar.
+- Con 6 niveles, el juego no se paga con publicidad en países caros. El orden es: fase 2 de la estrategia (profundidad), iOS y, solo después, publicidad para escalar. La 1.3.0 ya lleva la campaña de 67 niveles; hay que volver a pasar el modelo con el D7 y las sesiones reales cuando haya datos.
 
 ## Compra de tráfico con 100-300 €/mes
 

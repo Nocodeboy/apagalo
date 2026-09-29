@@ -29,6 +29,98 @@ daily#6 granj night    win   0%  saved  45%  left   0s  ★ 10/0/0/0  rescued 1.
 daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/0/10  rescued 0.0/0  boom 0.0  zap 0.0  {"win":10}
 ```
 
+## Campaña (niveles 7-67)
+
+Medida el 29 sept 2026 con `npx tsx tools/bot.ts 10 <id>` para cada nivel (los 6 originales dan lo mismo que arriba). Con 10 partidas cada porcentaje baila unos ±15 puntos: sirve para ver la tendencia, no para comparar dos niveles sueltos.
+
+Objetivo: el PRO gana el 85 % o más en todos, y el casual baja de un 85-90 % en el bloque 1 a un 40-50 % en el bloque 10. Se cumple por bloques:
+
+| Bloque | Niveles | PRO gana (media) | Casual gana (media) |
+|---|---|---|---|
+| 1 | 7-12 | 98 % | 93 % |
+| 2 | 13-18 | 100 % | 78 % |
+| 3 | 19-24 | 98 % | 72 % |
+| 4 | 25-30 | 100 % | 77 % |
+| 5 | 31-36 | 100 % | 78 % |
+| 6 | 37-42 | 100 % | 70 % |
+| 7 | 43-48 | 98 % | 57 % |
+| 8 | 49-54 | 97 % | 65 % |
+| 9 | 55-60 | 98 % | 55 % |
+| 10 | 61-66 | 98 % | 52 % |
+
+Nivel a nivel («Casual salva» es el % del pueblo que salva de media):
+
+| Nº | id | Nombre | Tiempo | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|---|---|
+| 7 | `plaza-2` | Día de mercado | 120 s | 100 % | 100 % | 75 % |
+| 8 | `granja-2` | El redil | 120 s | 100 % | 100 % | 97 % |
+| 9 | `gasolinera-2` | Las bombonas | 120 s | 100 % | 100 % | 86 % |
+| 10 | `poligono-2` | La palanca del fondo | 140 s | 100 % | 100 % | 76 % |
+| 11 | `castanar-2` | La senda del guarda | 130 s | 100 % | 80 % | 50 % |
+| 12 | `sanjuan-2` | Hogueras en la cala | 140 s | 90 % | 80 % | 80 % |
+| 13 | `granja-3` | El trigal | 120 s | 100 % | 80 % | 82 % |
+| 14 | `gasolinera-3` | Área de descanso | 120 s | 100 % | 70 % | 74 % |
+| 15 | `poligono-3` | El taller | 120 s | 100 % | 80 % | 79 % |
+| 16 | `castanar-3` | El merendero | 140 s | 100 % | 80 % | 63 % |
+| 17 | `sanjuan-3` | El paseo de tablas | 150 s | 100 % | 80 % | 72 % |
+| 18 | `plaza-3` | La plaza de toros | 130 s | 100 % | 80 % | 73 % |
+| 19 | `gasolinera-4` | Hora punta | 130 s | 100 % | 70 % | 71 % |
+| 20 | `poligono-4` | La serrería | 140 s | 100 % | 70 % | 53 % |
+| 21 | `castanar-4` | Al otro lado del arroyo | 120 s | 100 % | 70 % | 83 % |
+| 22 | `sanjuan-4` | El espigón | 160 s | 90 % | 80 % | 82 % |
+| 23 | `plaza-4` | La Plaza Mayor | 140 s | 100 % | 70 % | 74 % |
+| 24 | `granja-4` | Los frutales | 90 s | 100 % | 70 % | 78 % |
+| 25 | `poligono-5` | Turno de noche | 150 s | 100 % | 70 % | 63 % |
+| 26 | `castanar-5` | Castaños centenarios | 130 s | 100 % | 60 % | 68 % |
+| 27 | `sanjuan-5` | Brisa de mar | 180 s | 100 % | 90 % | 54 % |
+| 28 | `plaza-5` | La paella gigante | 120 s | 100 % | 80 % | 80 % |
+| 29 | `granja-5` | La acequia | 120 s | 100 % | 80 % | 95 % |
+| 30 | `gasolinera-5` | Turno de noche | 140 s | 100 % | 80 % | 52 % |
+| 31 | `castanar-6` | Acampada nocturna | 150 s | 100 % | 70 % | 53 % |
+| 32 | `sanjuan-6` | Los chiringuitos | 170 s | 100 % | 80 % | 72 % |
+| 33 | `plaza-6` | Verbena nocturna | 130 s | 100 % | 90 % | 61 % |
+| 34 | `granja-6` | Gasóleo derramado | 80 s | 100 % | 100 % | 83 % |
+| 35 | `gasolinera-6` | Área de servicio | 160 s | 100 % | 60 % | 62 % |
+| 36 | `poligono-6` | El desguace | 150 s | 100 % | 70 % | 72 % |
+| 37 | `sanjuan-7` | Verbena en el paseo | 170 s | 100 % | 70 % | 73 % |
+| 38 | `plaza-7` | La romería | 150 s | 100 % | 50 % | 60 % |
+| 39 | `granja-7` | Viento revuelto | 160 s | 100 % | 80 % | 59 % |
+| 40 | `gasolinera-7` | Parada de camioneros | 160 s | 100 % | 70 % | 61 % |
+| 41 | `poligono-7` | La subestación | 150 s | 100 % | 80 % | 70 % |
+| 42 | `castanar-7` | El aserradero | 130 s | 100 % | 70 % | 73 % |
+| 43 | `plaza-8` | Las luces de la feria | 140 s | 100 % | 70 % | 65 % |
+| 44 | `granja-8` | La bomba del pozo | 120 s | 90 % | 50 % | 80 % |
+| 45 | `gasolinera-8` | Túnel de lavado | 150 s | 100 % | 70 % | 59 % |
+| 46 | `poligono-8` | Almacén de butano | 160 s | 100 % | 30 % | 68 % |
+| 47 | `castanar-8` | Los pastos | 170 s | 100 % | 60 % | 46 % |
+| 48 | `sanjuan-8` | El pinar de la playa | 180 s | 100 % | 60 % | 65 % |
+| 49 | `granja-9` | Noche en la granja | 150 s | 90 % | 80 % | 88 % |
+| 50 | `gasolinera-9` | Fiestas del pueblo | 170 s | 100 % | 70 % | 70 % |
+| 51 | `poligono-9` | Fábrica de pinturas | 170 s | 100 % | 60 % | 58 % |
+| 52 | `castanar-9` | Fiestas del pueblo | 180 s | 100 % | 60 % | 64 % |
+| 53 | `sanjuan-9` | La traca final | 150 s | 100 % | 60 % | 70 % |
+| 54 | `plaza-9` | Castillo de fuegos | 150 s | 90 % | 60 % | 81 % |
+| 55 | `gasolinera-10` | Vendaval | 170 s | 100 % | 60 % | 69 % |
+| 56 | `poligono-10` | Tormenta seca | 170 s | 100 % | 50 % | 44 % |
+| 57 | `castanar-10` | Tormenta seca | 140 s | 100 % | 70 % | 49 % |
+| 58 | `sanjuan-10` | El puerto pesquero | 180 s | 100 % | 30 % | 79 % |
+| 59 | `plaza-10` | Tormenta de verano | 140 s | 90 % | 60 % | 62 % |
+| 60 | `granja-10` | El cortijo | 90 s | 100 % | 60 % | 83 % |
+| 61 | `poligono-11` | Polígono en llamas | 200 s | 100 % | 60 % | 70 % |
+| 62 | `castanar-11` | El Castañar en llamas | 160 s | 100 % | 30 % | 58 % |
+| 63 | `sanjuan-11` | La noche más corta | 190 s | 90 % | 50 % | 56 % |
+| 64 | `plaza-11` | Fin de fiestas | 180 s | 100 % | 60 % | 83 % |
+| 65 | `granja-11` | La gran cosecha | 150 s | 100 % | 40 % | 67 % |
+| 66 | `gasolinera-11` | La gran estación | 190 s | 100 % | 70 % | 57 % |
+| 67 | `finale` | El gran incendio | 260 s | 90 % | 30 % | 56 % |
+
+Cosas a tener en cuenta:
+
+- **Se pierde más cerca de la 2.ª estrella.** En muchos niveles nuevos `minSaved` está a 5-13 puntos de la línea de 2 estrellas (en los originales, unos 30). Por eso el marcador de salvado se pone rojo y parpadea cuando quedan menos de 5 puntos para perder (`#hud-saved.danger`).
+- **La noche solo es difícil para personas.** El bot ve igual de noche, así que los niveles nocturnos (p. ej. `plaza-6`, `plaza-9`, `granja-9`, `poligono-10`, el final) serán algo más duros de lo que dicen estos números.
+- **Rescates y 3 estrellas.** El bot casi nunca rescata (se queda parado a 1,3 casillas del animal), así que las 3 estrellas de los niveles con rescates quedan para quien juegue bien.
+- **Fallos del bot que no se han tocado** (cambiarlos movería todas las medidas y la tabla del reto diario): no llega nunca a propósito a una boca de riego (`nearAt(hydrant, 0.9)` no casa con ninguna casilla, haría falta ≥ 1,05), no apunta a celdas de un edificio escondidas detrás de otras aunque el agua llegue, y si la palanca está lejos riega el cuadro eléctrico una y otra vez. Los niveles se han diseñado para no depender de eso.
+
 ## Con mejoras
 
 Las mejoras se compran con monedas en la tienda: 4 líneas de 5 niveles cada una, a 200, 500, 1.000, 2.000 y 4.000 monedas (7.700 por línea, 30.800 todas). Cuentan en todos los niveles de la campaña; el reto diario se juega siempre sin mejoras porque su clasificación es común para todos. Los valores están en `UPGRADE_STEP` de `src/economy.ts`.

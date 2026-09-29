@@ -840,6 +840,7 @@ export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void) 
 
 export interface HudState {
   stars: [number, number];
+  minSaved: number;
   fled: number;
   control: number;
   time: number;
@@ -881,6 +882,8 @@ export function updateHud(s: HudState) {
   }
   lastStars = nStars;
   sv.classList.toggle('bad', nStars === 1);
+  // Close to the out-of-control line (minSaved): pulse red so losing never comes as a surprise.
+  sv.classList.toggle('danger', s.saved < s.minSaved + 0.05);
   const rc = $('#hud-resc');
   rc.hidden = s.rescue.total === 0;
   if (s.rescue.total) rc.querySelector('.dots')!.innerHTML = s.rescue.states.map((st) => `<i class="${st === 1 ? 'ok' : st === 2 ? 'lost' : ''}"></i>`).join('');
