@@ -1,7 +1,7 @@
 # Coins, shop, upgrades, rewarded ads, interstitial caps and purchases with the test-double provider
 # (?fakeads=1: every ad lasts ~1 s and rewards, every purchase succeeds; ?fakeads=pending: purchases wait for
 # payment until the next launch). Web build, in Spanish and English.
-# Usage: python3 tools/test_monetize.py [screenshots_dir]   (serve dist/ on :8765 first)
+# Usage: python3 tools/test_monetize.py [screenshots_dir]   (serve dist/ on :8765 first, or set PORT)
 import asyncio
 import json
 import os
@@ -9,14 +9,15 @@ import sys
 
 from playwright.async_api import async_playwright
 
-BASE = 'http://127.0.0.1:8765/web/index.html'
+BASE = f"http://127.0.0.1:{os.environ.get('PORT', '8765')}/web/index.html"
 ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'shots/monetize'
 KEY = 'apagalo.v1'
 fails = []
 
-# finish the running level: put every flame out (win) or run the clock down (time's up)
-WIN = '(() => { const a = window.__apagalo, s = a.sim; s.fire.fill(0); s.heat.fill(0); s.embers.length = 0; a.advance(1.5); })()'
+# finish the running level: put every flame out (win) or run the clock down (time's up). Pending fireworks are
+# dropped too: a level (or daily) with rockets is not won while any is still to fall
+WIN = '(() => { const a = window.__apagalo, s = a.sim; s.fire.fill(0); s.heat.fill(0); s.embers.length = 0; s.rockets.length = 0; s.rocketsLeft = 0; a.advance(1.5); })()'
 TIME_UP = '(() => { const a = window.__apagalo; a.sim.timeLeft = 0.05; a.advance(0.3); })()'
 # the interstitial caps allow one now (>= 2 level ends since the last one, >= 120 s since any full-screen ad)
 DUE = 'Object.assign(__apagalo.save.ads, { lastFullscreen: Date.now() - 121000, sinceInterstitial: 9 })'
@@ -56,7 +57,8 @@ async def shot(page, name):
 
 
 async def end_screen(page):
-    await page.wait_for_selector('.end-screen', timeout=10000)
+    # the end screen comes 2.3 s of game time after the level ends: on a busy machine (software WebGL) that is slow
+    await page.wait_for_selector('.end-screen', timeout=30000)
 
 
 async def leave_end(page, action):
@@ -129,6 +131,8 @@ async def main_flow(b, lang):
     s = await st(page)
     n = level_coins(s['result'])
     check(s['result']['win'] and s['coins'] == n, f'win pays {n} coins ({s["result"]["stars"]} stars, {round(s["result"]["saved"] * 100)}% saved), balance {s["coins"]}')
+    # the count-up is animated frame by frame: give a busy machine (software WebGL) a little longer to finish it
+    await until(page, f"document.querySelector('#end-coins').innerText.replace(/[.,]/g, '') === '+{n}'", 6000)
     check((await page.inner_text('#end-coins')).replace(',', '').replace('.', '') == f'+{n}', f'count-up ends at +{n}')
     await shot(page, f'{lang}-02-end.png')
     label = await page.inner_text('[data-a=double]')
@@ -381,7 +385,12 @@ async def other_modes(b):
     s = await st(page)
     check(s['coins'] == 0 and s['up'] == {'hose': 0, 'power': 0, 'speed': 0, 'time': 0} and s['owned'] == {'remove_ads': False, 'starter_pack': False}, 'old save gets coins 0, upgrades 0 and nothing owned')
     stars = await page.inner_text('.starcount')
-    check('3/18' in stars, f'old progress kept ({stars.strip()})')
+    n = len(await page.evaluate('__apagalo.levels'))
+    check(f'3/{n * 3}' in stars, f'old progress kept ({stars.strip()}, {n} levels)')
+    await page.click('.title-screen [data-a=levels]')
+    await page.wait_for_selector('.lvl[data-i="1"]')
+    cur = await page.evaluate("(() => { const c = document.querySelector('.lvl.cur'); return c ? c.dataset.i : null })()")
+    check(cur == '1' and await page.is_visible('.lvl[data-i="0"]'), f'old save: level select on the first page with level 2 as the next one (cur {cur})')
     check(not errs, f'no errors {errs}')
     await ctx.close()
 
@@ -453,17 +462,24 @@ async def other_modes(b):
 
 
 async def layouts(b):
-    print('layouts: end screen, shop, +30 s offer and reset confirmation on a 320 px phone and at 640x360')
+    print('layouts: level select, end screen, shop, +30 s offer and reset confirmation on a 320 px phone and at 640x360')
     for lang in ['es', 'en']:
         for vw in [(320, 568), (640, 360)]:
             ctx, page, _ = await new_page(b, lang, '?fakeads=1', viewport=vw)
+            # level select: levels 1-6 on the first page, nothing wider than the screen
+            await page.click('.title-screen [data-a=levels]')
+            await page.wait_for_selector('.lvl[data-i="5"]')
+            await shot(page, f'{lang}-levels-{vw[0]}x{vw[1]}.png')
+            over = await page.evaluate("[...document.querySelectorAll('.screen:last-child .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
+            await page.click('#screens > .screen:last-child [data-a=back]')
+            await page.wait_for_selector('.title-screen')
             await page.click('[data-a=play]')
             await page.wait_for_timeout(400)
             await page.evaluate(WIN)
             await end_screen(page)
             await page.wait_for_timeout(2800)
             await shot(page, f'{lang}-end-{vw[0]}x{vw[1]}.png')
-            over = await page.evaluate("[...document.querySelectorAll('.end-screen .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
+            over += await page.evaluate("[...document.querySelectorAll('.end-screen .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
             await page.click('.end-screen [data-a=shop]')
             await page.wait_for_selector('.shop-screen')
             await shot(page, f'{lang}-shop-{vw[0]}x{vw[1]}.png')
@@ -486,7 +502,7 @@ async def layouts(b):
             await page.click('[data-a=reset]')
             await shot(page, f'{lang}-reset-{vw[0]}x{vw[1]}.png')
             over += await page.evaluate("[...document.querySelectorAll('.screen:last-child .panel *')].filter(e => e.getBoundingClientRect().right > innerWidth).length")
-            check(over == 0 and btn, f'{lang} {vw[0]}x{vw[1]}: nothing wider than the screen (end, shop, +30 s, reset)')
+            check(over == 0 and btn, f'{lang} {vw[0]}x{vw[1]}: nothing wider than the screen (levels, end, shop, +30 s, reset)')
             await ctx.close()
 
 

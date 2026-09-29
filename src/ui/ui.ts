@@ -2,6 +2,7 @@ import { num, t, tx } from '../i18n';
 import type { Label } from '../render/view';
 import type { Stage } from '../render/stage';
 import { THEMES } from '../render/themes';
+import { FINALE_ID } from '../sim/campaign/finale';
 import type { LevelDef } from '../sim/types';
 import type { Result } from '../sim/world';
 import { IC } from './icons';
@@ -126,43 +127,163 @@ export function titleScreen(o: TitleOpts) {
   show(n);
 }
 
-export function levelsScreen(levels: LevelDef[], stars: Record<string, number>, best: Record<string, number>, unlocked: (i: number) => boolean, onPick: (i: number) => void, onBack: () => void) {
+/** Levels per page of the level select (chapters: 1-12, 13-24... the last one holds the finale). */
+export const LEVELS_PER_PAGE = 12;
+
+export interface LevelsOpts {
+  levels: LevelDef[];
+  stars: Record<string, number>;
+  best: Record<string, number>;
+  unlocked: (i: number) => boolean;
+  /** index of the next level to play: highlighted, and its page opens unless `focus` is given */
+  next: number;
+  /** open on the page of this level instead (coming back from its intro screen) */
+  focus?: number;
+  onPick: (i: number) => void;
+  onBack: () => void;
+}
+
+/**
+ * Level select: 12 levels per page, with a tab per page (its range and its stars) that also works with the
+ * arrow keys, PageUp/PageDown and a horizontal swipe over the cards. Cards keep `.lvl[data-i]` (index in `levels`).
+ */
+export function levelsScreen(o: LevelsOpts) {
+  const { levels, stars, best, unlocked } = o;
+  const per = LEVELS_PER_PAGE;
+  const pages = Math.max(1, Math.ceil(levels.length / per));
   const total = levels.reduce((a, L) => a + (stars[L.id] ?? 0), 0);
-  const cards = levels
-    .map((L, i) => {
-      const th = THEMES[L.theme];
-      const bg = `linear-gradient(160deg, ${hex(th.sky)} 0%, ${hex(th.outside)} 70%, ${th.grass[1]} 100%)`;
-      const lock = !unlocked(i);
-      return `<button class="lvl${lock ? ' locked' : ''}" data-i="${i}" style="background:${bg}" ${lock ? 'aria-disabled="true"' : ''}>
-        <span class="num">${L.num}</span>${!lock && !stars[L.id] ? `<span class="new">${t('newTag')}</span>` : ''}
+  const done = levels.filter((L) => (stars[L.id] ?? 0) > 0).length;
+  const clampPage = (p: number) => Math.max(0, Math.min(pages - 1, p));
+  let page = clampPage(Math.floor((o.focus ?? o.next) / per));
+  const span = (p: number) => [p * per, Math.min(levels.length, (p + 1) * per)] as const;
+  const range = (p: number) => {
+    const [a, b] = span(p);
+    return `${levels[a].num}–${levels[b - 1].num}`;
+  };
+  const pageStars = (p: number) => {
+    const [a, b] = span(p);
+    let s = 0;
+    for (let i = a; i < b; i++) s += stars[levels[i].id] ?? 0;
+    return { s, max: (b - a) * 3 };
+  };
+  const nextPage = Math.floor(o.next / per);
+  const isCur = (i: number) => i === o.next && unlocked(i) && !stars[levels[i].id];
+
+  const card = (L: LevelDef, i: number) => {
+    const th = THEMES[L.theme];
+    const fin = L.id === FINALE_ID;
+    const bg = fin ? 'linear-gradient(160deg, #1a2350 0%, #5a2340 55%, #e2572e 100%)' : `linear-gradient(160deg, ${hex(th.sky)} 0%, ${hex(th.outside)} 70%, ${th.grass[1]} 100%)`;
+    const lock = !unlocked(i);
+    const cur = isCur(i);
+    const st = stars[L.id] ?? 0;
+    const label = `${t('level')} ${L.num}: ${tx(L.name)}. ${lock ? t('lockedShort') : cur ? t('newTag') : t('starsN', { n: st })}`;
+    return `<button class="lvl${lock ? ' locked' : ''}${cur ? ' cur' : ''}${fin ? ' finale' : ''}" data-i="${i}" style="background:${bg}" aria-label="${esc(label)}"${lock ? ' aria-disabled="true"' : ''}${cur ? ' aria-current="step" data-focus' : ''}>
+        <span class="num">${L.num}</span>${fin ? `<span class="fin" aria-hidden="true">${IC.flame}</span>` : ''}
         <span class="nm">${esc(tx(L.name))}</span>
-        <span class="st"><span>${lock ? '🔒' : starsTxt(stars[L.id] ?? 0)}</span>${best[L.id] ? `<small>${best[L.id].toLocaleString()}</small>` : ''}</span>
+        <span class="st">${lock ? '<span>🔒</span>' : cur ? `<span class="new">${IC.play}${t('newTag')}</span>` : `<span>${starsTxt(st)}</span>`}${best[L.id] ? `<small>${best[L.id].toLocaleString()}</small>` : ''}</span>
       </button>`;
-    })
-    .join('');
+  };
+  const tab = (p: number) => {
+    const ps = pageStars(p);
+    const [a] = span(p);
+    const locked = !unlocked(a);
+    const pct = Math.round((ps.s / ps.max) * 100);
+    const aria = t('chapterAria', { r: range(p), s: ps.s, m: ps.max });
+    return `<button class="chap${locked ? ' locked' : ''}${p === nextPage && isCur(o.next) ? ' has-next' : ''}" role="tab" id="lv-tab-${p}" data-p="${p}" aria-controls="lv-grid" aria-label="${esc(aria)}">
+      <b>${locked ? '<i class="lk" aria-hidden="true">🔒</i>' : ''}${range(p)}</b><span class="cst"><span class="star-on">★</span> ${ps.s}/${ps.max}</span><i class="cbar" aria-hidden="true"><span style="width:${pct}%"></span></i>
+    </button>`;
+  };
+
   const n = el(`
-  <div class="screen dim">
-    <div class="panel wide">
+  <div class="screen dim levels-screen">
+    <div class="panel wide lv-panel">
       <div class="tape"></div>
-      <div class="panel-head"><div class="eyebrow"><span class="star-on">★</span> ${total}/${levels.length * 3}</div><h2>${t('levels')}</h2></div>
+      <div class="panel-head lv-head">
+        <button class="icon-btn" data-a="back" aria-label="${t('back')}">${IC.back}</button>
+        <div class="lv-title"><h2>${t('levels')}</h2><div class="eyebrow"><span class="star-on">★</span> ${total}/${levels.length * 3}<span class="lv-done"> · ${t('levelsDone', { n: done, m: levels.length })}</span></div></div>
+      </div>
       <div class="panel-body">
-        <div class="levels">${cards}</div>
-        <div class="actions"><button class="btn ghost" data-a="back" data-focus>${IC.back}${t('back')}</button></div>
+        ${pages > 1 ? `<div class="chapters" role="tablist" aria-label="${t('levels')}" style="--pages:${pages}">${Array.from({ length: pages }, (_, p) => tab(p)).join('')}</div>` : ''}
+        <div class="levels" id="lv-grid"${pages > 1 ? ' role="tabpanel"' : ''}></div>
       </div>
     </div>
   </div>`);
-  n.querySelectorAll<HTMLElement>('.lvl').forEach((b) =>
-    b.addEventListener('click', () => {
-      const i = Number(b.dataset.i);
-      if (!unlocked(i)) {
-        toast(t('locked'), 'warn');
-        return;
-      }
-      onPick(i);
-    }),
-  );
-  n.querySelector('[data-a=back]')!.addEventListener('click', onBack);
+  const grid = n.querySelector<HTMLElement>('#lv-grid')!;
+  const tabs = [...n.querySelectorAll<HTMLElement>('.chap')];
+
+  function render(dir: number) {
+    const [a, b] = span(page);
+    let html = '';
+    for (let i = a; i < b; i++) html += card(levels[i], i);
+    // keep every page as tall as a full one, so the tabs and the cards do not jump around
+    if (pages > 1) for (let i = b - a; i < per; i++) html += '<span class="lvl-ph" aria-hidden="true"></span>';
+    grid.innerHTML = html;
+    if (pages > 1) grid.setAttribute('aria-labelledby', `lv-tab-${page}`);
+    tabs.forEach((tb, p) => {
+      tb.setAttribute('aria-selected', String(p === page));
+      tb.tabIndex = p === page ? 0 : -1;
+    });
+    grid.classList.remove('slide-l', 'slide-r');
+    if (dir) {
+      void grid.offsetWidth;
+      grid.classList.add(dir > 0 ? 'slide-l' : 'slide-r');
+    }
+  }
+  function go(p: number, focusTab = false) {
+    p = clampPage(p);
+    if (p !== page) {
+      const dir = p > page ? 1 : -1;
+      page = p;
+      render(dir);
+    }
+    if (focusTab) tabs[page]?.focus();
+  }
+  render(0);
+
+  tabs.forEach((tb, p) => tb.addEventListener('click', () => go(p)));
+  n.querySelector('.chapters')?.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    const to = k === 'ArrowRight' ? page + 1 : k === 'ArrowLeft' ? page - 1 : k === 'Home' ? 0 : k === 'End' ? pages - 1 : null;
+    if (to === null) return;
+    e.preventDefault();
+    go(to, true);
+  });
+  n.addEventListener('keydown', (e) => {
+    const k = (e as KeyboardEvent).key;
+    if (k !== 'PageDown' && k !== 'PageUp') return;
+    e.preventDefault();
+    go(page + (k === 'PageDown' ? 1 : -1), true);
+  });
+  // swipe over the cards to change page (a swipe is not a tap on the card under the finger)
+  let sx = 0;
+  let sy = 0;
+  let swiped = 0;
+  grid.addEventListener('pointerdown', (e) => {
+    sx = e.clientX;
+    sy = e.clientY;
+  });
+  grid.addEventListener('pointerup', (e) => {
+    const dx = e.clientX - sx;
+    const dy = e.clientY - sy;
+    if (pages > 1 && Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swiped = performance.now();
+      go(page + (dx < 0 ? 1 : -1));
+    }
+  });
+  grid.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('.lvl');
+    if (!b || performance.now() - swiped < 400) return;
+    const i = Number(b.dataset.i);
+    if (!unlocked(i)) {
+      toast(t('locked'), 'warn');
+      return;
+    }
+    o.onPick(i);
+  });
+  n.querySelector('[data-a=back]')!.addEventListener('click', o.onBack);
   show(n);
+  // no highlighted level on this page (all done, or browsing another page): keyboard focus starts on the page tab
+  if (!grid.querySelector('[data-focus]')) (tabs[page] ?? n.querySelector<HTMLElement>('[data-a=back]'))?.focus({ preventScroll: true });
 }
 
 function windPill(angle: number, strength: number) {
@@ -278,6 +399,8 @@ export interface EndOpts {
   canDouble: boolean;
   /** shown again after the shop: no animations */
   instant?: boolean;
+  /** the finale was just won: the whole campaign is done (levels in it, stars earned and possible) */
+  campaign?: { levels: number; stars: number; maxStars: number };
   onNext: () => void;
   onRetry: () => void;
   onMenu: () => void;
@@ -292,18 +415,44 @@ export interface EndOpts {
 export function adLabel(action: string): string {
   return `<span class="adlbl"><small>${esc(t('adWord'))}</small>${esc(action)}</span>`;
 }
+/** The campaign is done: a trophy line with the campaign stars, under the level's stars. */
+function campaignHtml(c: NonNullable<EndOpts['campaign']>): string {
+  const missing = c.maxStars - c.stars;
+  return `<div class="campaign-box" role="status">
+    <span class="trophy" aria-hidden="true">🏆</span>
+    <div><b>${esc(t('campaignLine', { n: c.levels }))}</b>
+    <small><span class="star-on">★</span> ${c.stars}/${c.maxStars} · ${esc(missing > 0 ? t('campaignMore', { n: missing }) : t('campaignPerfect'))}</small></div>
+  </div>`;
+}
+
+/** Confetti over the end screen (decoration only; hidden with reduced motion). */
+function confettiHtml(): string {
+  const colors = ['#ffb21f', '#e23a2e', '#3fb6ff', '#f2e03a', '#3cc46e', '#ffffff'];
+  let h = '';
+  for (let i = 0; i < 36; i++) {
+    const x = (i * 37) % 100;
+    const d = 2.4 + ((i * 13) % 10) / 6;
+    const dl = ((i * 7) % 12) / 8;
+    h += `<i style="left:${x}%;background:${colors[i % colors.length]};animation-duration:${d.toFixed(2)}s;animation-delay:${dl.toFixed(2)}s;--r:${(i * 53) % 360}deg"></i>`;
+  }
+  return `<div class="confetti" aria-hidden="true">${h}</div>`;
+}
+
 export function endScreen(o: EndOpts) {
   const r = o.r;
-  const title = r.win ? t('win') : r.reason === 'time' ? t('loseTime') : t('loseControl');
+  const camp = r.win ? o.campaign : undefined;
+  const title = camp ? t('campaignDone') : r.win ? t('win') : r.reason === 'time' ? t('loseTime') : t('loseControl');
   const n = el(`
-  <div class="screen dim end-screen">
+  <div class="screen dim end-screen${camp ? ' campaign' : ''}">
+    ${camp && !o.instant ? confettiHtml() : ''}
     <div class="panel">
       <div class="tape"></div>
       <div class="panel-head" style="text-align:center"><div class="eyebrow">${esc(o.eyebrow)}</div></div>
       <div class="panel-body">
         <div class="end-col">
-        <h2 class="end-title ${r.win ? 'win' : 'lose'}">${title}</h2>
+        <h2 class="end-title ${r.win ? 'win' : 'lose'}${camp ? ' camp' : ''}">${title}</h2>
         <div class="bigstars"><span>★</span><span>★</span><span>★</span></div>
+        ${camp ? campaignHtml(camp) : ''}
         ${r.win ? '' : `<div class="tip"><p>${t('loseTip')}</p></div>`}
         <div class="stats" style="grid-template-columns:repeat(${r.rescueTotal ? 2 : 3}, 1fr)">
           <div class="stat"><div class="k">${t('statSaved')}</div><div class="v">${Math.round(r.saved * 100)}%</div></div>
@@ -334,7 +483,7 @@ export function endScreen(o: EndOpts) {
         <div class="actions">
           ${r.win ? `<button class="btn ghost" data-a="retry" aria-label="${t('restart')}" style="flex:0 0 60px;padding:0">${IC.retry}</button>` : ''}
           ${r.win && o.hasNext ? `<button class="btn water" data-a="share" style="flex:1 1 120px">${IC.share}${t('share')}</button>` : ''}
-          <button class="btn ghost" data-a="menu" aria-label="${t('menu')}" style="${r.win && o.hasNext ? 'flex:0 0 60px;padding:0' : 'flex:1 1 100%'}">${IC.home}${r.win && o.hasNext ? '' : t('menu')}</button>
+          <button class="btn ghost" data-a="menu" aria-label="${t('menu')}" style="${r.win && o.hasNext ? 'flex:0 0 60px;padding:0' : r.win ? 'flex:1 1 120px' : 'flex:1 1 100%'}">${IC.home}${r.win && o.hasNext ? '' : t('menu')}</button>
         </div>
         </div>
       </div>

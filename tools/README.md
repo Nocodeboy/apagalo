@@ -2,13 +2,13 @@
 
 Scripts de apoyo: no forman parte del juego. Se ejecutan desde la raíz del proyecto.
 
-Los de Python usan Playwright con Chromium (`pip install playwright pillow fonttools` y `playwright install chromium`) y cargan el juego compilado. Antes: `npm run build` y, en otra terminal, `npm run serve`, que sirve `dist/` en http://127.0.0.1:8765. Abrirlo como archivo (`file://`) no sirve porque las fuentes no cargan.
+Los de Python usan Playwright con Chromium (`pip install playwright pillow fonttools` y `playwright install chromium`) y cargan el juego compilado. Antes: `npm run build` y, en otra terminal, `npm run serve`, que sirve `dist/` en http://127.0.0.1:8765. Si lo sirves en otro puerto, pásalo con `PORT` (p. ej. `PORT=8784 python3 tools/test_monetize.py`). Abrirlo como archivo (`file://`) no sirve porque las fuentes no cargan.
 
 ## Simulación y dificultad (TypeScript, sin navegador)
 
 | Script | Qué hace | Uso |
 |---|---|---|
-| `bot.ts` | El bot juega cada nivel y los retos diarios en modo PRO y casual, y saca la tasa de victoria, el % salvado y las estrellas. Con `--up` juega los niveles con mejoras: `max` (todas a 5), un nivel para todas (`--up=3`) o uno por línea (`--up=manguera,presión,velocidad,tiempo`, p. ej. `--up=5,0,0,0`). Resultados de referencia en `docs/dificultad.md` | `npm run bot` (o `npx tsx tools/bot.ts [partidas] [nivel] [--up=max]`) |
+| `bot.ts` | El bot juega cada nivel (o solo uno: `npx tsx tools/bot.ts 10 finale`) y los retos diarios en modo PRO y casual, y saca la tasa de victoria, el % salvado y las estrellas. Con `--up` juega los niveles con mejoras: `max` (todas a 5), un nivel para todas (`--up=3`) o uno por línea (`--up=manguera,presión,velocidad,tiempo`, p. ej. `--up=5,0,0,0`). Resultados de referencia en `docs/dificultad.md` | `npm run bot` (o `npx tsx tools/bot.ts [partidas] [nivel] [--up=max]`) |
 | `daily-table.ts` | Regenera `src/sim/dailyTable.ts`, las semillas del reto diario que el bot ha comprobado que se pueden ganar. **Hay que ejecutarlo después de tocar la simulación** | `npm run daily-table` |
 | `sweep.ts` | Prueba combinaciones de parámetros de `TUNE` (simulación) y saca la tasa de victoria de cada una | `npx tsx tools/sweep.ts '[{"clave":valor}]' [partidas]` |
 | `trace.ts` | Traza una partida del bot PRO en un nivel (eventos y resultado), para depurar | `npx tsx tools/trace.ts [nivel]` |
@@ -35,7 +35,7 @@ Los de Python usan Playwright con Chromium (`pip install playwright pillow fontt
 
 ## Prueba de monedas, tienda y anuncios (Python + Playwright, con `dist/` servido)
 
-`python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis con su tope de 24 h, compras entregadas y luego consumidas, restaurar), +30 s al acabarse el tiempo, que los botones con anuncio lo digan, el anuncio entre niveles solo con «Siguiente» y sus topes (120 s desde cualquier anuncio, reloj atrasado), oferta de inicio, reto diario sin mejoras y con su tope de 24 h, anuncios y compras que fallan (`?fakeads=fail`), compras pagadas sin entregar que llegan al arrancar (una sola vez), pagos pendientes (`?fakeads=pending`), «Borrar progreso» con su aviso, la web sin anuncios, una partida guardada de la 1.2.0 y la pantalla final, la tienda, el +30 s y el aviso de borrar a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.
+`python3 tools/test_monetize.py [carpeta]` recorre en la web, en español y en inglés y con el proveedor de prueba (`?fakeads=1`): monedas al acabar un nivel con su cuenta animada, x2, tienda (mejoras, monedas gratis con su tope de 24 h, compras entregadas y luego consumidas, restaurar), +30 s al acabarse el tiempo, que los botones con anuncio lo digan, el anuncio entre niveles solo con «Siguiente» y sus topes (120 s desde cualquier anuncio, reloj atrasado), oferta de inicio, reto diario sin mejoras y con su tope de 24 h, anuncios y compras que fallan (`?fakeads=fail`), compras pagadas sin entregar que llegan al arrancar (una sola vez), pagos pendientes (`?fakeads=pending`), «Borrar progreso» con su aviso, la web sin anuncios, una partida guardada de la 1.2.0 (que sigue en el nivel 2 de la campaña) y el selector de niveles, la pantalla final, la tienda, el +30 s y el aviso de borrar a 320 px y a 640×360. Deja capturas en la carpeta (por defecto `shots/monetize/`) y termina con `ALL OK` o la lista de fallos.
 
 ## Negocio
 

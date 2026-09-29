@@ -1,6 +1,6 @@
 # ¡Apágalo! (Put It Out!)
 
-Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene 6 escenarios, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
+Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene una campaña de 67 niveles en 6 escenarios, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
 
 | Dónde | Estado |
 |---|---|
@@ -15,7 +15,9 @@ Estado detallado, siguientes pasos y dónde vive cada cosa (cuentas, carpetas, s
 ```
 src/sim/        Simulación pura (sin 3D): fuego, viento, brasas, agua, reglas, niveles, bot
   world.ts        motor: rejilla de celdas, propagación, agua, bombonas, electricidad, cohetes
-  levels.ts       los 6 escenarios (construidos con mapbuilder.ts)
+  levels.ts       los 6 niveles originales (BASE_LEVELS) y el orden de la campaña (LEVELS); ver «Campaña»
+  campaign/       los niveles 7-66 de cada escenario (plaza.ts, granja.ts...) y el final (finale.ts)
+  mapbuilder.ts   comandos para dibujar los mapas; la leyenda de caracteres está en parse.ts
   daily.ts        reto diario con semilla por fecha
   dailyTable.ts   semillas verificadas por el bot (generado; no editar)
   bot.ts          bot que juega (dificultad, demo del menú, validación del diario)
@@ -87,6 +89,24 @@ Con `RELEASE=1`, `build.mjs` no compila la versión de Android si sigue con los 
 
 Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo-upload.jks`. No van en el repositorio: están en la carpeta `NO-COMPARTIR`. Antes de cada subida, sube `versionCode` y `versionName` en `android/app/build.gradle` y `VERSION` en `build.mjs`. Los pasos completos, la ficha y las respuestas de Play Console están en `docs/google-play.md`.
 
+## Campaña
+
+67 niveles en 6 escenarios (la plaza, la granja, la gasolinera, el polígono, El Castañar y la playa en la noche de San Juan), en este orden (`campaign()` en `src/sim/levels.ts`):
+
+| Niveles | Qué son | Dónde están |
+|---|---|---|
+| 1-6 | Los originales, uno por escenario. Cada uno enseña una mecánica y son también los mapas del reto diario | `BASE_LEVELS` en `src/sim/levels.ts` |
+| 7-66 | 10 bloques de 6, un nivel de cada escenario por bloque y más difíciles bloque a bloque. El orden de los escenarios rota en cada bloque, así que nunca tocan dos del mismo sitio seguidos | `src/sim/campaign/<escenario>.ts`: el índice `k` del archivo va al bloque `k` (ids `plaza-2` … `plaza-11`) |
+| 67 | «El gran incendio» / «The Big One»: todo el pueblo de noche con un fuego en cada barrio (feria, gasolinera, naves con el cuadro eléctrico, casco viejo con la iglesia), cambios de viento y cohetes | `src/sim/campaign/finale.ts` |
+
+- Se desbloquean en orden: hay que ganar el anterior (1 estrella o más). Un nivel ya ganado sigue abierto aunque cambie el orden. Las partidas guardadas usan el `id` de cada nivel, así que un id publicado no se cambia nunca; `num` (el número que ve el jugador) lo pone la campaña según la posición.
+- El selector de niveles va por páginas de 12 (1-12, 13-24… 61-67), con una pestaña por página con sus estrellas, y se abre en la página del siguiente nivel por jugar. En la pantalla del título, CONTINUAR lleva a ese nivel.
+- El menú de fondo del título (el bot jugando) y el reto diario solo usan los 6 niveles originales.
+- Al ganar el nivel 67 la pantalla final celebra la campaña completada (con las estrellas de toda la campaña) y lo añade al texto de compartir.
+- Los eventos `level_start`, `level_complete`, `level_fail`, `level_quit` y `share` llevan el `id` del nivel (`level`) y su número en la campaña (`num`).
+
+**Cómo añadir un nivel.** En el archivo de su escenario, añade un `L({...}, mapa())` al array (el índice decide el bloque). El mapa se dibuja con `MB` (`src/sim/mapbuilder.ts`) y los caracteres están en `src/sim/parse.ts`; tiene que haber un camión (`X`). Luego mide la dificultad con el bot (`npx tsx tools/bot.ts 10 <id>`, compara con `docs/dificultad.md`) y mira el mapa con `npx tsx tools/check.ts --map`. Si un archivo tiene menos de 10 niveles, la campaña simplemente se salta los que faltan. No hace falta regenerar `dailyTable.ts`: el reto diario solo usa los 6 originales.
+
 ## Controles
 
 - **Móvil:** con el pulgar izquierdo te mueves y con el derecho apuntas y echas agua (tiene ayuda de puntería). Las boquillas se eligen a la derecha.
@@ -100,7 +120,7 @@ Por defecto está en **Automática**: los móviles empiezan en calidad media y l
 
 Cada partida da monedas, ganes o pierdas: 50 + 50 por estrella + hasta 50 según el % salvado (de 50 a 250). El primer resultado del día en el reto diario da 100 si pierdes y 200, 250 o 300 según las estrellas; si lo repites, paga como un nivel. Con las monedas se compran mejoras en la tienda (título o pantalla final): manguera más larga, más presión, botas y más tiempo, 5 niveles cada una a 200/500/1.000/2.000/4.000 monedas. El reto diario no aplica mejoras para que la clasificación sea justa. Efectos y equilibrio medido con el bot: `docs/dificultad.md`.
 
-Como referencia, una victoria con 3 estrellas da unas 250 monedas: comprar todas las mejoras (30.800) lleva unas 120 victorias así (más partidas jugando normal, menos con el x2 y las monedas gratis).
+Como referencia, una victoria con 3 estrellas da unas 250 monedas y una normal (2 estrellas) unas 190. Pasarse la campaña de 67 niveles, con sus derrotas, da unas 15.000 monedas sin anuncios: el nivel 4 de todas las mejoras. El nivel 5 (16.000 más) queda para el reto diario, el x2, las monedas gratis o las compras. Cálculo completo en `docs/monetizacion.md` («Economía»).
 
 ## Monetización
 

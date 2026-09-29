@@ -10,7 +10,8 @@ import { Stage, type Tier } from './render/stage';
 import { Bot, SKILL_PRO } from './sim/bot';
 import { dayKey, makeDaily, type Daily } from './sim/daily';
 import { DAILY_SALTS } from './sim/dailyTable';
-import { LEVELS } from './sim/levels';
+import { FINALE_ID } from './sim/campaign/finale';
+import { BASE_LEVELS, LEVELS } from './sim/levels';
 import { MATS } from './sim/materials';
 import { RESCUE_TYPES } from './sim/parse';
 import type { Lang, LevelDef, SimEvent, SimInput } from './sim/types';
@@ -220,9 +221,10 @@ function fireCentroid(s: Sim): { x: number; z: number } | null {
   }
   return n ? { x: sx / n, z: sz / n } : null;
 }
+/** Linear unlocking: win the previous level (1 star or more). A level already won stays open whatever comes before it. */
 function unlocked(i: number): boolean {
   if (i === 0) return true;
-  return (save.stars[LEVELS[i - 1].id] ?? 0) >= 1;
+  return (save.stars[LEVELS[i - 1].id] ?? 0) >= 1 || (save.stars[LEVELS[i].id] ?? 0) >= 1;
 }
 function nextLevelIndex(): number {
   for (let i = 0; i < LEVELS.length; i++) if (!save.stars[LEVELS[i].id]) return unlocked(i) ? i : Math.max(0, i - 1);
@@ -247,9 +249,9 @@ function setNozzle(n: 0 | 1 | 2) {
   input.nozzle = n;
 }
 
-// ---------- attract mode (bot plays behind the menus) ----------
+// ---------- attract mode (bot plays behind the menus): only the 6 original levels, cheap and always the same ----------
 function startAttract() {
-  const L = LEVELS[attractIdx % LEVELS.length];
+  const L = BASE_LEVELS[attractIdx % BASE_LEVELS.length];
   attractIdx++;
   sim = new Sim(L, { seed: 777 + attractIdx });
   bot = new Bot(sim, SKILL_PRO);
@@ -373,21 +375,24 @@ function isYesterday(key: string): boolean {
   return dayKey(y) === key;
 }
 
-function showLevels() {
-  levelsScreen(
-    LEVELS,
-    save.stars,
-    save.best,
+/** Level select, on the page of the next level to play (or of `focus`, coming back from a level's intro). */
+function showLevels(focus?: number) {
+  levelsScreen({
+    levels: LEVELS,
+    stars: save.stars,
+    best: save.best,
     unlocked,
-    (i) => {
+    next: nextLevelIndex(),
+    focus,
+    onPick: (i) => {
       audio.play('click');
       openLevel(i);
     },
-    () => {
+    onBack: () => {
       audio.play('click');
       showTitle();
     },
-  );
+  });
 }
 
 function showSettings() {
@@ -489,7 +494,7 @@ function openLevel(i: number) {
     onBack: () => {
       audio.play('click');
       startAttract();
-      showLevels();
+      showLevels(i);
     },
   });
 }
@@ -507,9 +512,9 @@ function openDaily() {
   const rec = save.daily[d.key];
   introScreen({
     def: d.def,
-    eyebrow: `${t('daily')} · ${tx(LEVELS.find((l) => l.theme === d.def.theme)!.name)}`,
+    eyebrow: `${t('daily')} · ${tx(BASE_LEVELS.find((l) => l.theme === d.def.theme)!.name)}`,
     title: t('dailyTitle', { n: d.num }),
-    tip: rec ? t('dailyPlayed', { s: rec.score.toLocaleString() }) : `${tx(d.mod.label)} · ${tx(LEVELS.find((l) => l.theme === d.def.theme)!.tip)}`,
+    tip: rec ? t('dailyPlayed', { s: rec.score.toLocaleString() }) : `${tx(d.mod.label)} · ${tx(BASE_LEVELS.find((l) => l.theme === d.def.theme)!.tip)}`,
     time: sim!.timeLeft,
     wind: d.opts.windOverride ?? d.def.wind,
     hasRescues: sim!.rescuees.length > 0,
@@ -542,8 +547,9 @@ function startPlay() {
   acc = 0;
   playStart = performance.now();
   endTimer = -1;
-  const id = current?.kind === 'daily' ? `daily-${current.daily.num}` : sim.def.id;
-  track('level_start', { level: id });
+  // level events carry the level id (stable, what saves use) and its number in the campaign order
+  if (current?.kind === 'daily') track('level_start', { level: `daily-${current.daily.num}` });
+  else track('level_start', { level: sim.def.id, num: sim.def.num });
   if (current?.kind === 'daily') track('daily_start', { num: current.daily.num });
   if (current?.kind === 'level' && current.index === 0 && !save.tutorialDone) showTutorial();
   try {
@@ -580,7 +586,7 @@ function pauseGame() {
     },
     onMenu: () => {
       audio.duck(false);
-      track('level_quit', { level: sim?.def.id ?? '' });
+      track('level_quit', current?.kind === 'daily' ? { level: `daily-${current.daily.num}` } : { level: sim?.def.id ?? '', num: sim?.def.num ?? 0 });
       startAttract();
       showTitle();
     },
@@ -875,7 +881,9 @@ function shareFor(r: Result): string {
   const head = `${t('gameName')} 🚒 ${current?.kind === 'daily' ? t('dailyTitle', { n: current.daily.num }) : `${t('level')} ${sim!.def.num} · ${tx(sim!.def.name)}`}`;
   const animals = r.rescueTotal ? ` · 🐾 ${r.rescueTotal - r.fled}/${r.rescueTotal}` : '';
   const rank = current?.kind === 'daily' && dailyRank && dailyRank.players > 1 ? ` · 🏆 Top ${Math.max(1, 100 - rankPct(dailyRank))}%` : '';
-  return `${head}\n${stars} ${Math.round(r.saved * 100)}% ${t('saved').toLowerCase()} · ⏱ ${fmtTime(r.timeUsed)}${animals}\n${blocks}${rank}${GAME_URL ? '\n' + GAME_URL : ''}`;
+  const c = endInfo?.campaign;
+  const camp = c && r.win ? `\n${t('shareCampaign', { n: c.levels, s: c.stars, m: c.maxStars })}` : '';
+  return `${head}\n${stars} ${Math.round(r.saved * 100)}% ${t('saved').toLowerCase()} · ⏱ ${fmtTime(r.timeUsed)}${animals}\n${blocks}${rank}${camp}${GAME_URL ? '\n' + GAME_URL : ''}`;
 }
 
 function rankPct(rk: { players: number; below: number }): number {
@@ -894,8 +902,15 @@ interface EndInfo {
   doubled: boolean;
   /** the player already saw an ad or an offer on this end screen: no interstitial when leaving */
   adSeen: boolean;
+  /** the finale was won: the campaign is complete */
+  campaign?: { levels: number; stars: number; maxStars: number };
 }
 let endInfo: EndInfo | null = null;
+
+/** Stars of the whole campaign (only ids of levels that exist). */
+function campaignStats() {
+  return { levels: LEVELS.length, stars: LEVELS.reduce((a, L) => a + (save.stars[L.id] ?? 0), 0), maxStars: LEVELS.length * 3 };
+}
 
 function rankText(rk: { players: number; below: number }): string {
   return rk.players <= 1 ? t('dailyFirst') : t('dailyRank', { p: rankPct(rk), n: rk.players.toLocaleString() });
@@ -925,7 +940,9 @@ function commitResult() {
     info.best = save.best[id] ?? 0;
     info.hasNext = idx < LEVELS.length - 1;
     if (nextWasLocked && unlocked(idx + 1)) info.unlockedNext = idx + 2;
-    track(r.win ? 'level_complete' : 'level_fail', { level: id, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur, ...cont });
+    track(r.win ? 'level_complete' : 'level_fail', { level: id, num: s.def.num, stars: r.stars, saved: Math.round(r.saved * 100), time: Math.round(r.timeUsed), reason: r.reason, dur, ...cont });
+    // the finale's level_complete already marks the end of the campaign in the analytics
+    if (r.win && id === FINALE_ID) info.campaign = campaignStats();
   } else if (current?.kind === 'daily') {
     const d = current.daily;
     info.eyebrow = t('dailyTitle', { n: d.num });
@@ -964,7 +981,7 @@ function showEnd() {
   const info = endInfo!;
   mode = 'end';
   gameplayStop();
-  if (r.win && r.stars === 3) happytime();
+  if ((r.win && r.stars === 3) || info.campaign) happytime();
   setHudVisible(false);
   clearTutorial();
   wakeLock?.release().catch(() => undefined);
@@ -1003,6 +1020,7 @@ function renderEnd(instant: boolean) {
     balance: save.coins,
     canDouble,
     instant,
+    campaign: info.campaign,
     // the interstitial only goes before the next level's intro screen: never right before play (Retry) nor on
     // navigation (Menu, Android back)
     onNext: () =>
@@ -1032,7 +1050,7 @@ function renderEnd(instant: boolean) {
       store.save();
       return { coins: info.coins, balance: save.coins };
     },
-    onShared: () => track('share', { level: s.def.id, stars: r.stars }),
+    onShared: () => track('share', current?.kind === 'daily' ? { level: s.def.id, stars: r.stars } : { level: s.def.id, num: s.def.num, stars: r.stars }),
     onStar: (i) => {
       audio.play('star', i);
       if (save.settings.vibration) vibrate(15);
@@ -1276,6 +1294,10 @@ void RESCUE_TYPES;
   /** live save (coins, upgrades, ad counters) */
   get save() {
     return save;
+  },
+  /** ids of the campaign levels, in play order */
+  get levels() {
+    return LEVELS.map((L) => L.id);
   },
   get info() {
     const r = stage.renderer.info;
