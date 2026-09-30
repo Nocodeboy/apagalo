@@ -94,7 +94,7 @@ Después, en **Monetizar con Play › Productos › Productos de compra única �
 | `coins_m` | 6.000 monedas | Consumible | 4,99 USD |
 | `coins_l` | 14.000 monedas | Consumible | 9,99 USD |
 
-**Perfil de pagos creado el 30 sept 2026:** perfil de particular «Germán Huertas Piquero», nombre público de comerciante *NoCodeBuilder*, categoría *Software informático*, correo de atención al cliente el de la cuenta, extracto de tarjeta `NOCODEBOYGAMES` (el campo admite 14 caracteres) y la dirección legal como dirección pública. Queda pendiente apuntarse a la cuota del 15 % (Ajustes › Perfil de pagos › *Gestionar grupo de cuentas* y aceptar sus condiciones); sin eso, Google se queda el 30 %.
+**Perfil de pagos creado el 30 sept 2026:** perfil de particular «Germán Huertas Piquero», nombre público de comerciante *NoCodeBuilder*, categoría *Software informático*, correo de atención al cliente el de la cuenta, extracto de tarjeta `NOCODEBOYGAMES` (el campo admite 14 caracteres) y la dirección legal como dirección pública. **Cuota del 15 %:** inscrita el 30 sept 2026. Se creó el grupo de cuentas «NoCodeBuilder», que solo tiene esta cuenta. A las dos preguntas sobre otras cuentas (de la misma entidad legal o con marca parecida) se respondió «No». Después se aceptaron los términos. El estado se ve en Cuenta de desarrollador › Cuentas de desarrollador asociadas. Si algún día hay otra cuenta de Play, hay que añadirla al grupo. Falta la cuenta bancaria para cobrar (Perfil de pagos › Cómo recibes los pagos), que la pone Germán.
 
 **Cuidado con el precio:** con la consola en español, el punto es separador de miles. Escribe `2,99`, no `2.99`: con punto, Play lo lee como 299 USD.
 
