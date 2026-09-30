@@ -17,7 +17,7 @@ import { FINALE_ID } from './sim/campaign/finale';
 import { BASE_LEVELS, CREW_FROM, LEVELS } from './sim/levels';
 import { MATS } from './sim/materials';
 import { RESCUE_TYPES } from './sim/parse';
-import { CREW_IDS, type CrewId, type EventKind, type Lang, type LevelDef, type PowerKind, type SimEvent, type SimInput } from './sim/types';
+import { CREW_IDS, type CrewId, type EventKind, type Lang, type LevelDef, type ThemeId, type PowerKind, type SimEvent, type SimInput } from './sim/types';
 import { Sim, SIM_DT, type Result } from './sim/world';
 import * as store from './storage';
 import type { Settings } from './storage';
@@ -58,7 +58,7 @@ import {
   updateIcons,
 } from './ui/ui';
 
-declare const __MUSIC__: { menu?: string; game?: string };
+declare const __MUSIC__: Record<string, string>;
 declare const __GAME_URL__: string;
 declare const __TARGET__: string;
 declare const __PRIVACY_URL__: string;
@@ -187,13 +187,18 @@ window.addEventListener('resize', () => stage.resize());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && mode === 'play') pauseGame();
 });
-// unlock audio on the first interaction anywhere
-const unlock = () => {
-  audio.unlock();
-  audio.music(mode === 'play' ? 'game' : 'menu');
+// audio starts on the first interaction anywhere; later gestures retry what the browser refused (on touch screens
+// pointerdown is not a gesture for it, so the first try fails and the touchend / click after it succeeds)
+let audioStarted = false;
+const onGesture = () => {
+  if (!audioStarted) {
+    audioStarted = true;
+    audio.unlock();
+    audio.music(mode === 'play' ? 'game' : 'menu');
+  }
+  audio.kick();
 };
-window.addEventListener('pointerdown', unlock, { once: true });
-window.addEventListener('keydown', unlock, { once: true });
+for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const) window.addEventListener(ev, onGesture, { passive: true });
 
 startAttract();
 showTitle();
@@ -668,10 +673,26 @@ function openDaily() {
   track('daily_open', { num: d.num, mod: d.mod.key, played: !!rec });
 }
 
+/** Each place has its loop; big fires and the finale share the epic one. */
+const PLACE_MUSIC: Partial<Record<ThemeId, string>> = {
+  granja: 'folk',
+  castanar: 'folk',
+  camping: 'folk',
+  puerto: 'funk',
+  ciudad: 'funk',
+  estacion: 'funk',
+  gasolinera: 'rock',
+  poligono: 'rock',
+  sanjuan: 'night',
+  museo: 'night',
+  nieve: 'snow',
+};
+
 function startPlay() {
   if (!sim) return;
   audio.unlock();
   audio.play('siren');
+  audio.gameTrack = sim.def.big || sim.def.id === FINALE_ID ? 'bigfire' : (PLACE_MUSIC[sim.def.theme] ?? 'game');
   audio.music('game');
   clearScreens();
   resetHudCache();

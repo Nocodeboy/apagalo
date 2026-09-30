@@ -18,12 +18,15 @@ export class Audio {
   musicOn = true;
   /** silenced while an ad plays */
   private muted = false;
-  private tracks: Partial<Record<Exclude<Mode, 'none'>, string>> = {};
+  private tracks: Record<string, string> = {};
   private musicEl: HTMLAudioElement | null = null;
   private musicMode: Mode = 'none';
+  private musicSrc = '';
+  /** the loop for levels: the place's own (folk, funk, rock, night, snow), bigfire, or the default game track */
+  gameTrack = 'game';
   private last: Record<string, number> = {};
 
-  setMusicTracks(t: Partial<Record<Exclude<Mode, 'none'>, string>>) {
+  setMusicTracks(t: Record<string, string>) {
     this.tracks = t;
   }
 
@@ -92,9 +95,11 @@ export class Audio {
   }
 
   music(mode: Mode, force = false) {
-    if (mode === this.musicMode && !force) return;
+    const key = mode === 'game' && this.tracks[this.gameTrack] ? this.gameTrack : mode;
+    const src = mode === 'none' ? undefined : this.tracks[key];
+    if (mode === this.musicMode && (src ?? '') === this.musicSrc && !force) return;
     this.musicMode = mode;
-    const src = mode === 'none' ? undefined : this.tracks[mode];
+    this.musicSrc = src ?? '';
     if (this.musicEl) {
       const old = this.musicEl;
       const fade = setInterval(() => {
@@ -117,6 +122,24 @@ export class Audio {
       if (el.volume >= target) clearInterval(up);
     }, 60);
     this.musicEl = el;
+  }
+
+  /**
+   * Every user gesture: resumes a suspended context and retries music the browser blocked. On touch screens the
+   * first pointerdown does not count as a gesture (only the touchend / click after it), so the menu music asked
+   * for then was refused and never retried: the game stayed silent on phones until a level started.
+   */
+  kick() {
+    if (!this.ctx || this.muted) return;
+    try {
+      if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => undefined);
+      if (!this.musicOn) return;
+      if (this.musicEl) {
+        if (this.musicEl.paused) this.musicEl.play().catch(() => undefined);
+      } else if (this.musicMode !== 'none') this.music(this.musicMode, true);
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Silences effects and music while an ad plays. */

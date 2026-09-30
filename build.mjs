@@ -17,7 +17,8 @@ const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
 // Supabase project shared by the studio's games (nocodeboy-games); the publishable key is public by design.
 const ANALYTICS = { url: 'https://xshxfaospajlgwrnivvq.supabase.co', key: 'sb_publishable_GfwGUNaIh924_4oNIIqoZw_ellp8wGm' };
 const music = {};
-for (const k of ['menu', 'game']) if (existsSync(`assets/music-${k}.mp3`)) music[k] = `music-${k}.mp3`;
+// menu, the default level loop (the village square) and one per group of places (tools/music.py)
+for (const k of ['menu', 'game', 'folk', 'funk', 'rock', 'night', 'snow', 'bigfire']) if (existsSync(`assets/music-${k}.mp3`)) music[k] = `music-${k}.mp3`;
 
 const css = readFileSync('src/style.css', 'utf8');
 // Google Fonts only for the Claude artifact; the web and CrazyGames builds self-host the same OFL fonts
