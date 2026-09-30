@@ -112,6 +112,8 @@ Desde el nivel 3 (nunca en los de presentación): el primero entre los segundos 
 
 Uno en la mitad de los niveles desde el 8 (dos en cada gran incendio, ninguno en los de presentación). Avisan con un cartel 3 s antes. El primero de cada tipo se explica.
 
+Los niveles pensados alrededor de sus eventos los llevan fijos en su definición (`fixedEvents`), estén donde estén en la ruta: la ventisca (`nieve-8`: apagón y racha) y la gala (`museo-8`: curiosos y apagón). Los demás los reciben de la ruta; `wantEvents` solo dice cuáles prefiere un nivel si la ruta le da alguno.
+
 Cada evento tiene su segundo previsto (el primero entre el 22 y el 42 % del tiempo del nivel, el segundo entre el 55 y el 70 %), pero empieza antes si el fuego ya está controlado en un tercio (el primero) o en dos tercios (el segundo), nunca antes del segundo 10 y con 12 s entre uno y otro. Así quien juega rápido también se los encuentra.
 
 | Evento | Desde | Qué pasa | Qué hacer |
@@ -200,4 +202,5 @@ Eventos nuevos: `powerup {k, level}`, `event {k, level}`, `crew_hire {id, lvl, n
 - **Rendimiento**: los niveles nuevos dibujan entre 56 y 98 llamadas y, la mayoría, entre 22.000 y 74.000 triángulos (modelos instanciados por grupo, como el resto). La biblioteca llegaba a 142.000 por las estanterías: ahora los libros solo se modelan por delante.
 - **Herramientas nuevas**: `tools/probe.ts` (vistazo rápido a un nivel), `tools/tune-route.ts` y `tools/apply-tune.py` (umbrales por puesto en la ruta), `tools/test_migration.ts` (guardado sin navegador) y `tools/shots_b.py` (capturas en cualquier segundo de la partida). Capturas en `shots/v2/`.
 - **Textos de las tiendas** actualizados a 120 niveles y 12 escenarios, primero en inglés (`ficha-tienda-en.md`, `crazygames.md`, `google-play.md`).
+- **Después de la revisión**: `nieve-8` y `museo-8` con sus eventos fijos; los textos flotantes («Rescued!», «Hose connected», «Blaze out!») se apilan en vez de taparse (el más nuevo en su sitio y los anteriores encima; `tools/test_floaters.py`); y en `dificultad.md`, qué endurecer primero si los datos lo piden (mínimos, luego propagación y el tiempo lo último), medido con `tools/headroom.ts`.
 - **Sin hacer**: capturas y vídeo nuevos para las tiendas; el evento «equipo de televisión» y el vagón que se mueve en la estación (ideas del diseño que no han entrado); la URL del juego del perro pastor.

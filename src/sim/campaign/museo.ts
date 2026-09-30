@@ -415,7 +415,11 @@ export const MUSEO: LevelDef[] = [
       stars: [0.72, 0.75],
       minSaved: 0.49,
       under: '_',
-      wantEvents: ['blackout', 'onlookers'],
+      // guests wander towards the fire, then the power goes out: always, wherever the level is in the route
+      fixedEvents: [
+        { kind: 'onlookers', t: 45 },
+        { kind: 'blackout', t: 100 },
+      ],
       sprinklers: [
         { lever: [2, 2], area: [2, 2, 13, 20] },
         { lever: [27, 2], area: [15, 2, 13, 20] },

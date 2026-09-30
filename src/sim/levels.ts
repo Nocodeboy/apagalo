@@ -568,7 +568,14 @@ function decorate(route: LevelDef[]): LevelDef[] {
     } else d.powerups = [];
     // events: from level 8, one in half the levels, two in the big fires, none in the intros
     const events: LevelEvent[] = [];
-    if (n >= 8 && !d.intro) {
+    if (n >= 8 && !d.intro && d.fixedEvents?.length) {
+      for (const ev of d.fixedEvents) {
+        events.push({ kind: ev.kind, t: ev.t });
+        if (!eventDone.has(ev.kind)) news.push({ kind: 'event', id: ev.kind });
+        eventDone.add(ev.kind);
+        // (they leave the route's own picks for the other levels as they were)
+      }
+    } else if (n >= 8 && !d.intro) {
       const open = EVENT_KINDS.filter((k) => EVENT_FROM[k] <= n && (k !== 'blackout' || isNight(d)));
       const fresh = open.find((k) => !eventDone.has(k));
       const want = d.big ? 2 : fresh || rng.next() < 0.5 ? 1 : 0;

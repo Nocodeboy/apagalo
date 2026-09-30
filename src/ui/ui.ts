@@ -808,14 +808,23 @@ export function toast(text: string, kind: '' | 'warn' | 'good' = '', ms = 2200) 
 }
 
 // ---------------- floating world texts ----------------
+// Several can pop up at the same spot at once ("Rescued!", "Hose connected", "Blaze out!"): they stack. The newest sits
+// where it belongs and pushes the older ones up, so two texts never cover each other.
 interface Floater {
   node: HTMLElement;
   x: number;
   y: number;
   z: number;
   t: number;
+  /** size at scale 1 (measured once) */
+  w: number;
+  h: number;
+  /** pixels it is pushed up to clear newer texts (eased) */
+  lift: number;
 }
 const floaters: Floater[] = [];
+const FLOAT_LIFE = 1.3;
+const FLOAT_GAP = 4;
 export function floater(text: string, x: number, y: number, z: number, kind = '') {
   const host = $('#floaters');
   if (floaters.length > 10) {
@@ -824,22 +833,59 @@ export function floater(text: string, x: number, y: number, z: number, kind = ''
   }
   const node = el(`<div class="fl ${kind}">${esc(text)}</div>`);
   host.appendChild(node);
-  floaters.push({ node, x, y, z, t: 0 });
+  // hidden until updateFloaters places it (it would flash at the top-left corner)
+  node.style.opacity = '0';
+  floaters.push({ node, x, y, z, t: 0, w: node.offsetWidth, h: node.offsetHeight, lift: 0 });
 }
 export function updateFloaters(stage: Stage, dt: number) {
   for (let i = floaters.length - 1; i >= 0; i--) {
     const f = floaters[i];
     f.t += dt;
-    const k = f.t / 1.3;
-    if (k >= 1) {
+    if (f.t >= FLOAT_LIFE) {
       f.node.remove();
       floaters.splice(i, 1);
-      continue;
     }
+  }
+  const sw = $('#floaters').clientWidth || innerWidth;
+  // the nozzle buttons on the right: a text at their height stays clear of them
+  const nz = document.getElementById('nozzles')?.getBoundingClientRect();
+  const nzOn = !!nz && nz.width > 0 && nz.left > sw / 2;
+  // newest first: each one is placed, then the older ones go above whatever they would overlap
+  const placed: { l: number; r: number; top: number; bot: number }[] = [];
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    // (made while the HUD was hidden: measure it now)
+    if (!f.w) {
+      f.w = f.node.offsetWidth;
+      f.h = f.node.offsetHeight;
+    }
+    const k = f.t / FLOAT_LIFE;
     const p = stage.toScreen(f.x, f.y, f.z);
-    const w = f.node.offsetWidth;
-    const sc = k < 0.15 ? 0.6 + (k / 0.15) * 0.5 : 1.1 - Math.min(0.1, (k - 0.15) * 0.3);
-    f.node.style.transform = `translate(${p.x - w / 2}px, ${p.y - 40 - k * 50}px) scale(${sc})`;
+    const sc0 = k < 0.15 ? 0.6 + (k / 0.15) * 0.5 : 1.1 - Math.min(0.1, (k - 0.15) * 0.3);
+    // keep it on screen and clear of the nozzle buttons (narrow phones): shift it, and shrink it if it still won't fit
+    const cy = p.y - 40 - k * 50 + f.h / 2;
+    const edge = nzOn && cy + (f.h * sc0) / 2 > nz!.top && cy - (f.h * sc0) / 2 < nz!.bottom ? nz!.left - 4 : sw - 4;
+    const sc = Math.min(sc0, (edge - 4) / f.w);
+    const w = f.w * sc;
+    const h = f.h * sc;
+    const cx = Math.min(Math.max(p.x, w / 2 + 4), edge - w / 2);
+    const l = cx - w / 2;
+    const r = cx + w / 2;
+    const hit = (lift: number) => {
+      const top = cy - h / 2 - lift;
+      const bot = cy + h / 2 - lift;
+      return placed.find((q) => l < q.r && r > q.l && top < q.bot + FLOAT_GAP && bot > q.top - FLOAT_GAP);
+    };
+    // the lowest spot that is free: go above whatever it would cover until nothing is in the way
+    let want = 0;
+    for (let q = hit(0), n = 0; q && n <= placed.length; q = hit(want), n++) want = cy + h / 2 - (q.top - FLOAT_GAP);
+    // up at once (never over the new text; it pops in small and grows, so the push is gentle), down smoothly once the
+    // text under it has gone, unless that would cover another one
+    const eased = f.lift + (want - f.lift) * Math.min(1, dt * 6);
+    f.lift = want >= f.lift || hit(eased) ? want : eased;
+    const y = cy - f.lift;
+    placed.push({ l, r, top: y - h / 2, bot: y + h / 2 });
+    f.node.style.transform = `translate(${cx - f.w / 2}px, ${y - f.h / 2}px) scale(${sc})`;
     f.node.style.opacity = String(k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1);
   }
 }

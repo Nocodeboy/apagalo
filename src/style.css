@@ -975,6 +975,7 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 0 14px;
   font-weight: 800;
   font-size: 18px;
@@ -1259,6 +1260,17 @@ p {
   color: #fff;
   text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
   will-change: transform;
+}
+/* narrow phones: the label of the control bar ("EXTINCIÓN") and the floating texts get a bit smaller */
+@media (max-width: 360px) {
+  .bar .lbl {
+    padding: 0 10px;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+  }
+  .fl {
+    font-size: 18px;
+  }
 }
 .fl.good {
   color: #bff5d0;

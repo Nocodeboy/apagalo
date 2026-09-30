@@ -72,6 +72,9 @@ export interface LevelDef {
   headline?: Txt;
   /** events this level wants if the route gives it any (e.g. a blackout for a night in the city) */
   wantEvents?: EventKind[];
+  /** events this level always has, wherever it lands in the route (they are part of its design: the blizzard's
+   *  blackout, the gala's guests); used instead of the route's own pick. Never in an intro or before level 8. */
+  fixedEvents?: LevelEvent[];
   /** campground: the helicopter is always on call, ready again this many seconds after each drop */
   heliEvery?: number;
   /** museum: sprinkler zones, each switched on (once) by pulling the lever at `lever` (cell x, z); `area` is x, z, w, h */

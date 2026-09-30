@@ -83,6 +83,11 @@ function checkOpenUpTo(s: Save, frontier: string, tag: string) {
   check(JSON.stringify(bigs) === JSON.stringify([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120]), `a big fire every 10 levels (${bigs.join(', ')})`);
   check(LEVELS[119].id === FINALE_ID, 'the finale is the last level');
   check(LEVELS.filter((L) => L.big).every((L) => !!L.headline), 'every big fire has its headline (front page)');
+  const fixed = LEVELS.filter((L) => L.fixedEvents?.length);
+  check(
+    fixed.length >= 2 && fixed.every((L) => JSON.stringify(L.events) === JSON.stringify(L.fixedEvents)),
+    `levels designed around their events always get them (${fixed.map((L) => `${L.id}: ${L.events?.map((e) => e.kind).join('+')}`).join(', ')})`,
+  );
   const firsts = new Map<string, number>();
   LEVELS.forEach((L) => firsts.has(L.theme) || firsts.set(L.theme, L.num));
   check(firsts.size === 12, `12 places (${firsts.size})`);

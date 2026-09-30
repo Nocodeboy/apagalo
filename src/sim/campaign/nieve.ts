@@ -407,7 +407,11 @@ export const NIEVE: LevelDef[] = [
       ],
       stars: [0.69, 0.74],
       minSaved: 0.56,
-      wantEvents: ['blackout', 'gust'],
+      // the blizzard knocks the power out, then a gust from the side: always, wherever the level is in the route
+      fixedEvents: [
+        { kind: 'blackout', t: 50 },
+        { kind: 'gust', t: 105 },
+      ],
     },
     ventisca(),
   ),

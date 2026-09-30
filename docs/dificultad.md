@@ -376,8 +376,8 @@ Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por de
 | 99 | `nieve-7` | The alpine village / La aldea alpina | 170 s | 59 % | 65 / 70 % | 100 % (67 %) | 90 % (65 %) |
 | 102 | `museo-7` | Natural history / Historia natural | 170 s | 68 % | 78 / 81 % | 100 % (77 %) | 100 % (71 %) |
 | 108 | `camping-6` | The lookout / El mirador | 170 s | 56 % | 66 / 70 % | 100 % (67 %) | 100 % (61 %) |
-| 112 | `nieve-8` | Blizzard night / Noche de ventisca | 190 s | 56 % | 69 / 74 % | 100 % (72 %) | 70 % (58 %) |
-| 114 | `museo-8` | The gala / La gala | 180 s | 49 % | 72 / 75 % | 100 % (71 %) | 70 % (60 %) |
+| 112 | `nieve-8` | Blizzard night / Noche de ventisca (apagón y racha, siempre) | 190 s | 56 % | 69 / 74 % | 100 % (71 %) | 60 % (58 %) |
+| 114 | `museo-8` | The gala / La gala (curiosos y apagón, siempre) | 180 s | 49 % | 72 / 75 % | 100 % (71 %) | 70 % (60 %) |
 | 119 | `camping-7` | Dry lightning / Tormenta seca | 180 s | 36 % | 49 / 56 % | 100 % (51 %) | 80 % (44 %) |
 
 ### Cómo se han ajustado
@@ -389,6 +389,32 @@ Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por de
 
 ### Lo que no se ha conseguido
 
-- **La curva del casual baja menos de lo buscado**: del 91-96 % de los primeros capítulos al 74-81 % de los últimos (se buscaba el 40-55 %). Los grandes incendios sí son más duros (72 % el casual). Subir más los mínimos dejaba al PRO por debajo del 90 % en muchos niveles: el bot casual está cerca del PRO en los niveles que se deciden por la mecánica (coger el cuadro, tirar de la palanca, pedir el helicóptero), como ya pasaba en la entrega 1. A una persona le costará más que al bot: tiene que descubrir que el hielo resbala, que la palanca activa los aspersores o que el helicóptero se recarga. Hay que medirlo con la analítica (`level_fail` por nivel) tras publicar y ajustar los mínimos.
+- **La curva del casual baja menos de lo buscado**: del 91-96 % de los primeros capítulos al 74-81 % de los últimos (se buscaba el 40-55 %). Los grandes incendios sí son más duros (72 % el casual). El ajuste solo subió los mínimos con mucho cuidado (desde el nivel 55, sin pasar de dos estrellas menos 6 puntos y con el PRO al 95 %). Hay margen para endurecer (ver la sección siguiente), pero se deja para cuando haya datos de jugadores: a una persona le costará más que al bot, porque tiene que descubrir que el hielo resbala, que la palanca activa los aspersores o que el helicóptero se recarga, mientras que el bot casual lo sabe desde el primer intento.
 - **Niveles donde el casual gana poco**: `nieve-5` (40 %) y `camping-4` (50 %). Son el gran incendio de la nieve y el lago; se dejan así porque el PRO gana el 100 % y quedan justo antes de un nivel tranquilo.
-- **`nieve-8` y `museo-8` piden eventos** (ventisca con apagón y racha; gala con apagón y curiosos) pero la ruta no les da ninguno: los eventos van a la mitad de los niveles y, en su puesto, les toca nivel sin evento. Se puede forzar en `decorate()` si Germán lo quiere.
+- ~~`nieve-8` y `museo-8` se quedaban sin sus eventos~~ Arreglado: llevan eventos fijos (`fixedEvents`) que no dependen de su puesto en la ruta. La ventisca tiene apagón (segundo 50) y racha (105); la gala, curiosos (45) y apagón (100). Como todos los eventos, empiezan antes si el fuego ya está controlado, y el segundo no llega si el nivel se acaba antes. Con ellos el casual gana el 60 % en `nieve-8` (antes, el 70 %) y lo mismo en `museo-8`; el PRO, el 100 % en los dos.
+
+### Si los datos piden más dificultad
+
+No se ha tocado nada: la decisión se toma con datos de jugadores. Qué mirar: en la vista `niveles` de Supabase (juego `apagalo`), la tasa de victoria de cada nivel (`level_complete` sobre `level_start`), con al menos 200 partidas por nivel. La referencia es la curva buscada: el 90 % al principio, del 40 al 55 % al final y 10 puntos menos en los grandes incendios. Si un tramo queda **15 puntos o más por encima**, se endurece en este orden.
+
+Medido con `npx tsx tools/headroom.ts 12` (niveles 41-120, 12 partidas por bot; las pruebas de propagación y tiempo, con 8). Con tan pocas partidas cada cifra baila unos ±10 puntos. Hoy, en esos 80 niveles, el PRO gana el 100 % y el casual el 82 %.
+
+| | Cambio | PRO gana | Casual gana | Niveles con el PRO por debajo del 90 % |
+|---|---|---|---|---|
+| Ahora | | 100 % | 82 % | 0 |
+| **1. Mínimos** | +5 puntos en todos | 96 % | 49 % | 10 |
+| | +5 puntos solo donde el PRO sigue ganando siempre y el mínimo queda 6 puntos por debajo de las dos estrellas (38 niveles) | 99 % | 69 % | 0 |
+| | +10 puntos en todos | 75 % | 32 % | 33 (demasiado) |
+| **2. Propagación** | `SPREAD_MAX` de 0,12 a 0,18 | 98 % | 72 % | 12 |
+| | `SPREAD_MAX` a 0,24 | 94 % | 69 % (54 % en 111-120) | 19; en 111-120 el PRO baja al 72 % (demasiado) |
+| **3. Tiempo** | −20 % en todos | 99 % | 82 % | 3 |
+
+Por capítulos, con +5 puntos en todos los mínimos (PRO / casual): 41-50, 99 / 76 %; 51-60, 97 / 58 %; 61-70, 98 / 44 %; 71-80, 93 / 39 %; 81-90, 92 / 22 %; 91-100, 98 / 45 %; 101-110, 96 / 57 %; 111-120, 92 / 48 %.
+
+1. **Primero, los mínimos** (`minSaved` de cada nivel en `src/sim/campaign/`). Es el mando más fino: el casual suele salvar justo por encima del mínimo, así que unos pocos puntos cambian mucho su tasa de victoria. Solo afecta al nivel que se toca y no cambia el reto diario. **Cuánto:** +3 a +5 puntos en los niveles que salgan fáciles, nunca más de 5 de una vez. Dos límites: el mínimo no puede pasar de dos estrellas menos 6 puntos (si hace falta, se suben también las estrellas con `tools/tune-route.ts`) y el PRO tiene que seguir ganando el 90 %. Con +5, el PRO baja del 90 % en `nieve-4`, `poligono-6`, `gasolinera-7`, `castanar-8`, `estacion-8`, `granja-8`, `poligono-8`, `gasolinera-9`, `museo-7` y `poligono-11`: en esos niveles, como mucho +2. **No subirlo en los grandes incendios**: con +5 el casual pasa del 50-92 % al 0-42 %.
+2. **Después, la propagación** (`SPREAD_MAX` en `src/sim/levels.ts`, la rampa desde el nivel 40). Cambia los 80 niveles de golpe, y que el fuego corra más también se nota en la sensación de juego, no solo en el porcentaje. Tiene sentido si todos los capítulos de la segunda mitad salen fáciles, no uno suelto. **Cuánto:** de 0,12 a 0,18 como mucho, y bajando 2-3 puntos el mínimo de los niveles donde el PRO baje del 90 % (con 0,18: `ciudad-7`, `nieve-4`, `granja-7`, `gasolinera-7`, `sanjuan-7`, `camping-4`, `museo-7`, `sanjuan-10`, `plaza-11`, `puerto-10`, `sanjuan-11` y `camping-7`). Con 0,24 se rompe el último capítulo. El reto diario no cambia: usa los 6 mapas de siempre sin rampa.
+3. **El tiempo, lo último.** Casi nadie pierde por el reloj: el casual pierde porque el fuego se descontrola, y gana con 50-140 s de sobra. Recortar un 20 % no cambia su tasa de victoria y solo castiga a quien juega con calma. Solo tiene sentido en un nivel concreto si la analítica muestra que se gana con más de la mitad del tiempo de sobra. **Cuánto:** −15 % como mucho. Cuidado con `castanar-8`, `camping-7` y el final, donde el PRO ya baja del 90 % con −20 %.
+
+Si al contrario sale **difícil** (un nivel con menos del 30 % de victorias o muchos abandonos en él), se bajan primero los mínimos, en pasos de 5 puntos.
+
+Después de cualquier cambio: `npx tsx tools/bot.ts 10 --sum` (PRO al 90 % o más en todos los niveles) y `npm run daily-table` si se ha tocado la simulación.

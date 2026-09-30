@@ -1683,6 +1683,10 @@ void RESCUE_TYPES;
     return { calls: r.render.calls, tris: r.render.triangles, geos: r.memory.geometries, tex: r.memory.textures };
   },
   stage,
+  /** tests: a floating text at a point of the map (several at once must stack, never overlap) */
+  float(text: string, x: number, z: number, kind = '') {
+    floater(text, x, 1.8, z, kind);
+  },
   /** fast-forward the running level with a fixed input (testing only) */
   advance(sec: number, inp: Partial<SimInput> = {}) {
     if (!sim) return;
