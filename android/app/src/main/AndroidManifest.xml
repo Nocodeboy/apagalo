@@ -33,7 +33,7 @@
              src/monetize/android.ts (ADMOB_CONFIG). See docs/android-monetizacion.md. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-7807308787501735~8707416528" />
     </application>
 
     <!-- Permissions -->
