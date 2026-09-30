@@ -18,7 +18,7 @@ import { BASE_LEVELS, CREW_FROM, LEVELS } from './sim/levels';
 import { MATS } from './sim/materials';
 import { RESCUE_TYPES } from './sim/parse';
 import { CREW_IDS, type CrewId, type EventKind, type Lang, type LevelDef, type ThemeId, type PowerKind, type SimEvent, type SimInput } from './sim/types';
-import { Sim, SIM_DT, type Result } from './sim/world';
+import { EXT_MAX, EXT_NOZZLE, Sim, SIM_DT, type Result } from './sim/world';
 import * as store from './storage';
 import type { Settings } from './storage';
 import { Minimap } from './ui/minimap';
@@ -97,7 +97,7 @@ let slowHold = 0;
 let minimap: Minimap | null = null;
 let playStart = 0;
 let wakeLock: { release: () => Promise<void> } | null = null;
-const flags = { flares: 0, overheat: 0, hose: false, rocket: false, train: false, lift: 0, handsFull: -1, chip: 0 };
+const flags = { flares: 0, overheat: 0, hose: false, rocket: false, train: false, lift: 0, handsFull: -1, chip: 0, extHint: false };
 /** rewarded +30 s in this attempt: offered once, and whether the player took it */
 let continueState: 'none' | 'offered' | 'taken' = 'none';
 /** an ad is on screen: the loop and the audio are paused */
@@ -171,6 +171,7 @@ setStarLostHandler(() => {
 input.onPause = pauseGame;
 input.onNozzle = setNozzle;
 input.onHeli = pressHeli;
+input.onExt = toggleExt;
 // Android back: pause while playing, otherwise the top screen's own back/resume/menu button; on the title, leave
 onAndroidBack(() => {
   if (adBusy) return;
@@ -235,7 +236,7 @@ function adPause(on: boolean) {
   last = performance.now();
 }
 function initHud() {
-  buildHud(pauseGame, setNozzle, pressHeli);
+  buildHud(pauseGame, setNozzle, pressHeli, toggleExt, (on) => (digHeld = on));
   minimap = new Minimap($<HTMLCanvasElement>('#minimap'));
   if (sim) minimap.setSim(sim);
 }
@@ -266,6 +267,16 @@ function todayDaily(): Daily {
 function setHudVisible(v: boolean) {
   $('#hud').hidden = !v;
   $('#nozzles').hidden = !v;
+}
+/** The portable extinguisher: take it out (drops the hose) or put it away. */
+let extActive = false;
+/** The Pulaski: its HUD button held down (G on the keyboard counts too). */
+let digHeld = false;
+function toggleExt() {
+  if (!sim || mode !== 'play') return;
+  if (!extActive && sim.extLeft <= 0) return;
+  extActive = !extActive;
+  audio.play('nozzle');
 }
 function pressHeli() {
   if (!sim || mode !== 'play' || !sim.heliReady()) return;
@@ -565,6 +576,8 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   input.enabled = false;
   input.reset();
   input.nozzle = 0;
+  extActive = false;
+  digHeld = false;
   clearFloaters();
   flags.flares = 0;
   flags.overheat = 0;
@@ -690,6 +703,12 @@ const PLACE_MUSIC: Partial<Record<ThemeId, string>> = {
 
 function startPlay() {
   if (!sim) return;
+  // the Pulaski, the first time it is at hand: how it works
+  if (sim.canDig && !save.seenTips.includes('tool-dig')) {
+    save.seenTips.push('tool-dig');
+    store.save();
+    setTimeout(() => toast(t('tDigHelp'), 'good', 6000), 1200);
+  }
   audio.unlock();
   audio.play('siren');
   audio.gameTrack = sim.def.big || sim.def.id === FINALE_ID ? 'bigfire' : (PLACE_MUSIC[sim.def.theme] ?? 'game');
@@ -803,12 +822,14 @@ function buildInput(s: Sim): SimInput {
   if (hold) return hold;
   if (rec.driver) return rec.driver.update();
   const p = s.player;
-  const inp: SimInput = { mx: input.moveX, mz: input.moveY, ax: 0, az: 0, aimDist: 0, spray: input.spray, nozzle: input.nozzle };
+  // the extinguisher runs out: back to the nozzles
+  if (extActive && s.extLeft <= 0) extActive = false;
+  const inp: SimInput = { mx: input.moveX, mz: input.moveY, ax: 0, az: 0, aimDist: 0, spray: input.spray, nozzle: input.nozzle, ext: extActive, dig: digHeld || input.digKey };
   if (heliPress) {
     heliPress = false;
     inp.heli = true;
   }
-  const maxR = s.nozzleRange(input.nozzle);
+  const maxR = extActive ? EXT_NOZZLE.maxR : s.nozzleRange(input.nozzle);
   if (input.mode === 'mouse') {
     if (input.mouseX >= 0) {
       const g = stage.toGround(input.mouseX, input.mouseY);
@@ -979,6 +1000,7 @@ function handleEvent(ev: SimEvent) {
       const k = ev.k as PowerKind;
       floater(t('tPowerGot', { name: tx(POWER_INFO[k].name) }), ev.x, 1.8, ev.z, 'gold');
       if (k === 'heli') toast(t('heliReady'), 'good', 3000);
+      if (k === 'extinguisher') toast(t('tExtGot'), 'good', 3400);
       if (save.settings.vibration) vibrate(30);
       track('powerup', { k, level: s.def.id });
       break;
@@ -1030,6 +1052,29 @@ function handleEvent(ev: SimEvent) {
       audio.play('overheat');
       toast(t('tTrainHit'), 'warn', 2000);
       if (vib) vibrate(80);
+      break;
+    // 2.2: the portable extinguisher
+    case 'hoseDrop':
+      audio.play('nozzle');
+      if (!flags.extHint) {
+        flags.extHint = true;
+        toast(t('tHoseDrop'), 'good', 3200);
+      }
+      break;
+    case 'hosePick':
+      audio.play('connect');
+      break;
+    case 'dug':
+      audio.play('chip');
+      if (ev.n === 1) track('dig', { level: s.def.id });
+      break;
+    case 'extEmpty':
+      audio.play('buffEnd');
+      extActive = false;
+      toast(t('tExtEmpty'), 'warn', 2800);
+      break;
+    case 'needHose':
+      toast(t('tNeedHose'), 'warn', 2400);
       break;
     case 'hoseCut':
       audio.play('cut');
@@ -1628,6 +1673,12 @@ function tick(dt: number) {
       heliEvery: s.def.heliEvery,
       art: s.arts.length > 0,
       lightning: s.def.theme === 'camping',
+      ext: s.extLeft,
+      extMax: EXT_MAX,
+      extOn: s.extOn,
+      hoseDrop: !!s.hoseDrop,
+      dig: s.canDig,
+      digging: s.digging,
     });
     // the platform going up to a window makes a sound once per rescue
     const lifting = s.ents.find((e) => e.type === 'window' && e.state === 0 && e.prog > 0.05);

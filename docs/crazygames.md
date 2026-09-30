@@ -7,7 +7,8 @@ Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos
 - **En Basic Launch** desde el 28 sept. Termina a las 500 partidas o el 19 oct.
   - La ficha quedó en categoría **Simulation**, con las etiquetas **3D, Top-Down, Hero, Skill, Mission**. Mientras dura el Basic Launch la ficha es de solo lectura (nombre, descripción, etiquetas), y para cambiarla hay que escribir al soporte. Todavía dice «6 handcrafted scenarios»; la descripción de la 2.0 está más abajo.
 - **2.0 publicada el 30 sept.** La subida de versión la aprobaron automáticamente («now live»), así que no hace falta esperar revisión.
-- **2.1.0 lista en `dist/apagalo-crazygames.zip`:** el juego en 6 idiomas (ver [idiomas.md](idiomas.md)). Se sube igual, como versión nueva.
+- **2.1.0 publicada el 1 oct**, también aprobada al momento: 6 idiomas (ver [idiomas.md](idiomas.md)), la música suena en móviles desde el primer toque y hay una canción por tipo de escenario.
+- **2.2.0 lista en `dist/apagalo-crazygames.zip`:** extintor portátil y Pulaski para cavar cortafuegos (ver `diseno-v2.md`, «2.2»). Se sube igual, como versión nueva. En el QA hay que jugar el nivel con la ventana de Chrome delante antes de pulsar «Continue» en la vista previa.
 - **Métricas del Basic Launch** (28–29 sept, 149 partidas, con la versión 1.x). El umbral es 9 de 15.
 
   | | Puntuación | Tiempo medio de juego | Retención D1 | Conversión a partida |
@@ -37,7 +38,7 @@ Se generan con el código (`npm run build`, `tools/assets.py` y `tools/video.py`
 
 | Qué | Archivo | Notas |
 |---|---|---|
-| Juego (HTML5) | `apagalo-crazygames.zip` | 3 archivos (`index.html` con las fuentes dentro y las 2 músicas), 3,5 MB descomprimido. Sale de `dist/apagalo-crazygames.zip` |
+| Juego (HTML5) | `apagalo-crazygames.zip` | 9 archivos (`index.html` con las fuentes dentro y las 8 músicas), 6,6 MB descomprimido. Sale de `dist/apagalo-crazygames.zip`. El portal acepta como mucho 6 archivos de cada vez: se añaden los demás en una segunda tanda |
 | Portada horizontal | `cg-cover-1920x1080.png` | Solo el título, sin botones ni bordes. En `assets/` |
 | Portada vertical | `cg-cover-800x1200.png` | Ídem |
 | Portada cuadrada | `cg-cover-800x800.png` | Ídem |

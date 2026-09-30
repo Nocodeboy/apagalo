@@ -170,6 +170,10 @@ export class LevelView {
   private powerObj: THREE.Group | null = null;
   private powerKind = '';
   private powerRing: THREE.Mesh;
+  /** 2.2: where the hose was dropped to use the extinguisher (a pulsing ring while it waits to be picked up) */
+  private hoseRing: THREE.Mesh;
+  /** 2.2: the cell being dug with the Pulaski (a square that fills up) */
+  private digMark: THREE.Mesh;
   private trainObjs: THREE.Group[] = [];
   private trainLights: THREE.Mesh[] = [];
   private trainStrips: THREE.Mesh[] = [];
@@ -271,6 +275,14 @@ export class LevelView {
     this.powerRing.rotation.x = -Math.PI / 2;
     this.powerRing.visible = false;
     this.group.add(this.powerRing);
+    this.hoseRing = new THREE.Mesh(new THREE.RingGeometry(0.45, 0.72, 28), new THREE.MeshBasicMaterial({ color: 0xfff1c9, transparent: true, opacity: 0.8, depthWrite: false }));
+    this.hoseRing.rotation.x = -Math.PI / 2;
+    this.hoseRing.visible = false;
+    this.group.add(this.hoseRing);
+    this.digMark = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 0.92), new THREE.MeshBasicMaterial({ color: 0x8a5a2b, transparent: true, opacity: 0.55, depthWrite: false }));
+    this.digMark.rotation.x = -Math.PI / 2;
+    this.digMark.visible = false;
+    this.group.add(this.digMark);
     this.buildTrains();
     // where the helicopter would drop right now (shown while one is ready)
     this.heliRing = new THREE.Mesh(new THREE.RingGeometry(3.0, 3.3, 40), new THREE.MeshBasicMaterial({ color: 0xff6a3a, transparent: true, opacity: 0.55, depthWrite: false }));
@@ -682,7 +694,8 @@ export class LevelView {
   private updateHose(dt: number) {
     const s = this.sim;
     const a = this.anchorVisual();
-    const e = this.heroHand();
+    // the hose ends in the firefighter's hands, or on the ground where it was dropped to use the extinguisher
+    const e = s.hoseDrop ? { x: s.hoseDrop.x, y: 0.1, z: s.hoseDrop.z } : this.heroHand();
     if (s.player.anchor !== this.lastAnchor) {
       this.lastAnchor = s.player.anchor;
       this.hose.reset(a.x, a.y, a.z, e.x, e.y, e.z);
@@ -977,6 +990,12 @@ export class LevelView {
     const wp = this.waterP;
     wp.begin();
     for (const d of s.drops) {
+      if (d.kind === 3) {
+        // dry powder from the extinguisher: a white, billowing cloud
+        wp.push(d.x, d.y, d.z, 0.5, 1, 0.98, 0.95, 0.7);
+        if (Math.random() < 0.35) this.steam.add({ x: d.x, y: d.y, z: d.z, vx: d.vx * 0.25, vy: 0.4, vz: d.vz * 0.25, drag: 2.2, life: 0.7, s0: 0.35, s1: 1.2, r: 0.99, g: 0.98, b: 0.96, a: 0.45 });
+        continue;
+      }
       if (d.kind === 2) {
         wp.push(d.x, d.y, d.z, 0.48, 1, 1, 0.97, 0.95);
         wp.push(d.x - d.vx * 0.02, d.y - d.vy * 0.02, d.z - d.vz * 0.02, 0.38, 0.95, 0.97, 1, 0.85);
@@ -1004,7 +1023,7 @@ export class LevelView {
       if (Math.random() < 0.5) {
         const a = Math.random() * Math.PI * 2;
         const v = 0.8 + Math.random() * 1.5;
-        this.splash.add({ x, y: y + 0.05, z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 1.5 + Math.random() * 2, grav: 12, life: 0.35, s0: 0.14, s1: 0.06, r: kind === 2 ? 1 : 0.85, g: kind === 2 ? 1 : 0.94, b: 1, a: 0.9 });
+        this.splash.add({ x, y: y + 0.05, z, vx: Math.cos(a) * v, vz: Math.sin(a) * v, vy: 1.5 + Math.random() * 2, grav: 12, life: 0.35, s0: 0.14, s1: 0.06, r: kind >= 2 ? 1 : 0.85, g: kind >= 2 ? 1 : 0.94, b: kind === 3 ? 0.96 : 1, a: 0.9 });
       }
       const c = s.cellAt(x, z);
       if (c >= 0 && s.fire[c] > 0.05 && Math.random() < 0.18) {
@@ -1216,12 +1235,14 @@ export class LevelView {
       // ---- v2 ----
       case 'powerup':
         for (let k = 0; k < 24; k++) this.sparks.add({ x, y: 0.6, z, vx: (Math.random() - 0.5) * 4, vz: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 3, grav: 5, life: 0.8, s0: 0.3, s1: 0.08, r: 1, g: 0.9, b: 0.4 });
-        if (ev.k === 'extinguisher') {
-          for (let k = 0; k < 40; k++) {
-            const a = (k / 40) * Math.PI * 2;
-            this.steam.add({ x: x + Math.cos(a) * 0.5, y: 0.4, z: z + Math.sin(a) * 0.5, vx: Math.cos(a) * 5, vz: Math.sin(a) * 5, vy: 0.6, drag: 1.8, life: 1.1, s0: 0.5, s1: 1.8, r: 0.98, g: 0.98, b: 1, a: 0.7 });
-          }
-        }
+        break;
+      case 'dug':
+        if (ev.ent !== undefined) this.ground.paintDug(ev.ent);
+        for (let k = 0; k < 10; k++) this.splash.add({ x: x + (Math.random() - 0.5) * 0.8, y: 0.2, z: z + (Math.random() - 0.5) * 0.8, vx: (Math.random() - 0.5) * 2, vz: (Math.random() - 0.5) * 2, vy: 1.5 + Math.random() * 2, grav: 10, life: 0.55, s0: 0.14, s1: 0.06, r: 0.5, g: 0.36, b: 0.22, a: 0.95 });
+        break;
+      case 'hoseDrop':
+      case 'hosePick':
+        for (let k = 0; k < 10; k++) this.sparks.add({ x, y: 0.3, z, vx: (Math.random() - 0.5) * 2, vz: (Math.random() - 0.5) * 2, vy: 1 + Math.random(), grav: 6, life: 0.5, s0: 0.2, s1: 0.05, r: 1, g: 0.95, b: 0.75 });
         break;
       case 'heliCall':
         this.addHeli(x, z);
@@ -1336,6 +1357,24 @@ export class LevelView {
   }
 
   private updatePower(dt: number, time: number) {
+    // the Pulaski: the cell being dug fills up, with dust flying
+    const s0 = this.sim;
+    this.digMark.visible = s0.digging && s0.digCell >= 0;
+    if (this.digMark.visible) {
+      const cx = (s0.digCell % s0.W) + 0.5;
+      const cz = Math.floor(s0.digCell / s0.W) + 0.5;
+      const k = Math.min(1, s0.digT / 0.5);
+      this.digMark.position.set(cx, 0.05, cz);
+      this.digMark.scale.setScalar(0.35 + 0.65 * k);
+      if (Math.random() < dt * 22) this.splash.add({ x: cx + (Math.random() - 0.5) * 0.6, y: 0.15, z: cz + (Math.random() - 0.5) * 0.6, vx: (Math.random() - 0.5) * 1.5, vz: (Math.random() - 0.5) * 1.5, vy: 1.2 + Math.random() * 1.5, grav: 9, life: 0.45, s0: 0.12, s1: 0.05, r: 0.55, g: 0.4, b: 0.25, a: 0.9 });
+    }
+    // the dropped hose, waiting to be picked up again
+    const hd = this.sim.hoseDrop;
+    this.hoseRing.visible = !!hd && !this.sim.extOn;
+    if (hd) {
+      this.hoseRing.position.set(hd.x, 0.06, hd.z);
+      this.hoseRing.scale.setScalar(1 + 0.18 * Math.sin(time * 6));
+    }
     const pw = this.sim.powerup;
     if (!pw) {
       if (this.powerObj) this.powerObj.visible = false;

@@ -25,6 +25,24 @@ export const EVENT_WARN = 3;
 export const EVENT_TIME: Record<EventKind, number> = { neighbors: 18, rain: 14, gust: 10, pressure: 12, leak: 0, onlookers: 0, blackout: 20 };
 /** A hose cut by a train is spliced by itself after this, or at once by hooking up to the truck or a hydrant. */
 export const HOSE_SPLICE = 6;
+/**
+ * Portable extinguisher (the power-up): seconds of powder it carries (a second one adds up, to a cap), and its jet.
+ * Using it drops the hose where you stand: you move freely, beyond the hose's reach, until it runs out; then you walk
+ * back to pick the hose up. Dry powder knocks flames down fast and works on fuel fires, but reaches only 3.6 m.
+ */
+export const EXT_TIME = 6;
+export const EXT_MAX = 9;
+export const EXT_NOZZLE = { key: 'ext', rate: 70, pow: 1.5, vh: 6.5, spread: 0.3, minR: 0.9, maxR: 3.6, slow: 1 } as const;
+/** Seconds standing on the dropped hose to pick it up again. */
+const HOSE_PICK_TIME = 0.25;
+/**
+ * The Pulaski (half axe, half hoe, the wildland firefighter's tool): holding it digs the cell in front, turning grass,
+ * dry grass, leaf litter or tall grass into bare earth that does not burn (the cell still counts as saved). A cell
+ * takes DIG_TIME; you move slowly and cannot spray while you dig, and burning cells cannot be dug.
+ */
+export const DIG_TIME = 0.5;
+const DIG_SPEED = 0.4;
+export const DIG_MATS = new Set<number>([M.Grass, M.Dry, M.Leaves, M.TallGrass]);
 /** Seconds a rescuee stands the fire next to it before it runs off (people at windows hold on longer). */
 const FLEE_TIME: Partial<Record<Ent['type'], number>> = { window: 4.5, onlooker: 3.2, art: 3 };
 /** A person at a window is worth this much of the "saved" score (lost if they have to escape). */
@@ -284,6 +302,18 @@ export class Sim {
   powerPicked = 0;
   private powerPlan: { t: number; kind: PowerKind; cell: number }[] = [];
   private powerIdx = 0;
+  /** portable extinguisher: seconds of powder left, in use now, and where the hose was dropped (null: in hand) */
+  extLeft = 0;
+  extOn = false;
+  hoseDrop: { x: number; z: number } | null = null;
+  private hosePickT = 0;
+  private needHoseWarned = false;
+  /** the Pulaski: available on this level, digging now, the cell and its progress, cells dug */
+  canDig = false;
+  digging = false;
+  digCell = -1;
+  digT = 0;
+  dug = 0;
   /** helicopter: charges ready, and drops on their way */
   heliCharges: number;
   helis: { x: number; z: number; t: number }[] = [];
@@ -380,6 +410,7 @@ export class Sim {
     if (!truck) throw new Error('Level has no truck');
     const a = this.anchorPoint(truck.id);
     this.player = this.newFighter(a.x, a.z, truck.id, def.hose + (opts.hoseDelta ?? 0), 1);
+    this.canDig = !!def.dig && this.mat.some((m) => DIG_MATS.has(m));
     // aim towards the nearest fire at start
     let best = 1e9;
     for (let i = 0; i < this.N; i++) {
@@ -563,7 +594,9 @@ export class Sim {
     this.time += dt;
     this.timeLeft = Math.max(0, this.timeLeft - dt);
     if (this.trains.length) this.updateTrains(dt);
+    this.updateExtMode(inp);
     this.updateFighter(this.player, dt, inp, true);
+    if (this.canDig) this.updateDig(inp, dt);
     this.spray(this.player, dt, inp, true);
     if (inp.heli) this.callHeli();
     if (this.partner && this.partnerBot) {
@@ -637,7 +670,8 @@ export class Sim {
     const sp =
       SPEED *
       (hero ? this.speedMul * (this.buffs.boots > 0 ? 1.35 : 1) : this.speedMul * 0.92) *
-      (p.spraying ? nz.slow : 1) *
+      (p.spraying && !(hero && this.extOn) ? nz.slow : 1) *
+      (hero && this.digging ? DIG_SPEED : 1) *
       (p.carry >= 0 ? CARRY_SPEED : 1) *
       (inSnow ? SNOW_SPEED : 1);
     const k = 1 - Math.exp(-(onIce ? ICE_GRIP : 14) * dt);
@@ -659,12 +693,21 @@ export class Sim {
       if (!this.isBlocked(p.x + dx, p.z)) p.x += dx;
       if (!this.isBlocked(p.x, p.z + dz)) p.z += dz;
     }
-    // hose leash
+    // hose leash (none while the hero has dropped it to use the extinguisher)
     const a = this.anchorPoint(p.anchor);
     const hx = p.x - a.x;
     const hz = p.z - a.z;
     const hd = Math.hypot(hx, hz);
-    if (hd > p.hose) {
+    const free = hero && this.hoseDrop !== null;
+    if (free) {
+      p.hoseTaut = 0;
+      // back on the dropped hose (and not spraying powder): pick it up
+      const hdp = this.hoseDrop!;
+      if (!this.extOn && Math.hypot(hdp.x - p.x, hdp.z - p.z) < 1.1) {
+        this.hosePickT += dt;
+        if (this.hosePickT >= HOSE_PICK_TIME) this.pickHose(p);
+      } else this.hosePickT = 0;
+    } else if (hd > p.hose) {
       const nx = a.x + (hx / hd) * p.hose;
       const nz2 = a.z + (hz / hd) * p.hose;
       if (!this.isBlocked(nx, nz2)) {
@@ -681,7 +724,8 @@ export class Sim {
     // hydrants / truck reconnection (a cut hose also reconnects to its own anchor)
     let near = -1;
     for (const id of this.anchors) {
-      if (id === p.anchor && p.cut <= 0) continue;
+      if (id === p.anchor && p.cut <= 0 && !(hero && this.hoseDrop)) continue;
+      if (hero && this.extOn) continue;
       const ap = this.anchorPoint(id);
       if (Math.hypot(ap.x - p.x, ap.z - p.z) < 1.25) near = id;
     }
@@ -703,6 +747,12 @@ export class Sim {
         p.connectT = 0;
         p.connectEnt = -1;
         p.cut = 0;
+        // a dropped hose is left where it was: this one comes from the truck or hydrant just hooked up to
+        if (hero && this.hoseDrop) {
+          this.hoseDrop = null;
+          this.hosePickT = 0;
+          this.needHoseWarned = false;
+        }
         const ap = this.anchorPoint(near);
         if (hero) {
           this.emit('connect', ap.x, ap.z, 0, near);
@@ -823,8 +873,15 @@ export class Sim {
   }
 
   private spray(p: Player, dt: number, inp: SimInput, hero: boolean) {
-    const want = inp.spray && p.stun <= 0 && p.cut <= 0 && p.carry < 0;
-    if (hero && want && p.nozzle === 2 && this.foamLeft <= 0) {
+    const ext = hero && this.extOn;
+    // the hose on the ground: no water until it is picked up again
+    const noHose = hero && this.hoseDrop !== null && !ext;
+    if (noHose && inp.spray && !this.needHoseWarned) {
+      this.needHoseWarned = true;
+      this.emit('needHose', this.hoseDrop!.x, this.hoseDrop!.z);
+    }
+    const want = inp.spray && p.stun <= 0 && p.carry < 0 && !(hero && this.digging) && (ext || (p.cut <= 0 && !noHose));
+    if (hero && want && !ext && p.nozzle === 2 && this.foamLeft <= 0) {
       if (!this.foamWarned) {
         this.foamWarned = true;
         this.emit('foamEmpty', p.x, p.z);
@@ -837,25 +894,34 @@ export class Sim {
       else this.partnerAcc = 0;
       return;
     }
-    if (hero && p.nozzle === 2) this.foamLeft = Math.max(0, this.foamLeft - dt);
-    const nz = NOZZLES[p.nozzle];
+    if (ext) {
+      this.extLeft -= dt;
+      if (this.extLeft <= 0) {
+        this.extLeft = 0;
+        this.extOn = false;
+        this.emit('extEmpty', p.x, p.z);
+      }
+    } else if (hero && p.nozzle === 2) this.foamLeft = Math.max(0, this.foamLeft - dt);
+    const nz = ext ? EXT_NOZZLE : NOZZLES[p.nozzle];
+    const kind = ext ? 3 : p.nozzle;
     let acc = (hero ? this.emitAcc : this.partnerAcc) + nz.rate * dt;
     const baseAng = Math.atan2(p.aimZ, p.aimX);
-    const reach = hero ? this.reachNow : this.reachMul * (this.evT.pressure > 0 ? 0.8 : 1);
-    const pow = hero ? this.waterPow : this.powerMul * p.pow * (this.evT.pressure > 0 ? 0.5 : 1);
+    // powder: its own jet, no upgrades, no water pressure events
+    const reach = ext ? 1 : hero ? this.reachNow : this.reachMul * (this.evT.pressure > 0 ? 0.8 : 1);
+    const pow = ext ? 1 : hero ? this.waterPow : this.powerMul * p.pow * (this.evT.pressure > 0 ? 0.5 : 1);
     while (acc >= 1) {
       acc -= 1;
       const ang = baseAng + (this.rng.next() - 0.5) * 2 * nz.spread;
       const maxR = nz.maxR * reach;
       let d = p.aimDist > 0 ? Math.min(maxR, Math.max(nz.minR, p.aimDist)) : maxR;
-      d *= p.nozzle === 1 ? this.rng.range(0.4, 1.0) : this.rng.range(0.95, 1.05);
-      const vh = nz.vh * (p.nozzle === 1 ? this.rng.range(0.8, 1.1) : 1);
+      d *= kind === 1 ? this.rng.range(0.4, 1.0) : kind === 3 ? this.rng.range(0.8, 1.08) : this.rng.range(0.95, 1.05);
+      const vh = nz.vh * (kind === 1 ? this.rng.range(0.8, 1.1) : 1);
       const y0 = 1.05;
       const T = d / vh;
       const vy = (GRAV * T * T * 0.5 - y0) / T;
       const c = Math.cos(ang);
       const s = Math.sin(ang);
-      const drop: Drop = { x: p.x + c * 0.55, y: y0, z: p.z + s * 0.55, vx: c * vh, vy, vz: s * vh, pow: nz.pow * pow, kind: p.nozzle };
+      const drop: Drop = { x: p.x + c * 0.55, y: y0, z: p.z + s * 0.55, vx: c * vh, vy, vz: s * vh, pow: nz.pow * pow, kind };
       if (!hero) drop.own = 1;
       this.drops.push(drop);
     }
@@ -949,14 +1015,14 @@ export class Sim {
     }
     const oil = MATS[this.mat[i]].oil;
     if (this.fire[i] > 0) {
-      if (oil && kind !== 2) {
+      if (oil && kind !== 2 && kind !== 3) {
         if (k >= 1) this.flare(i);
       } else {
-        this.fire[i] -= TUNE.Q * pow * k * (kind === 2 ? 1.3 : 1);
+        this.fire[i] -= TUNE.Q * pow * k * (kind === 2 ? 1.3 : kind === 3 ? 1.4 : 1);
         if (this.fire[i] <= 0) this.extinguish(i, true);
       }
     }
-    this.wet[i] = Math.min(1, this.wet[i] + 0.14 * pow * k);
+    this.wet[i] = Math.min(1, this.wet[i] + 0.14 * pow * k * (kind === 3 ? 0.35 : 1));
     this.heat[i] *= 1 - 0.4 * k;
     if (kind === 2) this.foam[i] = Math.min(1, this.foam[i] + 0.3 * k);
   }
@@ -1586,25 +1652,76 @@ export class Sim {
       case 'heli':
         this.heliCharges++;
         break;
-      case 'extinguisher': {
-        // a burst all around: every flame within 3 m goes out, and the ground around gets soaked
-        const cx = Math.floor(p.x);
-        const cz = Math.floor(p.z);
-        for (let z = cz - 4; z <= cz + 4; z++)
-          for (let x = cx - 4; x <= cx + 4; x++) {
-            if (x < 0 || z < 0 || x >= this.W || z >= this.H) continue;
-            const i = z * this.W + x;
-            const d = Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z);
-            if (d > 3.8) continue;
-            if (d <= 3.0 && this.fire[i] > 0) this.extinguish(i, true);
-            if (d <= 3.0) this.heat[i] = 0;
-            this.wet[i] = Math.max(this.wet[i], 0.85 * (1 - d / 4.6));
-            this.foam[i] = Math.max(this.foam[i], d <= 3.0 ? 0.5 : 0);
-          }
+      case 'extinguisher':
+        // kept for later: the player chooses where to use it (it used to go off where it was picked up, usually
+        // somewhere with nothing burning)
+        this.extLeft = Math.min(EXT_MAX, this.extLeft + EXT_TIME);
         break;
-      }
     }
     this.emit('powerup', pw.x, pw.z, this.powerPicked, undefined, pw.kind);
+  }
+
+  // ---------- the Pulaski ----------
+  /** A cell that can be dug: vegetation on the ground, not burning, with nothing on it. */
+  canDigCell(c: number): boolean {
+    return c >= 0 && DIG_MATS.has(this.mat[c]) && this.fire[c] <= 0 && this.owner[c] < 0;
+  }
+
+  /** Where the Pulaski digs now: the cell in front (aim direction), else the one underfoot. */
+  digTarget(): number {
+    const p = this.player;
+    const front = this.cellAt(p.x + p.aimX * 0.9, p.z + p.aimZ * 0.9);
+    if (this.canDigCell(front)) return front;
+    const here = this.cellAt(p.x, p.z);
+    return this.canDigCell(here) ? here : -1;
+  }
+
+  private updateDig(inp: SimInput, dt: number) {
+    const p = this.player;
+    this.digging = false;
+    const target = inp.dig && p.stun <= 0 && p.carry < 0 && !this.extOn ? this.digTarget() : -1;
+    if (target < 0) {
+      this.digCell = -1;
+      this.digT = 0;
+      return;
+    }
+    this.digging = true;
+    if (target !== this.digCell) {
+      this.digCell = target;
+      this.digT = 0;
+    }
+    this.digT += dt;
+    if (this.digT >= DIG_TIME) {
+      this.mat[target] = M.Dirt;
+      this.heat[target] = 0;
+      this.dug++;
+      this.emit('dug', (target % this.W) + 0.5, Math.floor(target / this.W) + 0.5, this.dug, target);
+      this.digCell = -1;
+      this.digT = 0;
+    }
+  }
+
+  // ---------- portable extinguisher ----------
+  /** Turns the extinguisher on while the input asks for it and it has powder; the first use drops the hose. */
+  private updateExtMode(inp: SimInput) {
+    const p = this.player;
+    const want = !!inp.ext && this.extLeft > 0 && p.carry < 0;
+    if (want && !this.extOn) {
+      this.extOn = true;
+      if (!this.hoseDrop) {
+        this.hoseDrop = { x: p.x, z: p.z };
+        this.hosePickT = 0;
+        this.needHoseWarned = false;
+        this.emit('hoseDrop', p.x, p.z);
+      }
+    } else if (!want && this.extOn) this.extOn = false;
+  }
+
+  private pickHose(p: Player) {
+    this.hoseDrop = null;
+    this.hosePickT = 0;
+    this.needHoseWarned = false;
+    this.emit('hosePick', p.x, p.z);
   }
 
   // ---------- helicopter ----------
@@ -2030,14 +2147,17 @@ export class Sim {
     const p = this.player;
     if (p.cut <= 0 && this.trains.some((t) => t.st === 2)) {
       const a = this.anchorPoint(p.anchor);
-      const d = Math.hypot(p.x - a.x, p.z - a.z);
+      // the hose ends in the firefighter's hands, or where it was dropped
+      const ex = this.hoseDrop ? this.hoseDrop.x : p.x;
+      const ez = this.hoseDrop ? this.hoseDrop.z : p.z;
+      const d = Math.hypot(ex - a.x, ez - a.z);
       const n = Math.ceil(d / 0.35);
       for (let k = 1; k < n; k++) {
-        const c = this.cellAt(a.x + ((p.x - a.x) * k) / n, a.z + ((p.z - a.z) * k) / n);
+        const c = this.cellAt(a.x + ((ex - a.x) * k) / n, a.z + ((ez - a.z) * k) / n);
         if (c >= 0 && this.trainCells[c]) {
           p.cut = HOSE_SPLICE;
-          p.spraying = false;
-          this.emit('hoseCut', a.x + ((p.x - a.x) * k) / n, a.z + ((p.z - a.z) * k) / n);
+          if (!this.extOn) p.spraying = false;
+          this.emit('hoseCut', a.x + ((ex - a.x) * k) / n, a.z + ((ez - a.z) * k) / n);
           break;
         }
       }

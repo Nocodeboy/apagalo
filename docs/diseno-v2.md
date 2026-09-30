@@ -56,6 +56,8 @@ La 1.3.0 tiene 67 niveles: los 6 originales, 10 más de cada escenario en bloque
 | 19 | El bot apunta siguiendo la parábola del chorro | Dejarlo | Se quedaba regando vallas bajas que tapaban el objetivo: medía peor de lo que juega una persona |
 | 20 | «More games» en la pantalla de título (web y Android), sin enlaces en CrazyGames ni en el artefacto; la lista vive en `src/games.ts` y un juego sin `url` no sale | Enlaces fijos en el HTML | CrazyGames no permite enlaces a fuera. Con la lista en código, añadir el juego del perro pastor es poner su URL |
 | 21 | **Dificultad (30 sept 2026, decidida por Claude por delegación de Germán):** +5 puntos en el mínimo de los niveles 41-120 donde el PRO sigue ganando siempre, sin grandes incendios, presentaciones ni los niveles donde el PRO bajaba del 90 %; en 9 donde el casual se hundía, de +1 a +3. En total, 33 niveles. **Se revisa con los datos reales de derrotas** (`level_fail` por nivel) | Esperar a los datos sin tocar nada; subir la propagación | Es el cambio más fino y reversible: nivel a nivel, sin tocar la simulación ni el reto diario. El casual de la segunda mitad pasa del 74-87 % al 70-76 % y el PRO sigue al 90 % o más en todos los niveles (`dificultad.md`, «2.0: decisión de dificultad») |
+| 22 | **Extintor portátil (2.2)**: el power-up se guarda como carga de polvo y lo sacas tú; al sacarlo sueltas la manguera | Mantener el golpe instantáneo, o que caiga cerca del fuego | Feedback de jugadores: «casi siempre cae donde no hay fuego». Guardado, decides tú dónde y cuándo, y soltar la manguera abre una decisión táctica (ir más lejos a cambio de tener que volver) |
+| 23 | **Pulaski (2.2)** desde el nivel 23 (`castanar-3`) y en todos los retos diarios: mantén el botón (o la G) y la hierba o la hojarasca de delante pasa a tierra en 0,5 s por casilla. Mientras cavas vas al 40 % de velocidad y no echas agua; lo cavado cuenta como salvado | Rastrillo que solo frena el fuego; darlo desde el principio | Un cortafuegos que el fuego no cruza es fácil de entender. Llega cuando el jugador ya domina la manguera y en el primer bosque grande. El bot no cava, así que las tablas de dificultad no cambian: para quien lo use, los niveles 23-120 son algo más fáciles |
 
 ## 5. Diseño
 
@@ -105,7 +107,7 @@ Desde el nivel 3 (nunca en los de presentación): el primero entre los segundos 
 | Bomba turbo / *Turbo pump* | 3 | 12 s con el chorro un 70 % más fuerte y un 20 % más largo |
 | Botas / *Sprint boots* | 4 | 10 s corriendo un 35 % más rápido |
 | Cronómetro / *Stopwatch* | 6 | +20 s en el reloj |
-| Extintor / *Extinguisher* | 8 | Apaga de golpe todo lo que arde a 3 m de ti y moja alrededor |
+| Extintor / *Extinguisher* | 8 | Desde la 2.2 se guarda: 6 s de polvo (hasta 9 acumulados) que usas cuando quieras con su botón o la F. Al sacarlo sueltas la manguera donde estás y puedes ir más allá de su largo; el polvo alcanza 3,6 m, apaga también los fuegos de combustible y apenas moja. Vacío, hay que volver a por la manguera (en la 2.0 y la 2.1 apagaba de golpe lo que ardía a 3 m del sitio donde caía) |
 | Helicóptero / *Helicopter* | 11 | Una descarga de helicóptero: pulsa el botón 🚁 y cae donde apuntas (o en el fuego más cercano en esa dirección) |
 | Traje ignífugo / *Fire suit* | 14 | 15 s sin que el calor te frene |
 
@@ -206,3 +208,14 @@ Eventos nuevos: `powerup {k, level}`, `event {k, level}`, `crew_hire {id, lvl, n
 - **Después de la revisión**: `nieve-8` y `museo-8` con sus eventos fijos; los textos flotantes («Rescued!», «Hose connected», «Blaze out!») se apilan en vez de taparse (el más nuevo en su sitio y los anteriores encima; `tools/test_floaters.py`); y en `dificultad.md`, qué endurecer primero si los datos lo piden (mínimos, luego propagación y el tiempo lo último), medido con `tools/headroom.ts`.
 - **Decisión de dificultad** (30 sept, por delegación de Germán): mínimos más altos en 33 niveles de la segunda mitad (decisión 21). Se revisa con los datos reales de derrotas.
 - **Sin hacer**: capturas y vídeo nuevos para las tiendas; el evento «equipo de televisión» y el vagón que se mueve en la estación (ideas del diseño que no han entrado); la URL del juego del perro pastor.
+
+### 2.2 (1 oct 2026): herramientas tácticas
+
+Pedido por Germán a partir del feedback de CrazyGames: el extintor no servía porque caía lejos del fuego, y faltaban herramientas que den un toque táctico sin romper el equilibrio.
+
+- **Extintor portátil** (decisión 22): el power-up se guarda y se usa con su botón (barra de carga en el HUD) o la F. La manguera se queda en el suelo, tendida desde el camión hasta un aro que marca dónde está la boquilla. Al vaciarse avisa («¡Extintor vacío! Vuelve a por tu manguera») y, si intentas echar agua sin ella, «Sin manguera: recógela en el círculo». Pasar por encima del aro la recoge.
+- **Pulaski** (decisión 23): botón que se mantiene pulsado (o la G). Marca en el suelo la casilla que vas a cavar y deja surcos de tierra oscura. Se estrena con la etiqueta «NUEVO» en la presentación de `castanar-3` y un aviso la primera vez.
+- **Equilibrio**: el bot usa el extintor (el PRO cuando hay 4 o más casillas ardiendo a 3,2 m, el casual con 6). En los niveles 8-60, con 8 partidas por nivel, las tablas por capítulo salen iguales que en la 2.1 y por nivel solo cambian 1-3 s de tiempo sobrante o una estrella suelta. `dailyTable.ts` regenerado.
+- **Pruebas**: `tools/test_ext.ts` (20 comprobaciones de la simulación) y capturas en el navegador de la presentación, el aviso y una línea cavada.
+- **HUD**: con chorro, abanico, espuma, helicóptero, extintor y Pulaski puede haber 6 botones. En pantallas de menos de 560 px de alto (móvil apaisado, el marco de CrazyGames en un portátil) van en columnas de 3: las boquillas a la derecha y las herramientas al lado. Los nombres largos («Extinguisher», «Feuerlöscher», «Hubschrauber») van en letra más pequeña para caber en el botón.
+- **Textos** en los 6 idiomas.

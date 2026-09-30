@@ -28,6 +28,10 @@ export class Ground {
   readonly outside: THREE.Group;
   private stateTex: THREE.DataTexture;
   private data: Uint8Array;
+  /** the painted ground, kept to repaint cells dug with the Pulaski */
+  private ctx2d: CanvasRenderingContext2D;
+  private baseTex: THREE.CanvasTexture;
+  private theme: Theme;
   private uniforms: { uTime: { value: number } };
 
   constructor(private sim: Sim, theme: Theme) {
@@ -38,6 +42,9 @@ export class Ground {
     const ctx = canvas.getContext('2d')!;
     this.paint(ctx, theme);
     const tex = new THREE.CanvasTexture(canvas);
+    this.ctx2d = ctx;
+    this.baseTex = tex;
+    this.theme = theme;
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 4;
     tex.generateMipmaps = true;
@@ -446,6 +453,37 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
         if (z > 0 && other(i - s.W) && s.mat[i - s.W] !== M.Road) ctx.fillRect(x * PX, z * PX, PX, 2);
         if (z < s.H - 1 && other(i + s.W)) ctx.fillRect(x * PX, z * PX + PX - 2, PX, 2);
       }
+  }
+
+  /** A cell dug with the Pulaski: bare earth with the furrows of the hoe. */
+  paintDug(i: number) {
+    const s = this.sim;
+    const ctx = this.ctx2d;
+    const t = this.theme;
+    const px = (i % s.W) * PX;
+    const pz = Math.floor(i / s.W) * PX;
+    // freshly turned soil: darker than the paths, raked in wavy furrows, a few clods, and a ragged edge so a line of
+    // dug cells reads as one strip of earth rather than a row of tiles
+    let seed = (i * 2654435761) >>> 0;
+    const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    ctx.fillStyle = shade(t.dirt, 0.74);
+    ctx.fillRect(px, pz, PX, PX);
+    for (let k = 0; k < 10; k++) ctx.fillRect(px - 1 + rnd() * (PX + 2), pz - 1 + rnd() * (PX + 2), 2, 2);
+    for (let k = 1; k < PX; k += 4) {
+      const off = Math.round(rnd() * 2);
+      for (let x = 0; x < PX; x += 2) {
+        const y = pz + k + off + (((x + k) >> 2) & 1);
+        ctx.fillStyle = shade(t.dirt, 0.58);
+        ctx.fillRect(px + x, y, 2, 1);
+        ctx.fillStyle = shade(t.dirt, 0.95);
+        ctx.fillRect(px + x, y + 1, 2, 1);
+      }
+    }
+    for (let k = 0; k < 5; k++) {
+      ctx.fillStyle = shade(t.dirt, rnd() < 0.5 ? 1.05 : 0.5);
+      ctx.fillRect(px + rnd() * (PX - 2), pz + rnd() * (PX - 2), 2, 2);
+    }
+    this.baseTex.needsUpdate = true;
   }
 
   update(time: number) {

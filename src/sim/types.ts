@@ -44,7 +44,7 @@ export interface TrainDef {
 
 /** What a level brings for the first time (shown on its intro screen). */
 export interface News {
-  kind: 'place' | 'power' | 'event' | 'crew' | 'big';
+  kind: 'place' | 'power' | 'event' | 'crew' | 'big' | 'tool';
   id: string;
 }
 
@@ -90,6 +90,8 @@ export interface LevelDef {
   news?: News[];
   /** crew slots on this level (0 before the crew unlocks) */
   crewSlots?: number;
+  /** 2.2: the Pulaski (dig firebreaks) is at hand */
+  dig?: boolean;
   /** how fast the fire spreads compared with the base game (a gentle ramp along the second half of the route) */
   spread?: number;
 }
@@ -228,7 +230,13 @@ export type SimEventType =
   | 'artPick'
   | 'heliReady'
   | 'sprinkler'
-  | 'deepSnow';
+  | 'deepSnow'
+  // 2.2: the portable extinguisher
+  | 'hoseDrop'
+  | 'hosePick'
+  | 'extEmpty'
+  | 'needHose'
+  | 'dug';
 
 export interface SimEvent {
   type: SimEventType;
@@ -250,6 +258,10 @@ export interface SimInput {
   nozzle: 0 | 1 | 2; // 0 jet, 1 fog, 2 foam
   /** call the helicopter now (if a charge is ready) */
   heli?: boolean;
+  /** use the portable extinguisher (while it has charge): the hose is dropped where you stand */
+  ext?: boolean;
+  /** hold the Pulaski: dig a firebreak in the vegetation in front (levels that have it) */
+  dig?: boolean;
 }
 
 export const NOZZLES = [

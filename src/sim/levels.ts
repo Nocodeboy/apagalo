@@ -473,6 +473,8 @@ const OLD_HEADLINES: Record<string, Txt> = {
 export const POWER_FROM: Record<PowerKind, number> = { turbo: 3, boots: 4, clock: 6, extinguisher: 8, heli: 11, suit: 14 };
 export const EVENT_FROM: Record<EventKind, number> = { neighbors: 8, rain: 11, gust: 14, pressure: 16, leak: 19, onlookers: 22, blackout: 26 };
 export const CREW_FROM = 9;
+/** 2.2: the Pulaski, from the third visit to the chestnut forest (nothing else is new there) */
+export const DIG_FROM = 23;
 /** Fire spread ramp: from this level on it grows up to +SPREAD_MAX at the last level. */
 export const SPREAD_FROM = 40;
 export const SPREAD_MAX = 0.12;
@@ -602,6 +604,8 @@ function decorate(route: LevelDef[]): LevelDef[] {
     // the fire spreads a little faster along the second half of the route (never in a new place's intro)
     d.spread = d.intro || n <= SPREAD_FROM ? 1 : Math.round((1 + SPREAD_MAX * Math.min(1, (n - SPREAD_FROM) / (route.length - SPREAD_FROM))) * 1000) / 1000;
     if (n === CREW_FROM) news.push({ kind: 'crew', id: 'crew' });
+    d.dig = n >= DIG_FROM;
+    if (n === DIG_FROM) news.push({ kind: 'tool', id: 'dig' });
     if (n === CREW_TWO_FROM) news.push({ kind: 'crew', id: 'crew2' });
     d.news = news;
     return d;

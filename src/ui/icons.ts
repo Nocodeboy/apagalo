@@ -34,6 +34,8 @@ export const IC = {
   boot: s('<path d="M7 3h6v8l6.5 3.2c1 .5 1.5 1.3 1.5 2.3V19H4v-3l3-2z"/><path d="M4 16h17M10 7h3M10 10h3"/>'),
   // ---- v2 ----
   news: s('<rect x="3" y="4" width="15" height="16" rx="1.5"/><path d="M18 8h3v10a2 2 0 0 1-2 2h-1"/><path d="M6 8h9M6 11h4M6 14h4M6 17h9"/><rect x="11.5" y="10.5" width="4" height="4" fill="currentColor"/>'),
+  // the Pulaski: axe blade on one side of the head, hoe on the other
+  pulaski: s('<path d="M4.5 19.5 15 9"/><path d="M13 7l2-2 4 4-2 2z" fill="currentColor"/><path d="M17 5l1.5-2.5M19 7l2.5-1.5"/>'),
   heli: s('<path d="M3 5h18M12 5v3"/><path d="M6 13c0-3 2.5-5 6-5s6 2 6 5-2 4-6 4H9"/><path d="M6 13H2M8 17l-1 3M15 17l1 3M5 20h13"/><circle cx="14" cy="12" r="1.5" fill="currentColor"/>'),
   turbo: s('<path d="M13 2 5 13h6l-1 9 8-11h-6z" fill="currentColor" stroke-width="1.6"/>'),
   extinguisher: s('<path d="M9 8h6v12a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" fill="currentColor"/><path d="M11 8V5h3M12 5l5-2M15 5l3 3"/>'),

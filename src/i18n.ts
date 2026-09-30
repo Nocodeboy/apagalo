@@ -216,6 +216,19 @@ const S = {
   heli: { es: 'Helicóptero', en: 'Helicopter' },
   heliOnWay: { es: '¡Helicóptero en camino!', en: 'Helicopter on its way!' },
   heliReady: { es: 'Helicóptero listo: pulsa el botón y apunta', en: 'Helicopter ready: tap the button and aim' },
+  // 2.2: the portable extinguisher
+  extTool: { es: 'Extintor', en: 'Extinguisher' },
+  tExtGot: { es: 'Extintor guardado: úsalo con su botón o la tecla F', en: 'Extinguisher stored: use it with its button or the F key' },
+  tHoseDrop: { es: 'Manguera en el suelo: apaga con polvo y vuelve a por ella', en: 'Hose on the ground: put flames out with powder, then go back for it' },
+  tExtEmpty: { es: '¡Extintor vacío! Vuelve a por tu manguera', en: 'Extinguisher empty! Go back for your hose' },
+  tNeedHose: { es: 'Sin manguera: recógela en el círculo', en: 'No hose: pick it up at the circle' },
+  // 2.2: the Pulaski
+  digTool: { es: 'Pulaski', en: 'Pulaski' },
+  digNews: { es: 'Pulaski: cava cortafuegos', en: 'Pulaski: dig firebreaks' },
+  tDigHelp: {
+    es: 'Nuevo: Pulaski. Mantén su botón (o G) para cavar cortafuegos: el fuego no cruza la tierra desnuda',
+    en: "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth",
+  },
   airSupport: { es: 'Apoyo aéreo', en: 'Air support' },
   airSupportD: { es: 'Reintenta con un helicóptero', en: 'Retry with a helicopter' },
   airSupportAria: { es: 'Mira un anuncio y reintenta con un helicóptero listo', en: 'Watch an ad and retry with a helicopter ready' },

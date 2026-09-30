@@ -48,6 +48,7 @@ export function makeDaily(d = new Date(), salt = 0): Daily {
   if (mod.key === 'night' && base.night) mod = MODS[0];
   const def: LevelDef = JSON.parse(JSON.stringify(base));
   def.id = 'daily';
+  def.dig = true;
   def.name = { es: `Reto diario #${num}`, en: `Daily #${num}` };
   def.tip = mod.label;
   if (mod.key === 'night') def.night = true;

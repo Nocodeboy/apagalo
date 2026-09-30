@@ -345,6 +345,7 @@ export function newsHtml(news: News[] | undefined): string {
       if (nw.kind === 'power') return pill(POWER_ICON[nw.id], tx(POWER_INFO[nw.id as PowerKind].name), 'power');
       if (nw.kind === 'event') return pill(EVENT_ICON[nw.id], tx(EVENT_INFO[nw.id as EventKind].name).replace(/[¡!]/g, ''), 'event');
       if (nw.kind === 'crew') return pill(IC.crew, t(nw.id === 'crew2' ? 'newCrew2' : 'newCrew'), 'crew');
+      if (nw.kind === 'tool') return pill(IC.pulaski, t('digNews'), 'power');
       return `<span class="pill news big">${IC.news}${esc(t('bigNews'))}</span>`;
     })
     .join('')}</div>`;
@@ -992,7 +993,7 @@ export function updateIcons(stage: Stage, labels: Label[], edges: { x: number; z
 }
 
 // ---------------- HUD ----------------
-export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void, onHeli: () => void = () => undefined) {
+export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void, onHeli: () => void = () => undefined, onExt: () => void = () => undefined, onDig: (on: boolean) => void = () => undefined) {
   const hud = $('#hud');
   hud.innerHTML = `
     <div class="hud-row">
@@ -1015,7 +1016,23 @@ export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void, 
     <button class="noz sel" data-n="0" aria-label="${t('jet')}">${IC.jet}<span>${t('jet')}</span></button>
     <button class="noz" data-n="1" aria-label="${t('fog')}">${IC.fog}<span>${t('fog')}</span></button>
     <button class="noz" data-n="2" aria-label="${t('foam')}">${IC.foam}<span>${t('foam')}</span><span class="cnt"><b id="hud-foam" style="width:100%"></b></span></button>
-    <button class="noz heli" id="hud-heli" aria-label="${t('heli')}" hidden>${IC.heli}<span>${t('heli')}</span><b class="hc" id="hud-heli-n">1</b></button>`;
+    <button class="noz heli" id="hud-heli" aria-label="${t('heli')}" hidden>${IC.heli}<span>${t('heli')}</span><b class="hc" id="hud-heli-n">1</b></button>
+    <button class="noz ext" id="hud-ext" aria-label="${t('extTool')}" hidden>${IC.extinguisher}<span>${t('extTool')}</span><span class="cnt"><b id="hud-ext-bar" style="width:100%"></b></span></button>
+    <button class="noz dig" id="hud-dig" aria-label="${t('digTool')}" hidden>${IC.pulaski}<span>${t('digTool')}</span></button>`;
+  // long names ("Extinguisher", "Feuerlöscher", "Hubschrauber") in a smaller type, on one line, so they fit the button
+  nz.querySelectorAll<HTMLElement>('.noz > span:not(.cnt)').forEach((l) => l.classList.toggle('tight', (l.textContent ?? '').replace(/\u00ad/g, '').length > 9));
+  // the Pulaski digs while the button is held
+  const dg = nz.querySelector<HTMLElement>('#hud-dig')!;
+  dg.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    dg.setPointerCapture?.(e.pointerId);
+    onDig(true);
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) dg.addEventListener(ev, () => onDig(false));
+  nz.querySelector<HTMLElement>('#hud-ext')!.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    onExt();
+  });
   const hb = nz.querySelector<HTMLElement>('#hud-heli')!;
   hb.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
@@ -1057,6 +1074,14 @@ export interface HudState {
   /** museum: the rescues are works of art; campground storm: the rockets are lightning */
   art?: boolean;
   lightning?: boolean;
+  /** 2.2: portable extinguisher (seconds of powder, cap, in use) and the hose left on the ground */
+  ext?: number;
+  extMax?: number;
+  extOn?: boolean;
+  hoseDrop?: boolean;
+  /** 2.2: the Pulaski is at hand on this level, and digging now */
+  dig?: boolean;
+  digging?: boolean;
 }
 let lastHud = '';
 let lastStars = 3;
@@ -1066,7 +1091,7 @@ export function setStarLostHandler(f: () => void) {
 }
 export function updateHud(s: HudState) {
   const pct = Math.round(s.control * 100);
-  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}|${s.buffs.map((b) => b.k + Math.ceil(b.t)).join()}|${s.heli}|${s.heliBusy}|${Math.ceil(s.cut)}|${s.blackout}|${Math.ceil(s.heliCd ?? 0)}|${s.art}|${s.lightning}`;
+  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}|${s.buffs.map((b) => b.k + Math.ceil(b.t)).join()}|${s.heli}|${s.heliBusy}|${Math.ceil(s.cut)}|${s.blackout}|${Math.ceil(s.heliCd ?? 0)}|${s.art}|${s.lightning}|${Math.ceil((s.ext ?? 0) * 5)}|${s.extOn}|${s.hoseDrop}|${s.dig}|${s.digging}`;
   if (key === lastHud) return;
   lastHud = key;
   $('#hud-fill').style.width = `calc(${Math.max(3, pct)}% - 8px)`;
@@ -1103,7 +1128,20 @@ export function updateHud(s: HudState) {
     rk.firstElementChild!.outerHTML = s.lightning ? IC.turbo : IC.rocket;
   }
   rk.lastElementChild!.textContent = String(s.rockets);
-  document.querySelectorAll<HTMLElement>('.noz').forEach((b) => b.classList.toggle('sel', Number(b.dataset.n) === s.nozzle));
+  document.querySelectorAll<HTMLElement>('.noz').forEach((b) => b.classList.toggle('sel', Number(b.dataset.n) === s.nozzle && !s.extOn));
+  // the extinguisher: shown while it has powder (or is in use); the nozzles dim while the hose lies on the ground
+  const ext = document.querySelector<HTMLButtonElement>('#hud-ext');
+  if (ext) {
+    ext.hidden = !((s.ext ?? 0) > 0 || s.extOn);
+    ext.classList.toggle('sel', !!s.extOn);
+    $('#hud-ext-bar').style.width = `${s.extMax ? Math.min(100, ((s.ext ?? 0) / s.extMax) * 100) : 0}%`;
+  }
+  $('#nozzles').classList.toggle('nohose', !!s.hoseDrop && !s.extOn);
+  const dig = document.querySelector<HTMLButtonElement>('#hud-dig');
+  if (dig) {
+    dig.hidden = !s.dig;
+    dig.classList.toggle('sel', !!s.digging);
+  }
   const foamBtn = document.querySelector<HTMLButtonElement>('.noz[data-n="2"]');
   if (foamBtn) {
     foamBtn.hidden = s.foamMax <= 0;

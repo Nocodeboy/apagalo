@@ -28,6 +28,7 @@ type Goal =
   | { kind: 'evade' }
   | { kind: 'fetch'; ent: number } // the museum: pick up an artwork the fire is getting close to
   | { kind: 'exit' } // ...and carry it out through the nearest door
+  | { kind: 'hose' } // 2.2: walk back to the hose dropped to use the extinguisher
   | { kind: 'idle' };
 
 /**
@@ -135,6 +136,11 @@ export class Bot {
         this.goal = { kind: 'evade' };
         return;
       }
+    }
+    // 0a. the extinguisher put away (or empty) with the hose on the ground: go and pick it up
+    if (this.hero && s.hoseDrop && !s.extOn) {
+      this.goal = { kind: 'hose' };
+      return;
     }
     // 0b. hose cut by a train: hook up again if an anchor is close (the PRO does; the casual waits for the splice)
     if (this.hero && p.cut > 0 && this.skill.smart) {
@@ -333,6 +339,30 @@ export class Bot {
   }
 
   /** Centre of the burning cell with most fire around it (3 m). */
+  /** Burning cells within r of a point, and the nearest one. */
+  private fireAround(x: number, z: number, r: number): { n: number; x: number; z: number } {
+    const s = this.sim;
+    const W = s.W;
+    let n = 0;
+    let bx = 0;
+    let bz = 0;
+    let bd = 1e9;
+    for (let cz = Math.max(0, Math.floor(z - r)); cz <= Math.min(s.H - 1, Math.floor(z + r)); cz++)
+      for (let cx = Math.max(0, Math.floor(x - r)); cx <= Math.min(W - 1, Math.floor(x + r)); cx++) {
+        const i = cz * W + cx;
+        if (s.fire[i] <= 0.02) continue;
+        const d = Math.hypot(cx + 0.5 - x, cz + 0.5 - z);
+        if (d > r) continue;
+        n++;
+        if (d < bd) {
+          bd = d;
+          bx = cx + 0.5;
+          bz = cz + 0.5;
+        }
+      }
+    return { n, x: bx, z: bz };
+  }
+
   private biggestBlaze(): { x: number; z: number } | null {
     const s = this.sim;
     const W = s.W;
@@ -503,6 +533,24 @@ export class Bot {
       this.heliAim = null;
       return;
     }
+    // the portable extinguisher: on a blaze at hand (the PRO sooner), and it keeps going while there are flames in reach
+    if (this.hero) {
+      o.ext = false;
+      if (s.extLeft > 0 && p.carry < 0) {
+        const f = this.fireAround(p.x, p.z, 3.2);
+        if (f.n > 0 && (s.extOn || f.n >= (this.skill.smart ? 4 : 6))) {
+          const dx = f.x - p.x;
+          const dz = f.z - p.z;
+          const d = Math.hypot(dx, dz) || 1;
+          o.ax = dx / d;
+          o.az = dz / d;
+          o.aimDist = d;
+          o.ext = true;
+          o.spray = true;
+          return;
+        }
+      }
+    }
     const nearAt = (x: number, z: number, r: number) => (c: number) => {
       const cx = (c % W) + 0.5;
       const cz = Math.floor(c / W) + 0.5;
@@ -546,6 +594,15 @@ export class Bot {
         }
         // the nearest door the hose lets us walk to
         this.moveAlong(this.centred(this.bfs((c) => s.exits.some((e) => Math.hypot((c % W) + 0.5 - e.cx, Math.floor(c / W) + 0.5 - e.cz) <= 0.9))));
+        return;
+      }
+      case 'hose': {
+        const hd = s.hoseDrop;
+        if (!hd) {
+          this.t = 0;
+          return;
+        }
+        this.moveAlong(this.bfs(nearAt(hd.x, hd.z, 0.8)));
         return;
       }
       case 'power': {

@@ -2388,6 +2388,58 @@ p {
   background: #7a1f18;
   color: #ffd2cc;
 }
+/* 2.2: portable extinguisher (red, with its powder bar) */
+.noz.ext {
+  background: #8f2320;
+  color: #ffe1dc;
+}
+.noz.ext[hidden] {
+  display: none;
+}
+.noz.ext.sel {
+  background: #fff;
+  color: #c62d25;
+  box-shadow: 0 4px 0 #c9c1b8, 0 0 0 3px #e8342a;
+}
+.noz.ext.sel .cnt b {
+  background: #e8342a;
+}
+/* 2.2: the Pulaski (earth brown; lit while digging) */
+.noz.dig {
+  background: #6b4a2b;
+  color: #f3e3cf;
+}
+.noz.dig[hidden] {
+  display: none;
+}
+.noz.dig.sel {
+  background: #e7c9a0;
+  color: #4a2f16;
+  box-shadow: 0 4px 0 #b3926a, 0 0 0 3px #fff;
+}
+.noz > span.tight {
+  font-size: 9px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+/* short screens (phones in landscape, the portal's frame on a laptop): up to six buttons would not fit in one column,
+   so they go in columns of three, the nozzles on the right and the tools beside them */
+@media (max-height: 560px) {
+  #nozzles {
+    display: grid;
+    grid-template-rows: repeat(3, 62px);
+    grid-auto-flow: column;
+    direction: rtl;
+    gap: 8px;
+  }
+  #nozzles > .noz {
+    direction: ltr;
+  }
+}
+/* the hose lies on the ground: no water until it is picked up */
+#nozzles.nohose .noz[data-n] {
+  opacity: 0.4;
+}
 .noz.heli[hidden] {
   display: none;
 }

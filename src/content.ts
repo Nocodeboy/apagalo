@@ -6,7 +6,7 @@ export const POWER_INFO: Record<PowerKind, { name: Txt; desc: Txt }> = {
   turbo: { name: { es: 'Bomba turbo', en: 'Turbo pump' }, desc: { es: '12 s de chorro más fuerte y más largo', en: '12 s of a stronger, longer jet' } },
   boots: { name: { es: 'Botas de carrera', en: 'Sprint boots' }, desc: { es: '10 s corriendo más rápido', en: 'Run faster for 10 s' } },
   clock: { name: { es: 'Cronómetro', en: 'Stopwatch' }, desc: { es: '+20 s en el reloj', en: '+20 s on the clock' } },
-  extinguisher: { name: { es: 'Extintor', en: 'Extinguisher' }, desc: { es: 'Apaga de golpe todo lo que arde a tu alrededor', en: 'Puts out everything burning around you at once' } },
+  extinguisher: { name: { es: 'Extintor', en: 'Extinguisher' }, desc: { es: 'Te lo guardas: al usarlo sueltas la manguera y apagas con polvo, también combustible', en: 'Kept for later: use it to drop the hose and put flames out with powder, fuel fires too' } },
   heli: { name: { es: 'Helicóptero', en: 'Helicopter' }, desc: { es: 'Pulsa el botón del helicóptero y soltará agua donde apuntes', en: 'Tap the helicopter button and it drops water where you aim' } },
   suit: { name: { es: 'Traje ignífugo', en: 'Fire suit' }, desc: { es: '15 s sin que el calor te frene', en: '15 s immune to the heat' } },
 };
