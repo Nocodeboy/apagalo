@@ -98,6 +98,8 @@ Después, en **Monetizar con Play › Productos › Productos de compra única �
 
 **Cuidado con el precio:** con la consola en español, el punto es separador de miles. Escribe `2,99`, no `2.99`: con punto, Play lo lee como 299 USD.
 
+**Productos creados y activos el 30 sept 2026**, los cinco de la tabla. Cada uno tiene textos en inglés (predeterminado) y español y una opción de compra `buy` de tipo *Comprar*. No permiten varias unidades por compra y van como *Contenido digital*. El precio base está en USD para los 174 países; por ejemplo, `remove_ads` sale a 2,99 USD en EE. UU. y a 3,19 € en España.
+
 Para cada uno: nombre y descripción en español e inglés que digan exactamente lo que da, una opción de compra de tipo **Comprar** (Buy), el precio en dólares dejando que Play lo convierta a cada país, y **Activar**. En Play Console no se marca si es consumible: eso lo decide el código (consume las monedas y confirma los otros dos). Los ids y las monedas salen de `PRODUCTS` en `src/monetize/types.ts`; si cambian allí, hay que cambiarlos aquí.
 
 ## Pruebas
