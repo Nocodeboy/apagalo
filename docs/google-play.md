@@ -10,6 +10,14 @@
 - **Archivo para Play:** `apagalo-1.2.0.aab` (firmado con la clave de subida)
 - **APK para instalar a mano en tu móvil:** `apagalo-1.2.0.apk`
 
+## 2.0 a producción (30 sept 2026)
+
+- La cuenta no tiene el requisito de 12 testers durante 14 días: producción está abierta.
+- **Ficha:** idioma predeterminado **inglés (en-US)**, «Put It Out! Firefighter», con los textos 2.0 de `docs/ficha-tienda-en.md`. Lleva el icono, el gráfico destacado en inglés y 8 capturas (`assets/play-en/`: ciudad, puerto, granja, gasolinera, museo, camping, nieve, álbum). **en-GB** con sus 5 cambios de vocabulario; usa los gráficos de en-US. **es-ES**: «¡Apágalo! Bomberos», descripción 2.0 (sin «Sin anuncios y sin compras») y 8 capturas (las 6 de antes más `assets/play/v2-1-ciudad.png` y `v2-4-museo.png`, al principio).
+- **Declaraciones:** anuncios sí, ID de publicidad (analítica, publicidad, fraude), seguridad de los datos con AdMob y compras, y clasificación IARC rehecha con «Compras de productos digitales» (sigue siendo para todas las edades).
+- **Producción:** todos los países; versión «3 (2.0.0)» con notas en en-US, en-GB y es-ES. El `.aab` pesa 10,7 MB y se sube a mano (`publicacion\apagalo\google-play\put-it-out-2.0.0.aab`).
+- Después de publicarla: vincular la app de AdMob con la ficha de Play (AdMob › Apps › Put It Out! › Configuración de la app).
+
 ## Estado (26 sept 2026)
 
 - Cuenta de Play Console: NoCodeBuilder (personal). Ficha completa y aprobada: textos, icono, gráfico destacado, 6 capturas, categoría Casual, contacto, privacidad, clasificación de contenido (IARC), público 13+, seguridad de los datos y demás declaraciones (respuestas abajo).
