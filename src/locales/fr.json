@@ -557,5 +557,7 @@
  "{n} of {m} front pages": "{n} unes sur {m}",
  "{n}/{m} cleared": "{n}/{m} réussis",
  "−1 ★": "−1 ★",
- "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Campagne terminée ! {n} niveaux · ★ {s}/{m}"
+ "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Campagne terminée ! {n} niveaux · ★ {s}/{m}",
+ "Extinguisher stored: use it with its button": "Extincteur rangé : utilise-le avec son bouton",
+ "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth": "Nouveau : le Pulaski. Maintiens son bouton et avance pour creuser un coupe-feu : le feu ne traverse pas la terre nue"
 }

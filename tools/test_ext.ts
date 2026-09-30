@@ -166,11 +166,16 @@ for (let c = forest.W * 2; c < forest.N - forest.W * 2 && pair < 0; c++) {
 check('Pulaski: found open grass', pair >= 0);
 const dugCell = pair;
 const keptCell = pair + 1;
-// stand below the cell and dig it
+// stand on the grass below the cell: the Pulaski digs where you stand first, then the cell in front
 q.x = (dugCell % forest.W) + 0.5;
 q.z = Math.floor(dugCell / forest.W) + 1.5;
-let evs = run(forest, DIG_TIME + 0.3, { dig: true, ax: 0, az: -1 });
+let evs = run(forest, DIG_TIME + 0.2, { dig: true, ax: 0, az: -1 });
+check('Pulaski: first the cell you stand on', !DIG_MATS.has(forest.mat[dugCell + forest.W]) && DIG_MATS.has(forest.mat[dugCell]));
+evs = run(forest, DIG_TIME + 0.2, { dig: true, ax: 0, az: -1 });
 check('Pulaski: the cell in front becomes bare earth', forest.mat[dugCell] !== forest.mat[keptCell] && !DIG_MATS.has(forest.mat[dugCell]) && evs.includes('dug'), `dug ${forest.dug}`);
+// on fresh grass (the grass next to it, for less than the time it takes to dig)
+q.x = (keptCell % forest.W) + 0.5;
+q.z = Math.floor(keptCell / forest.W) + 0.5;
 check('Pulaski: no water while digging', !run(forest, 0.2, { dig: true, spray: true, ax: 0, az: -1 }).includes('extinguish') && !q.spraying);
 // fire above both cells, kept hot: the dug one never catches, the other one does
 q.x = 1.5;
@@ -185,6 +190,105 @@ for (let i = 0; i < 300; i++) {
 }
 check('Pulaski: the fire does not cross the dug cell', forest.fire[dugCell] <= 0 && forest.fuel[dugCell] === forest.fuel0[dugCell]);
 check('control: the grass next to it burns', forest.fire[keptCell] > 0 || forest.fuel[keptCell] < forest.fuel0[keptCell]);
+
+// walking while digging (a thumb on the button, the other on the stick): a line along the way, even at full speed with
+// the boots and every speed upgrade, which must not outrun the dig
+const fast = new Sim(LEVELS.find((L) => L.num === DIG_FROM)!, { speedMul: 1.3 });
+(fast as unknown as { checkEnd: () => void }).checkEnd = () => undefined;
+fast.fire.fill(0);
+fast.heat.fill(0);
+fast.buffs.boots = 99;
+const RUN = 6;
+let row = -1;
+for (let c = 0; c < fast.N && row < 0; c++) {
+  const x = c % fast.W;
+  if (x < 1 || x + RUN + 2 >= fast.W) continue;
+  let ok = !!fast.walk[c - 1];
+  for (let k = 0; k <= RUN && ok; k++) ok = fast.canDigCell(c + k) && !!fast.walk[c + k];
+  if (ok) row = c;
+}
+check('Pulaski on the move: found a straight run of grass', row >= 0);
+fast.player.x = (row % fast.W) - 0.5;
+fast.player.z = Math.floor(row / fast.W) + 0.5;
+run(fast, 4.5, { dig: true, mx: 1, mz: 0, ax: 1, az: 0 });
+let line = 0;
+while (line < RUN && !DIG_MATS.has(fast.mat[row + line])) line++;
+check('Pulaski on the move: digs every cell it walks over', line >= RUN - 1, `${line} of ${RUN} in a row, dug ${fast.dug}, at x ${fast.player.x.toFixed(1)}`);
+
+// press the button already walking, halfway through a cell: that cell is dug too
+const mid = new Sim(LEVELS.find((L) => L.num === DIG_FROM)!);
+(mid as unknown as { checkEnd: () => void }).checkEnd = () => undefined;
+mid.fire.fill(0);
+mid.heat.fill(0);
+mid.player.x = (row % mid.W) + 0.5;
+mid.player.z = Math.floor(row / mid.W) + 0.5;
+// walk at full speed until a little before the middle of a cell
+for (let i = 0; i < 600; i++) {
+  run(mid, 1 / 60, { mx: 1, mz: 0 });
+  const f = mid.player.x % 1;
+  if (i > 20 && f > 0.3 && f < 0.45) break;
+}
+const startCell = mid.cellAt(mid.player.x, mid.player.z);
+run(mid, 1.5, { dig: true, mx: 1, mz: 0, ax: 1, az: 0 });
+check('Pulaski on the move: the cell where you press it is dug too', !DIG_MATS.has(mid.mat[startCell]), `x ${mid.player.x.toFixed(2)}`);
+
+// walking diagonally: the trench must be fire-tight (fire spreads diagonally too)
+// the first level with the Pulaski that has an open 6x6 patch of grass
+const diag = LEVELS.filter((L) => L.num >= DIG_FROM && L.theme === 'castanar')
+  .map((L) => new Sim(L))
+  .find((x) => {
+    for (let c = 0; c < x.N; c++) {
+      const cx = c % x.W;
+      const cz = Math.floor(c / x.W);
+      if (cx + 6 >= x.W || cz + 6 >= x.H) continue;
+      let ok = true;
+      for (let dz = 0; dz < 6 && ok; dz++) for (let dx = 0; dx < 6 && ok; dx++) ok = x.canDigCell(c + dz * x.W + dx) && !!x.walk[c + dz * x.W + dx];
+      if (ok) return true;
+    }
+    return false;
+  }) ?? new Sim(LEVELS.find((L) => L.num === DIG_FROM)!);
+(diag as unknown as { checkEnd: () => void }).checkEnd = () => undefined;
+diag.fire.fill(0);
+diag.heat.fill(0);
+const B = 6;
+let blk = -1;
+for (let c = 0; c < diag.N && blk < 0; c++) {
+  const x = c % diag.W;
+  const z = Math.floor(c / diag.W);
+  if (x + B >= diag.W || z + B >= diag.H) continue;
+  let ok = true;
+  for (let dz = 0; dz < B && ok; dz++) for (let dx = 0; dx < B && ok; dx++) ok = diag.canDigCell(c + dz * diag.W + dx) && !!diag.walk[c + dz * diag.W + dx];
+  if (ok) blk = c;
+}
+if (blk >= 0) {
+  const bx = blk % diag.W;
+  const bz = Math.floor(blk / diag.W);
+  diag.player.hose = 99; // no leash pulling back towards the truck
+  diag.player.x = bx + 0.3;
+  diag.player.z = bz + 0.3;
+  const k = Math.SQRT1_2;
+  // slightly off the diagonal, so the path clips corners the way a thumb on a stick does
+  run(diag, 8, { dig: true, mx: k * 1.04, mz: k * 0.96, ax: k, az: k });
+  // flood from the top-right corner of the block over cells that still burn, 8 neighbours, inside the block
+  const burns = (c: number) => MATS[diag.mat[c]].flam > 0 && diag.fuel[c] > 0.02;
+  const seen = new Set<number>();
+  const stack = [blk + (B - 1)];
+  while (stack.length) {
+    const c = stack.pop()!;
+    if (seen.has(c) || !burns(c)) continue;
+    seen.add(c);
+    const x = c % diag.W;
+    const z = Math.floor(c / diag.W);
+    for (let dz = -1; dz <= 1; dz++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const nz = z + dz;
+        if ((dx || dz) && nx >= bx && nx < bx + B && nz >= bz && nz < bz + B) stack.push(nz * diag.W + nx);
+      }
+  }
+  const across = blk + (B - 1) * diag.W;
+  check('Pulaski diagonally: fire from one side cannot reach the other', burns(blk + B - 1) && burns(across) && !seen.has(across), `dug ${diag.dug}, reached ${seen.size} cells`);
+} else console.log('(skip: no open 6x6 grass block)');
 
 console.log(fails ? `${fails} FAILED` : 'all OK');
 process.exit(fails ? 1 : 0);

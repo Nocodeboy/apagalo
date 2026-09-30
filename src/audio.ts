@@ -2,6 +2,8 @@
 // Music is played from audio files when available (see setMusicTracks).
 
 type Mode = 'menu' | 'game' | 'none';
+/** music element volume: the level is baked into the files (menu 0.42, levels 0.32 of full scale), see tools/music.py */
+const MUSIC_VOL = 1;
 
 export class Audio {
   ctx: AudioContext | null = null;
@@ -101,10 +103,13 @@ export class Audio {
     this.musicMode = mode;
     this.musicSrc = src ?? '';
     if (this.musicEl) {
+      // fade out and stop after a fixed number of steps: iPhones ignore the volume set from code (it always reads 1),
+      // so waiting for it to reach 0 left the old track playing under the new one
       const old = this.musicEl;
+      let steps = 0;
       const fade = setInterval(() => {
-        old.volume = Math.max(0, old.volume - 0.08);
-        if (old.volume <= 0.01) {
+        old.volume = Math.max(0, old.volume - 0.25);
+        if (++steps >= 4 || old.volume <= 0.01) {
           old.pause();
           clearInterval(fade);
         }
@@ -116,10 +121,12 @@ export class Audio {
     el.loop = true;
     el.volume = 0;
     el.play().catch(() => undefined);
-    const target = mode === 'game' ? 0.32 : 0.42;
+    // the files carry their own level (tools/music.py, PLAY_LEVEL): full volume here, the same on iPhones
+    const target = MUSIC_VOL;
+    let steps = 0;
     const up = setInterval(() => {
-      el.volume = Math.min(target, el.volume + 0.03);
-      if (el.volume >= target) clearInterval(up);
+      el.volume = Math.min(target, el.volume + 0.1);
+      if (++steps >= 10 || el.volume >= target) clearInterval(up);
     }, 60);
     this.musicEl = el;
   }
@@ -154,7 +161,7 @@ export class Audio {
   }
 
   duck(on: boolean) {
-    if (this.musicEl) this.musicEl.volume = on ? 0.12 : this.musicMode === 'game' ? 0.32 : 0.42;
+    if (this.musicEl) this.musicEl.volume = on ? MUSIC_VOL * 0.35 : MUSIC_VOL;
   }
 
   // ---------- continuous ----------

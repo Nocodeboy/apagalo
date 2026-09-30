@@ -36,12 +36,16 @@ export const EXT_NOZZLE = { key: 'ext', rate: 70, pow: 1.5, vh: 6.5, spread: 0.3
 /** Seconds standing on the dropped hose to pick it up again. */
 const HOSE_PICK_TIME = 0.25;
 /**
- * The Pulaski (half axe, half hoe, the wildland firefighter's tool): holding it digs the cell in front, turning grass,
- * dry grass, leaf litter or tall grass into bare earth that does not burn (the cell still counts as saved). A cell
- * takes DIG_TIME; you move slowly and cannot spray while you dig, and burning cells cannot be dug.
+ * The Pulaski (half axe, half hoe, the wildland firefighter's tool): holding it digs the cell you stand on (then the
+ * one in front), turning grass, dry grass, leaf litter or tall grass into bare earth that does not burn (the cell still
+ * counts as saved). A cell takes DIG_TIME; you walk slowly (DIG_WALK) and cannot spray while you dig, and burning cells
+ * cannot be dug. Walking with it held leaves a trench along your path, kept tight at the corners (fire also spreads
+ * diagonally, so two dug cells touching only by a corner would let it through).
  */
-export const DIG_TIME = 0.5;
-const DIG_SPEED = 0.4;
+export const DIG_TIME = 0.45;
+/** walking pace while digging (m/s), whatever the upgrades or the boots: crossing half a cell takes longer than digging
+ *  it, so the cell you press the button on is dug too */
+const DIG_WALK = 1.0;
 export const DIG_MATS = new Set<number>([M.Grass, M.Dry, M.Leaves, M.TallGrass]);
 /** Seconds a rescuee stands the fire next to it before it runs off (people at windows hold on longer). */
 const FLEE_TIME: Partial<Record<Ent['type'], number>> = { window: 4.5, onlooker: 3.2, art: 3 };
@@ -314,6 +318,8 @@ export class Sim {
   digCell = -1;
   digT = 0;
   dug = 0;
+  /** last cell dug while the button is held (the trench is kept tight at the corners) */
+  private digPrev = -1;
   /** helicopter: charges ready, and drops on their way */
   heliCharges: number;
   helis: { x: number; z: number; t: number }[] = [];
@@ -667,13 +673,21 @@ export class Sim {
       this.hints.snow = true;
       this.emit('deepSnow', p.x, p.z);
     }
-    const sp =
+    let sp =
       SPEED *
       (hero ? this.speedMul * (this.buffs.boots > 0 ? 1.35 : 1) : this.speedMul * 0.92) *
       (p.spraying && !(hero && this.extOn) ? nz.slow : 1) *
-      (hero && this.digging ? DIG_SPEED : 1) *
       (p.carry >= 0 ? CARRY_SPEED : 1) *
       (inSnow ? SNOW_SPEED : 1);
+    if (hero && this.digging) {
+      sp = Math.min(sp, DIG_WALK);
+      // straight down to digging pace (no gliding out of the cell you pressed the button on)
+      const v = Math.hypot(p.vx, p.vz);
+      if (v > DIG_WALK) {
+        p.vx *= DIG_WALK / v;
+        p.vz *= DIG_WALK / v;
+      }
+    }
     const k = 1 - Math.exp(-(onIce ? ICE_GRIP : 14) * dt);
     p.vx += (mx * sp - p.vx) * k;
     p.vz += (mz * sp - p.vz) * k;
@@ -1668,17 +1682,20 @@ export class Sim {
   }
 
   /** Where the Pulaski digs now: the cell in front (aim direction), else the one underfoot. */
+  /** The cell you stand on first (walking with the button held leaves a trench along your path, with no gaps), then
+   *  the one in front (standing still you widen it towards where you face). */
   digTarget(): number {
     const p = this.player;
-    const front = this.cellAt(p.x + p.aimX * 0.9, p.z + p.aimZ * 0.9);
-    if (this.canDigCell(front)) return front;
     const here = this.cellAt(p.x, p.z);
-    return this.canDigCell(here) ? here : -1;
+    if (this.canDigCell(here)) return here;
+    const front = this.cellAt(p.x + p.aimX * 0.9, p.z + p.aimZ * 0.9);
+    return this.canDigCell(front) ? front : -1;
   }
 
   private updateDig(inp: SimInput, dt: number) {
     const p = this.player;
     this.digging = false;
+    if (!inp.dig) this.digPrev = -1;
     const target = inp.dig && p.stun <= 0 && p.carry < 0 && !this.extOn ? this.digTarget() : -1;
     if (target < 0) {
       this.digCell = -1;
@@ -1692,13 +1709,35 @@ export class Sim {
     }
     this.digT += dt;
     if (this.digT >= DIG_TIME) {
-      this.mat[target] = M.Dirt;
-      this.heat[target] = 0;
-      this.dug++;
-      this.emit('dug', (target % this.W) + 0.5, Math.floor(target / this.W) + 0.5, this.dug, target);
+      this.digOut(target);
+      // only a corner in common with the last one (walking diagonally): the cell between them too, or the fire,
+      // which also spreads diagonally, would slip through
+      const prev = this.digPrev;
+      const W = this.W;
+      if (prev >= 0 && Math.abs((prev % W) - (target % W)) === 1 && Math.abs(Math.floor(prev / W) - Math.floor(target / W)) === 1) {
+        const a = Math.floor(prev / W) * W + (target % W);
+        const b = Math.floor(target / W) * W + (prev % W);
+        const burns = (c: number) => MATS[this.mat[c]].flam > 0 && this.fuel[c] > 0.02;
+        if (burns(a) && burns(b)) {
+          const da = Math.hypot((a % W) + 0.5 - p.x, Math.floor(a / W) + 0.5 - p.z);
+          const db = Math.hypot((b % W) + 0.5 - p.x, Math.floor(b / W) + 0.5 - p.z);
+          const first = da <= db ? a : b;
+          const other = first === a ? b : a;
+          if (this.canDigCell(first)) this.digOut(first);
+          else if (this.canDigCell(other)) this.digOut(other);
+        }
+      }
+      this.digPrev = target;
       this.digCell = -1;
       this.digT = 0;
     }
+  }
+
+  private digOut(c: number) {
+    this.mat[c] = M.Dirt;
+    this.heat[c] = 0;
+    this.dug++;
+    this.emit('dug', (c % this.W) + 0.5, Math.floor(c / this.W) + 0.5, this.dug, c);
   }
 
   // ---------- portable extinguisher ----------

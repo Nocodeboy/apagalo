@@ -707,7 +707,7 @@ function startPlay() {
   if (sim.canDig && !save.seenTips.includes('tool-dig')) {
     save.seenTips.push('tool-dig');
     store.save();
-    setTimeout(() => toast(t('tDigHelp'), 'good', 6000), 1200);
+    setTimeout(() => toast(t(input.mode === 'touch' ? 'tDigHelpT' : 'tDigHelp'), 'good', 6000), 1200);
   }
   audio.unlock();
   audio.play('siren');
@@ -865,6 +865,14 @@ function buildInput(s: Sim): SimInput {
       inp.aimDist = maxR * (input.aimMag > 0 ? 0.45 + 0.55 * input.aimMag : 1);
     }
   }
+  // nothing aims (a thumb on the Pulaski button, or keys only): it digs where you are heading
+  if (inp.dig && !inp.ax && !inp.az) {
+    const ml = Math.hypot(inp.mx, inp.mz);
+    if (ml > 0.2) {
+      inp.ax = inp.mx / ml;
+      inp.az = inp.mz / ml;
+    }
+  }
   return inp;
 }
 
@@ -1000,7 +1008,7 @@ function handleEvent(ev: SimEvent) {
       const k = ev.k as PowerKind;
       floater(t('tPowerGot', { name: tx(POWER_INFO[k].name) }), ev.x, 1.8, ev.z, 'gold');
       if (k === 'heli') toast(t('heliReady'), 'good', 3000);
-      if (k === 'extinguisher') toast(t('tExtGot'), 'good', 3400);
+      if (k === 'extinguisher') toast(t(input.mode === 'touch' ? 'tExtGotT' : 'tExtGot'), 'good', 3400);
       if (save.settings.vibration) vibrate(30);
       track('powerup', { k, level: s.def.id });
       break;

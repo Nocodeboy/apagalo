@@ -8,7 +8,7 @@ Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos
   - La ficha quedó en categoría **Simulation**, con las etiquetas **3D, Top-Down, Hero, Skill, Mission**. Mientras dura el Basic Launch la ficha es de solo lectura (nombre, descripción, etiquetas), y para cambiarla hay que escribir al soporte. Todavía dice «6 handcrafted scenarios»; la descripción de la 2.0 está más abajo.
 - **2.0 publicada el 30 sept.** La subida de versión la aprobaron automáticamente («now live»), así que no hace falta esperar revisión.
 - **2.1.0 publicada el 1 oct**, también aprobada al momento: 6 idiomas (ver [idiomas.md](idiomas.md)), la música suena en móviles desde el primer toque y hay una canción por tipo de escenario.
-- **2.2.0 lista en `dist/apagalo-crazygames.zip`:** extintor portátil y Pulaski para cavar cortafuegos (ver `diseno-v2.md`, «2.2»). Se sube igual, como versión nueva. En el QA hay que jugar el nivel con la ventana de Chrome delante antes de pulsar «Continue» en la vista previa.
+- **2.2.0 lista en `dist/apagalo-crazygames.zip`:** extintor portátil y Pulaski para cavar cortafuegos, y arreglada la música en iPhone, que se iba sumando canción tras canción (ver `diseno-v2.md`, «2.2»). Se sube igual, como versión nueva. En el QA hay que jugar el nivel con la ventana de Chrome delante antes de pulsar «Continue» en la vista previa.
 - **Métricas del Basic Launch** (28–29 sept, 149 partidas, con la versión 1.x). El umbral es 9 de 15.
 
   | | Puntuación | Tiempo medio de juego | Retención D1 | Conversión a partida |

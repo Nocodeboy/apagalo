@@ -1025,7 +1025,11 @@ export function buildHud(onPause: () => void, onNozzle: (n: 0 | 1 | 2) => void, 
   const dg = nz.querySelector<HTMLElement>('#hud-dig')!;
   dg.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
-    dg.setPointerCapture?.(e.pointerId);
+    try {
+      dg.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* the pointer is already gone: digging still stops on pointerup */
+    }
     onDig(true);
   });
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) dg.addEventListener(ev, () => onDig(false));

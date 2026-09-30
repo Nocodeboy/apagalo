@@ -271,7 +271,7 @@ def encode(profile='x'):
         return
     music = f'{ROOT}/assets/music-game.mp3'
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(FPS), '-i', f'{seq}/%05d.png', '-i', music,
-           '-filter_complex', f'[0:v]scale=1080:1920:flags=lanczos,format=yuv420p[v];[1:a]atrim=0:{dur:.3f},afade=t=in:d=0.25,afade=t=out:st={dur - 1.2:.3f}:d=1.2,volume=0.9[a]',
+           '-filter_complex', f'[0:v]scale=1080:1920:flags=lanczos,format=yuv420p[v];[1:a]atrim=0:{dur:.3f},afade=t=in:d=0.25,afade=t=out:st={dur - 1.2:.3f}:d=1.2,volume=2.65[a]',
            '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
            '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-t', f'{dur:.3f}', OUT]
     subprocess.run(cmd, check=True)

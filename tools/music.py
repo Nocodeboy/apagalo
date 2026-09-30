@@ -8,11 +8,17 @@
 # The menu and the village square keep music-menu.mp3 and music-game.mp3. Instruments and mixing come from
 # Tray Runner's generator (marchando/tools/music.py). Every loop is seamless.
 # Usage: pip install numpy lameenc && python3 tools/music.py [name ...]   (no names: all of them)
+# The random touches depend on which tracks are made in the same run: the shipped files are `music.py` (all) for folk,
+# funk, night and snow, and `music.py rock bigfire` for those two.
+# The files carry the level they play at in the game (PLAY_LEVEL): iPhones ignore the volume set from code, so a
+# loud file would drown the sound effects there. The game plays them at full volume.
 import os
 import numpy as np
 import lameenc
 
 SR = 44100
+# in-game music level (was the <audio> volume, 0.32, until 2.2)
+PLAY_LEVEL = 0.32
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 rng = np.random.default_rng(7)
 
@@ -167,13 +173,13 @@ def chord_notes(root, kind, octave=4):
 
 
 def master(track, name, kbps=112, gain=1.0):
-    """gain: < 1 for dense tracks, so every loop plays at about -14.5 LUFS."""
+    """gain: < 1 for dense tracks, so every loop is about -14.5 LUFS before PLAY_LEVEL (about -24.4 after it)."""
     L, R = track.L, track.R
     # gentle glue: soft clip, then normalise to -1 dBFS
     L = np.tanh(L * 1.3) / np.tanh(1.3)
     R = np.tanh(R * 1.3) / np.tanh(1.3)
     peak = max(np.abs(L).max(), np.abs(R).max()) or 1
-    g = 0.89 / peak * gain
+    g = 0.89 / peak * gain * PLAY_LEVEL
     pcm = np.empty(len(L) * 2, dtype=np.int16)
     pcm[0::2] = (L * g * 32767).astype(np.int16)
     pcm[1::2] = (R * g * 32767).astype(np.int16)
