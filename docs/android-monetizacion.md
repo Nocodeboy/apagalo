@@ -94,6 +94,10 @@ Después, en **Monetizar con Play › Productos › Productos de compra única �
 | `coins_m` | 6.000 monedas | Consumible | 4,99 USD |
 | `coins_l` | 14.000 monedas | Consumible | 9,99 USD |
 
+**Perfil de pagos creado el 30 sept 2026:** perfil de particular «Germán Huertas Piquero», nombre público de comerciante *NoCodeBuilder*, categoría *Software informático*, correo de atención al cliente el de la cuenta, extracto de tarjeta `NOCODEBOYGAMES` (el campo admite 14 caracteres) y la dirección legal como dirección pública. Queda pendiente apuntarse a la cuota del 15 % (Ajustes › Perfil de pagos › *Gestionar grupo de cuentas* y aceptar sus condiciones); sin eso, Google se queda el 30 %.
+
+**Cuidado con el precio:** con la consola en español, el punto es separador de miles. Escribe `2,99`, no `2.99`: con punto, Play lo lee como 299 USD.
+
 Para cada uno: nombre y descripción en español e inglés que digan exactamente lo que da, una opción de compra de tipo **Comprar** (Buy), el precio en dólares dejando que Play lo convierta a cada país, y **Activar**. En Play Console no se marca si es consumible: eso lo decide el código (consume las monedas y confirma los otros dos). Los ids y las monedas salen de `PRODUCTS` en `src/monetize/types.ts`; si cambian allí, hay que cambiarlos aquí.
 
 ## Pruebas
