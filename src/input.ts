@@ -55,7 +55,7 @@ export class Input {
     );
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
-      const k = e.key.toLowerCase();
+      const k = keyOf(e);
       this.keys.add(k);
       if (!this.enabled) return;
       if (k === 'escape' || k === 'p') this.onPause();
@@ -71,7 +71,7 @@ export class Input {
         this.usedMove = true;
       }
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
+    window.addEventListener('keyup', (e) => this.keys.delete(keyOf(e)));
     window.addEventListener('blur', () => {
       this.keys.clear();
       this.mouseDown = false;
@@ -215,4 +215,15 @@ export class Input {
       this.spray = this.mouseDown || k.has(' ');
     }
   }
+}
+
+/**
+ * The key by its position for letters and digits, so WASD, Q/E and 1-2-3 sit in the same place on AZERTY (France,
+ * Belgium) and QWERTZ keyboards; the character for everything else (arrows, space, Escape).
+ */
+function keyOf(e: KeyboardEvent): string {
+  const c = e.code || '';
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3).toLowerCase();
+  if (/^Digit[0-9]$/.test(c)) return c.slice(5);
+  return e.key.toLowerCase();
 }

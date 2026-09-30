@@ -2,16 +2,32 @@
 
 Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos de la ficha, requisitos técnicos y cómo actualizarlo.
 
-## Estado (26 sept 2026)
+## Estado (1 oct 2026)
 
-- Juego en **borrador, listo para enviar** (paso 4 de 4). Hecho:
-  - Versión 1.2.0 subida (3 archivos en la raíz) con el aviso de privacidad para jugadores nuevos.
-  - Revisión de calidad superada: carga en 2,9 s, `gameplayStart`/`gameplayStop`, `loadingStart`/`loadingStop` y guardado en su nube detectados. Los 8 puntos de la lista marcados como «Yes».
-  - Ficha: categoría **Action**, etiquetas **3D, Top-Down, Hero, Skill, Mission**, descripción y controles (textos de abajo), 3 portadas y 2 vídeos. Guardado del progreso con el módulo Data. Sin enlaces a tiendas (la app de Android aún no es pública).
-- Falta, y lo haces tú:
-  1. **Datos de cobro**: Billing → Manage Payment Details (Tipalti). El portal avisa de que faltan antes de enviar.
-  2. En el paso 4, marcar las dos casillas: aceptar los términos del portal y confirmar que el juego es apto para mayores de 12 años (PEGI 12).
-  3. Pulsar **Submit for approval**.
+- **En Basic Launch** desde el 28 sept. Termina a las 500 partidas o el 19 oct.
+  - La ficha quedó en categoría **Simulation**, con las etiquetas **3D, Top-Down, Hero, Skill, Mission**. Mientras dura el Basic Launch la ficha es de solo lectura (nombre, descripción, etiquetas), y para cambiarla hay que escribir al soporte. Todavía dice «6 handcrafted scenarios»; la descripción de la 2.0 está más abajo.
+- **2.0 publicada el 30 sept.** La subida de versión la aprobaron automáticamente («now live»), así que no hace falta esperar revisión.
+- **2.1.0 lista en `dist/apagalo-crazygames.zip`:** el juego en 6 idiomas (ver [idiomas.md](idiomas.md)). Se sube igual, como versión nueva.
+- **Métricas del Basic Launch** (28–29 sept, 149 partidas, con la versión 1.x). El umbral es 9 de 15.
+
+  | | Puntuación | Tiempo medio de juego | Retención D1 | Conversión a partida |
+  |---|---|---|---|---|
+  | Escritorio | 6/15 | 2m41s | 0 % | 70,9 % |
+  | Móvil y tableta | 4/15 | 3m11s | 0 % | 31,9 % |
+
+  La 2.0 es la que tiene que subirlas.
+
+### Subir una versión nueva sin arrastrar la carpeta
+
+El campo de archivos del juego es una carpeta (`webkitdirectory`). El portal saca la ruta de cada archivo de `webkitRelativePath` y quita la primera carpeta. Si los archivos llegan sin carpeta, por ejemplo subidos con una herramienta de automatización, `check-presigned-url-upload` devuelve 400 y se quedan girando.
+
+Arrastrar la carpeta a mano funciona siempre. Para hacerlo por programa:
+
+1. Intercepta el `change` del input con `stopImmediatePropagation` y guarda los `File`.
+2. A cada archivo, dale `webkitRelativePath = 'carpeta/' + nombre` con `Object.defineProperty`.
+3. Mételos en el input con un `DataTransfer` y lanza un `change` nuevo.
+
+En las portadas y los vídeos de la ficha hay que pulsar antes el botón «Upload» de cada hueco (si no, sale «UploadType is not properly set»). Luego se carga el archivo en su input y, en las portadas, se pulsa Submit en el recorte.
 
 Las portadas llevan el título fuera de la esquina superior izquierda, porque CrazyGames pone ahí sus etiquetas (NEW, HOT…): en la horizontal está desplazado a la derecha, en la vertical más abajo y en la cuadrada más pequeño y a la derecha.
 

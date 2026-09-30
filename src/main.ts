@@ -652,7 +652,7 @@ function openDaily() {
     def: d.def,
     eyebrow: `${t('daily')} · ${tx(BASE_LEVELS.find((l) => l.theme === d.def.theme)!.name)}`,
     title: t('dailyTitle', { n: d.num }),
-    tip: rec ? t('dailyPlayed', { s: rec.score.toLocaleString() }) : `${tx(d.mod.label)} · ${tx(BASE_LEVELS.find((l) => l.theme === d.def.theme)!.tip)}`,
+    tip: rec ? t('dailyPlayed', { s: num(rec.score) }) : `${tx(d.mod.label)} · ${tx(BASE_LEVELS.find((l) => l.theme === d.def.theme)!.tip)}`,
     time: sim!.timeLeft,
     wind: d.opts.windOverride ?? d.def.wind,
     hasRescues: sim!.rescuees.length > 0,
@@ -869,7 +869,7 @@ function handleEvent(ev: SimEvent) {
     case 'soak': {
       audio.play('soak');
       const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
-      const txt = e && ANIMAL_SOUND[e.type] ? ANIMAL_SOUND[e.type][getLang()] : t('tSoak');
+      const txt = e && ANIMAL_SOUND[e.type] ? tx(ANIMAL_SOUND[e.type]) : t('tSoak');
       floater(txt, ev.x, 2, ev.z, 'bad');
       break;
     }
@@ -1182,7 +1182,7 @@ function campaignStats() {
 }
 
 function rankText(rk: { players: number; below: number }): string {
-  return rk.players <= 1 ? t('dailyFirst') : t('dailyRank', { p: rankPct(rk), n: rk.players.toLocaleString() });
+  return rk.players <= 1 ? t('dailyFirst') : t('dailyRank', { p: rankPct(rk), n: num(rk.players) });
 }
 
 /** Save progress and report the result the moment the level ends (not when the panel appears). */

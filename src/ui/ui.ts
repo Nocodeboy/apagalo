@@ -1,10 +1,10 @@
 import { EVENT_INFO, PLACE_COLOR, PLACE_INFO, POWER_INFO } from '../content';
-import { num, t, tx } from '../i18n';
+import { LANG_NAME, LANGS, num, t, tx } from '../i18n';
 import type { Label } from '../render/view';
 import type { Stage } from '../render/stage';
 import { THEMES } from '../render/themes';
 import { FINALE_ID } from '../sim/campaign/finale';
-import type { EventKind, LevelDef, News, PowerKind } from '../sim/types';
+import type { EventKind, Lang, LevelDef, News, PowerKind } from '../sim/types';
 import type { Result } from '../sim/world';
 import { CREW_ICON, EVENT_ICON, IC, PLACE_ICON, POWER_ICON } from './icons';
 
@@ -225,7 +225,7 @@ export function levelsScreen(o: LevelsOpts) {
         <span class="num">${L.num}</span><span class="pi" aria-hidden="true">${PLACE_ICON[L.theme] ?? ''}</span>${paper}
         ${tag}
         <span class="nm">${esc(tx(L.name))}</span>
-        <span class="st">${lock ? '<span>🔒</span>' : cur ? `<span class="new">${IC.play}${t('newTag')}</span>` : `<span>${starsTxt(st)}</span>`}${best[L.id] ? `<small>${best[L.id].toLocaleString()}</small>` : ''}</span>
+        <span class="st">${lock ? '<span>🔒</span>' : cur ? `<span class="new">${IC.play}${t('newTag')}</span>` : `<span>${starsTxt(st)}</span>`}${best[L.id] ? `<small>${num(best[L.id])}</small>` : ''}</span>
       </button>`;
   };
 
@@ -563,11 +563,11 @@ export function endScreen(o: EndOpts) {
           <div class="stat"><div class="k">${t('statTime')}</div><div class="v">${fmtTime(r.timeUsed)}</div></div>
           ${r.rescueTotal ? `<div class="stat"><div class="k">${t('statRescued')}</div><div class="v">${r.win ? r.rescueTotal - r.fled : r.rescued}/${r.rescueTotal}</div></div>` : ''}
           <div class="stat"><div class="k">${t('statCombo')}</div><div class="v">x${r.maxCombo}</div></div>
-          ${r.win ? `<div class="stat wide"><div class="k">${t('statScore')}</div><div class="v">${r.score.toLocaleString()}</div></div>` : ''}
+          ${r.win ? `<div class="stat wide"><div class="k">${t('statScore')}</div><div class="v">${num(r.score)}</div></div>` : ''}
         </div>
         </div>
         <div class="end-col">
-        ${o.newBest && r.win ? `<div class="newbest">${t('newBest')}</div>` : o.best > 0 ? `<div class="muted" style="text-align:center">${t('best')}: ${o.best.toLocaleString()}</div>` : ''}
+        ${o.newBest && r.win ? `<div class="newbest">${t('newBest')}</div>` : o.best > 0 ? `<div class="muted" style="text-align:center">${t('best')}: ${num(o.best)}</div>` : ''}
         ${o.extraHtml ?? ''}
         ${o.footer ? `<div class="muted" style="text-align:center">${esc(o.footer)}</div>` : ''}
         <div class="coinbox">
@@ -588,7 +588,7 @@ export function endScreen(o: EndOpts) {
         </div>
         <div class="actions">
           ${r.win ? `<button class="btn ghost" data-a="retry" aria-label="${t('restart')}" style="flex:0 0 60px;padding:0">${IC.retry}</button>` : ''}
-          ${r.win && o.hasNext ? `<button class="btn water" data-a="share" style="flex:1 1 120px">${IC.share}${t('share')}</button>` : ''}
+          ${r.win && o.hasNext ? `<button class="btn water" data-a="share" style="flex:1 1 120px;padding:0 12px;min-width:0${t('share').length > 9 ? ';font-size:18px;gap:8px' : ''}">${IC.share}${t('share')}</button>` : ''}
           <button class="btn ghost" data-a="menu" aria-label="${t('menu')}" style="${r.win && o.hasNext ? 'flex:0 0 60px;padding:0' : r.win ? 'flex:1 1 120px' : 'flex:1 1 100%'}">${IC.home}${r.win && o.hasNext ? '' : t('menu')}</button>
         </div>
         </div>
@@ -721,7 +721,7 @@ export interface SettingsOpts {
   onAdChoices?: () => void;
   version?: string;
   gfx: 'auto' | 'high' | 'medium' | 'low';
-  lang: 'es' | 'en';
+  lang: Lang;
   onChange: (k: string, v: string | boolean) => void;
   onReset: () => void;
   onBack: () => void;
@@ -739,7 +739,7 @@ export function settingsScreen(o: SettingsOpts) {
         <div class="setting"><span>${t('vibration')}</span>${tog('vibration', o.vibration)}</div>
         <div class="setting"><span>${t('stats')}<small class="muted" style="display:block;font-size:13px;font-weight:600">${t('statsNote')}</small></span>${tog('stats', o.stats)}</div>
         <div class="setting"><span>${t('quality')}</span><button class="toggle" data-k="gfx" data-v="${o.gfx}" id="set-gfx">${t(('gfx_' + o.gfx) as 'gfx_auto')}</button></div>
-        <div class="setting"><span>${t('language')}</span><button class="toggle" data-k="lang" id="set-lang">${o.lang === 'es' ? 'Español' : 'English'}</button></div>
+        <div class="setting"><span>${t('language')}</span><button class="toggle" data-k="lang" data-v="${o.lang}" id="set-lang">${LANG_NAME[o.lang]}</button></div>
         <div class="actions">
           <button class="btn ghost" data-a="back" data-focus>${IC.back}${t('back')}</button>
           <button class="btn ghost" data-a="reset" style="color:#ffb8ae">${t('reset')}</button>
@@ -759,7 +759,7 @@ export function settingsScreen(o: SettingsOpts) {
         b.textContent = t(('gfx_' + v) as 'gfx_auto');
         o.onChange(k, v);
       } else if (k === 'lang') {
-        const v = b.textContent === 'Español' ? 'en' : 'es';
+        const v = LANGS[(LANGS.indexOf(b.dataset.v as Lang) + 1) % LANGS.length];
         o.onChange(k, v);
       } else {
         const on = !b.classList.contains('on');

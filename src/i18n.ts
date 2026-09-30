@@ -1,4 +1,8 @@
 import type { Lang, Txt } from './sim/types';
+import de from './locales/de.json';
+import fr from './locales/fr.json';
+import it from './locales/it.json';
+import pt from './locales/pt.json';
 
 const S = {
   gameName: { es: '¡Apágalo!', en: 'Put It Out!' },
@@ -257,32 +261,88 @@ const S = {
 
 export type Key = keyof typeof S;
 
+/** Order of the language button in Settings, each in its own language. */
+export const LANGS: readonly Lang[] = ['en', 'es', 'pt', 'fr', 'de', 'it'];
+export const LANG_NAME: Record<Lang, string> = { en: 'English', es: 'Español', pt: 'Português', fr: 'Français', de: 'Deutsch', it: 'Italiano' };
+/** Locale for dates (Brazilian Portuguese: Brazil is by far the largest Portuguese-speaking audience). */
+export const LOCALE: Record<Lang, string> = { en: 'en-US', es: 'es-ES', pt: 'pt-BR', fr: 'fr-FR', de: 'de-DE', it: 'it-IT' };
+
+/**
+ * Portuguese, French, German and Italian: dictionaries from the English text to the translation (`src/locales/`).
+ * Any text missing from them falls back to English.
+ */
+const DICT: Partial<Record<Lang, Record<string, string>>> = { pt, fr, de, it };
+
 let lang: Lang = 'en';
 export function setLang(l: Lang) {
-  lang = l;
-  document.documentElement.lang = l;
+  lang = LANGS.includes(l) ? l : 'en';
+  document.documentElement.lang = lang;
 }
 export function getLang(): Lang {
   return lang;
 }
 /**
- * English first (the studio's main language): Spanish only when the device's language is Spanish, or one of the
- * other languages of Spain (Catalan, Galician, Basque), whose speakers all read Spanish.
+ * English first (the studio's main language). Spanish when the device's language is Spanish, or one of the other
+ * languages of Spain (Catalan, Galician, Basque), whose speakers all read Spanish; Portuguese, French, German and
+ * Italian when the device is in one of them.
  */
 export function detectLang(): Lang {
   const langs = (navigator.languages?.length ? navigator.languages : [navigator.language || 'en']).map((l) => (l || '').toLowerCase());
   const first = langs[0] ?? 'en';
-  return first.startsWith('es') || first.startsWith('ca') || first.startsWith('gl') || first.startsWith('eu') ? 'es' : 'en';
+  if (first.startsWith('es') || first.startsWith('ca') || first.startsWith('gl') || first.startsWith('eu')) return 'es';
+  for (const l of ['pt', 'fr', 'de', 'it'] as const) if (first.startsWith(l)) return l;
+  return 'en';
 }
 /** Whole numbers in the player's language (1,370 / 1.370). */
 export function num(n: number): string {
-  return n.toLocaleString(lang);
+  return n.toLocaleString(LOCALE[lang]);
+}
+
+/** Dictionary entries with {placeholders}, as patterns for texts built in code (e.g. "Daily #12"). */
+const patterns = new Map<Lang, { re: RegExp; vars: string[]; to: string; weight: number }[]>();
+const memo = new Map<string, string>();
+function fromPattern(d: Record<string, string>, en: string): string | null {
+  let list = patterns.get(lang);
+  if (!list) {
+    list = [];
+    for (const [k, to] of Object.entries(d)) {
+      const vars = [...k.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+      const fixed = k.replace(/\{\w+\}/g, '');
+      if (!vars.length || fixed.trim().length < 2) continue;
+      const re = new RegExp('^' + k.split(/\{\w+\}/).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('(.+?)') + '$');
+      list.push({ re, vars, to, weight: fixed.length });
+    }
+    list.sort((a, b) => b.weight - a.weight);
+    patterns.set(lang, list);
+  }
+  for (const p of list) {
+    const m = p.re.exec(en);
+    if (!m) continue;
+    let s = p.to;
+    p.vars.forEach((v, i) => (s = s.replace(`{${v}}`, d[m[i + 1]] ?? m[i + 1])));
+    return s;
+  }
+  return null;
+}
+/** An English text in the current language (itself when there is no translation). */
+function fromEn(en: string): string {
+  const d = DICT[lang];
+  if (!d) return en;
+  const hit = d[en];
+  if (hit !== undefined) return hit;
+  const key = lang + '\u0000' + en;
+  let s = memo.get(key);
+  if (s === undefined) {
+    s = fromPattern(d, en) ?? en;
+    memo.set(key, s);
+  }
+  return s;
 }
 export function t(k: Key, vars?: Record<string, string | number>): string {
-  let s = S[k][lang];
+  let s = lang === 'es' || lang === 'en' ? S[k][lang] : fromEn(S[k].en);
   if (vars) for (const [a, b] of Object.entries(vars)) s = s.replace(`{${a}}`, String(b));
   return s;
 }
 export function tx(x: Txt): string {
-  return x[lang];
+  return lang === 'es' || lang === 'en' ? x[lang] : fromEn(x.en);
 }

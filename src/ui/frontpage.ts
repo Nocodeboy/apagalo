@@ -3,7 +3,7 @@
 // The page itself (stars, saved, score, date) is in the save; the photo is kept apart in localStorage because it does
 // not fit in CrazyGames' cloud save: on another device the page is drawn with an illustration instead.
 import { PLACE_COLOR } from '../content';
-import { getLang, num, t, tx } from '../i18n';
+import { getLang, LOCALE, num, t, tx } from '../i18n';
 import type { LevelDef } from '../sim/types';
 import type { FrontPage } from '../storage';
 
@@ -139,7 +139,7 @@ export async function drawFrontPage(def: LevelDef, page: FrontPage, gameUrl: str
   ctx.fillText(t('newspaper'), W / 2, 170);
   ctx.fillRect(60, 196, W - 120, 3);
   ctx.font = `600 28px ${ui}`;
-  const date = new Date(page.t).toLocaleDateString(getLang() === 'es' ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const date = new Date(page.t).toLocaleDateString(LOCALE[getLang()], { year: 'numeric', month: 'long', day: 'numeric' });
   ctx.textAlign = 'left';
   ctx.fillText(`Nº ${def.num} · ${date}`, 64, 236);
   ctx.textAlign = 'right';

@@ -1,4 +1,5 @@
-export type Lang = 'es' | 'en';
+/** Texts are written in Spanish and English ({@link Txt}); the other languages come from the locale dictionaries. */
+export type Lang = 'es' | 'en' | 'pt' | 'fr' | 'de' | 'it';
 export type Txt = { es: string; en: string };
 
 /** Scenario of a level: its look (render/themes.ts) and, for the new ones, its star mechanic (docs/diseno-v2.md). */
