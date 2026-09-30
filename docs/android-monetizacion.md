@@ -141,7 +141,7 @@ Y fuera de «Contenido de la app»:
 
 - **Ficha de la tienda:** quita «Sin anuncios y sin compras» de la descripción completa (en `docs/google-play.md` también).
 - **Política de privacidad** (`/privacidad`): tiene que mencionar AdMob (Google), el ID de publicidad, el consentimiento y las compras a través de Google Play.
-- **Estado de comerciante (Ley de Servicios Digitales de la UE):** revisa tu declaración en la cuenta de desarrollador. Con anuncios y compras lo normal es declararte comerciante, y entonces tu dirección y teléfono se muestran a los usuarios de la UE.
+- **Estado de comerciante (Ley de Servicios Digitales de la UE):** a 30 sept 2026, esta cuenta personal no tiene un formulario aparte. Play lo liga a los ingresos: en Cuenta de desarrollador › Perfil público de desarrollador avisa de que, si obtienes ingresos en Google Play, tu dirección legal completa se mostrará públicamente. El nombre legal y la dirección salen del perfil de pagos de Google (Cuenta de desarrollador › Información sobre ti › Ver perfil de pagos). El teléfono de contacto no se muestra en Google Play. Así que el paso real es crear el perfil de pagos de comerciante con la dirección que quieras que se vea.
 
 ## Resumen de lo que tienes que hacer tú
 
