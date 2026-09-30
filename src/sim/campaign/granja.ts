@@ -343,7 +343,7 @@ export const GRANJA: LevelDef[] = [
       foam: 12,
       wind: { angle: 0, strength: 0.35 },
       stars: [0.86, 0.93],
-      minSaved: 0.7,
+      minSaved: 0.75,
     },
     gasoleo(),
   ),

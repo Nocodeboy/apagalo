@@ -355,7 +355,7 @@ export const ESTACION: LevelDef[] = [
       wind: { angle: 90, strength: 0.3 },
       trains: [{ z: 10, dir: -1, first: 10, every: 17 }],
       stars: [0.62, 0.74],
-      minSaved: 0.46,
+      minSaved: 0.51,
       under: ':',
     },
     cochera(),

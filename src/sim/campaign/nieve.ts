@@ -326,7 +326,7 @@ export const NIEVE: LevelDef[] = [
       hose: 15,
       wind: { angle: -90, strength: 0.3 },
       stars: [0.81, 0.84],
-      minSaved: 0.55,
+      minSaved: 0.58,
     },
     telesilla(),
   ),
@@ -406,7 +406,7 @@ export const NIEVE: LevelDef[] = [
         { t: 130, angle: -45, strength: 0.5 },
       ],
       stars: [0.69, 0.74],
-      minSaved: 0.56,
+      minSaved: 0.58,
       // the blizzard knocks the power out, then a gust from the side: always, wherever the level is in the route
       fixedEvents: [
         { kind: 'blackout', t: 50 },

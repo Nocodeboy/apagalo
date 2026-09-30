@@ -296,7 +296,7 @@ export const MUSEO: LevelDef[] = [
       hose: 16,
       wind: INDOOR,
       stars: [0.93, 0.96],
-      minSaved: 0.55,
+      minSaved: 0.6,
       under: '_',
       sprinklers: [
         { lever: [2, 16], area: [2, 2, 10, 16] },
@@ -315,7 +315,7 @@ export const MUSEO: LevelDef[] = [
       hose: 16,
       wind: { angle: -90, strength: 0.12 },
       stars: [0.92, 0.95],
-      minSaved: 0.8,
+      minSaved: 0.85,
       under: '_',
       sprinklers: [
         { lever: [2, 11], area: [2, 10, 17, 8] },
@@ -413,7 +413,7 @@ export const MUSEO: LevelDef[] = [
       hose: 16,
       wind: { angle: 180, strength: 0.14 },
       stars: [0.72, 0.75],
-      minSaved: 0.49,
+      minSaved: 0.54,
       under: '_',
       // guests wander towards the fire, then the power goes out: always, wherever the level is in the route
       fixedEvents: [

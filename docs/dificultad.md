@@ -296,7 +296,7 @@ daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/1/9  rescued 0.0
 
 ## 2.0, entrega 2: ruta de 120 niveles
 
-Medida el 30 sept 2026 con `npx tsx tools/bot.ts 10 --sum` sobre la ruta final (120 niveles, 12 escenarios, 12 grandes incendios). Con 10 partidas cada porcentaje baila unos ±15 puntos.
+Medida el 30 sept 2026 con `npx tsx tools/bot.ts 10 --sum` sobre la ruta final (120 niveles, 12 escenarios, 12 grandes incendios). Con 10 partidas cada porcentaje baila unos ±15 puntos. Estas tablas son de **antes de la decisión de dificultad** del mismo día; las de después están en «2.0: decisión de dificultad», al final.
 
 **El PRO gana el 90 % o más en todos los niveles** (el que menos, el final, con el 90 %; todos los demás entre el 99 y el 100 % por capítulo).
 
@@ -352,23 +352,23 @@ daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/1/9  rescued 0.0
 
 ### Los 23 niveles nuevos
 
-Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por debajo, el fuego se descontrola y se pierde).
+Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por debajo, el fuego se descontrola y se pierde). Mínimos y resultados ya con la decisión de dificultad (cambian `nieve-3`, `museo-2`, `museo-3`, `camping-2`, `camping-3`, `nieve-8`, `museo-8` y `camping-7`).
 
 | Nº | id | Nombre | Tiempo | Mínimo | ★★ / ★★★ | PRO gana | Casual gana |
 |---|---|---|---|---|---|---|---|
 | 24 | `nieve-1` | The mountain hut / El refugio (presentación) | 130 s | 60 % | 93 / 97 % | 100 % (96 %) | 100 % (81 %) |
 | 33 | `museo-1` | The gallery / La galería (presentación) | 130 s | 60 % | 93 / 96 % | 100 % (95 %) | 100 % (92 %) |
 | 34 | `nieve-2` | The hotel terrace / La terraza del hotel | 150 s | 42 % | 85 / 88 % | 100 % (87 %) | 70 % (53 %) |
-| 43 | `nieve-3` | The chairlift / El telesilla | 150 s | 55 % | 81 / 84 % | 100 % (81 %) | 80 % (59 %) |
+| 43 | `nieve-3` | The chairlift / El telesilla | 150 s | 58 % | 81 / 84 % | 100 % (81 %) | 50 % (60 %) |
 | 44 | `camping-1` | The campfire / La hoguera (presentación) | 130 s | 49 % | 79 / 83 % | 100 % (82 %) | 100 % (70 %) |
-| 45 | `museo-2` | The sculpture hall / La sala de esculturas | 150 s | 55 % | 93 / 96 % | 100 % (95 %) | 90 % (62 %) |
+| 45 | `museo-2` | The sculpture hall / La sala de esculturas | 150 s | 60 % | 93 / 96 % | 100 % (95 %) | 80 % (63 %) |
 | 55 | `nieve-4` | The skating rink / La pista de patinaje | 160 s | 49 % | 73 / 77 % | 100 % (70 %) | 100 % (74 %) |
-| 56 | `museo-3` | The museum shop / La tienda del museo | 150 s | 80 % | 92 / 95 % | 100 % (94 %) | 90 % (91 %) |
+| 56 | `museo-3` | The museum shop / La tienda del museo | 150 s | 85 % | 92 / 95 % | 100 % (94 %) | 90 % (92 %) |
 | 60 | `nieve-5` | Fire at the ski resort / Fuego en la estación de esquí (gran incendio) | 210 s | 63 % | 87 / 93 % | 100 % (89 %) | 40 % (64 %) |
-| 62 | `camping-2` | Tent city / Las tiendas | 150 s | 62 % | 73 / 78 % | 100 % (76 %) | 70 % (68 %) |
+| 62 | `camping-2` | Tent city / Las tiendas | 150 s | 67 % | 73 / 78 % | 100 % (76 %) | 60 % (69 %) |
 | 67 | `museo-4` | The library / La biblioteca | 160 s | 56 % | 62 / 65 % | 100 % (64 %) | 100 % (62 %) |
 | 70 | `museo-5` | Night at the museum / Noche en el museo (gran incendio) | 220 s | 58 % | 71 / 74 % | 100 % (73 %) | 80 % (59 %) |
-| 74 | `camping-3` | The RV park / Las caravanas | 150 s | 74 % | 85 / 90 % | 100 % (88 %) | 90 % (76 %) |
+| 74 | `camping-3` | The RV park / Las caravanas | 150 s | 75 % | 85 / 90 % | 100 % (88 %) | 70 % (76 %) |
 | 81 | `nieve-6` | The snowy forest / El bosque nevado | 170 s | 74 % | 80 / 85 % | 100 % (82 %) | 80 % (75 %) |
 | 87 | `camping-4` | The lake shore / El lago | 160 s | 57 % | 65 / 75 % | 100 % (67 %) | 50 % (59 %) |
 | 89 | `museo-6` | The storeroom / El almacén | 160 s | 55 % | 65 / 69 % | 100 % (68 %) | 100 % (63 %) |
@@ -376,9 +376,9 @@ Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por de
 | 99 | `nieve-7` | The alpine village / La aldea alpina | 170 s | 59 % | 65 / 70 % | 100 % (67 %) | 90 % (65 %) |
 | 102 | `museo-7` | Natural history / Historia natural | 170 s | 68 % | 78 / 81 % | 100 % (77 %) | 100 % (71 %) |
 | 108 | `camping-6` | The lookout / El mirador | 170 s | 56 % | 66 / 70 % | 100 % (67 %) | 100 % (61 %) |
-| 112 | `nieve-8` | Blizzard night / Noche de ventisca (apagón y racha, siempre) | 190 s | 56 % | 69 / 74 % | 100 % (71 %) | 60 % (58 %) |
-| 114 | `museo-8` | The gala / La gala (curiosos y apagón, siempre) | 180 s | 49 % | 72 / 75 % | 100 % (71 %) | 70 % (60 %) |
-| 119 | `camping-7` | Dry lightning / Tormenta seca | 180 s | 36 % | 49 / 56 % | 100 % (51 %) | 80 % (44 %) |
+| 112 | `nieve-8` | Blizzard night / Noche de ventisca (apagón y racha, siempre) | 190 s | 58 % | 69 / 74 % | 100 % (71 %) | 40 % (59 %) |
+| 114 | `museo-8` | The gala / La gala (curiosos y apagón, siempre) | 180 s | 54 % | 72 / 75 % | 90 % (71 %) | 40 % (62 %) |
+| 119 | `camping-7` | Dry lightning / Tormenta seca | 180 s | 41 % | 49 / 56 % | 90 % (51 %) | 70 % (45 %) |
 
 ### Cómo se han ajustado
 
@@ -389,13 +389,13 @@ Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por de
 
 ### Lo que no se ha conseguido
 
-- **La curva del casual baja menos de lo buscado**: del 91-96 % de los primeros capítulos al 74-81 % de los últimos (se buscaba el 40-55 %). Los grandes incendios sí son más duros (72 % el casual). El ajuste solo subió los mínimos con mucho cuidado (desde el nivel 55, sin pasar de dos estrellas menos 6 puntos y con el PRO al 95 %). Hay margen para endurecer (ver la sección siguiente), pero se deja para cuando haya datos de jugadores: a una persona le costará más que al bot, porque tiene que descubrir que el hielo resbala, que la palanca activa los aspersores o que el helicóptero se recarga, mientras que el bot casual lo sabe desde el primer intento.
+- **La curva del casual baja menos de lo buscado**: del 91-96 % de los primeros capítulos al 74-81 % de los últimos (se buscaba el 40-55 %). Los grandes incendios sí son más duros (72 % el casual). El ajuste solo subió los mínimos con mucho cuidado (desde el nivel 55, sin pasar de dos estrellas menos 6 puntos y con el PRO al 95 %). Hay margen para endurecer (ver la sección siguiente), pero se deja para cuando haya datos de jugadores: a una persona le costará más que al bot, porque tiene que descubrir que el hielo resbala, que la palanca activa los aspersores o que el helicóptero se recarga, mientras que el bot casual lo sabe desde el primer intento. Después de la decisión de dificultad (al final del documento), la segunda mitad queda en el 70-76 %.
 - **Niveles donde el casual gana poco**: `nieve-5` (40 %) y `camping-4` (50 %). Son el gran incendio de la nieve y el lago; se dejan así porque el PRO gana el 100 % y quedan justo antes de un nivel tranquilo.
-- ~~`nieve-8` y `museo-8` se quedaban sin sus eventos~~ Arreglado: llevan eventos fijos (`fixedEvents`) que no dependen de su puesto en la ruta. La ventisca tiene apagón (segundo 50) y racha (105); la gala, curiosos (45) y apagón (100). Como todos los eventos, empiezan antes si el fuego ya está controlado, y el segundo no llega si el nivel se acaba antes. Con ellos el casual gana el 60 % en `nieve-8` (antes, el 70 %) y lo mismo en `museo-8`; el PRO, el 100 % en los dos.
+- ~~`nieve-8` y `museo-8` se quedaban sin sus eventos~~ Arreglado: llevan eventos fijos (`fixedEvents`) que no dependen de su puesto en la ruta. La ventisca tiene apagón (segundo 50) y racha (105); la gala, curiosos (45) y apagón (100). Como todos los eventos, empiezan antes si el fuego ya está controlado, y el segundo no llega si el nivel se acaba antes. Con ellos el casual gana el 60 % en `nieve-8` (antes, el 70 %) y el 70 % en `museo-8`, igual que antes; el PRO, el 100 % en los dos. Son cifras de antes de la decisión de dificultad.
 
 ### Si los datos piden más dificultad
 
-No se ha tocado nada: la decisión se toma con datos de jugadores. Qué mirar: en la vista `niveles` de Supabase (juego `apagalo`), la tasa de victoria de cada nivel (`level_complete` sobre `level_start`), con al menos 200 partidas por nivel. La referencia es la curva buscada: el 90 % al principio, del 40 al 55 % al final y 10 puntos menos en los grandes incendios. Si un tramo queda **15 puntos o más por encima**, se endurece en este orden.
+Esta guía y su tabla son de antes de la decisión de dificultad: la opción segura de los mínimos ya está aplicada (ver la sección siguiente), así que lo que queda por endurecer es menos. Qué mirar: en la vista `niveles` de Supabase (juego `apagalo`), la tasa de victoria de cada nivel (`level_complete` sobre `level_start`), con al menos 200 partidas por nivel. La referencia es la curva buscada: el 90 % al principio, del 40 al 55 % al final y 10 puntos menos en los grandes incendios. Si un tramo queda **15 puntos o más por encima**, se endurece en este orden.
 
 Medido con `npx tsx tools/headroom.ts 12` (niveles 41-120, 12 partidas por bot; las pruebas de propagación y tiempo, con 8). Con tan pocas partidas cada cifra baila unos ±10 puntos. Hoy, en esos 80 niveles, el PRO gana el 100 % y el casual el 82 %.
 
@@ -418,3 +418,48 @@ Por capítulos, con +5 puntos en todos los mínimos (PRO / casual): 41-50, 99 / 
 Si al contrario sale **difícil** (un nivel con menos del 30 % de victorias o muchos abandonos en él), se bajan primero los mínimos, en pasos de 5 puntos.
 
 Después de cualquier cambio: `npx tsx tools/bot.ts 10 --sum` (PRO al 90 % o más en todos los niveles) y `npm run daily-table` si se ha tocado la simulación.
+
+## 2.0: decisión de dificultad (30 sept 2026)
+
+Germán delegó la decisión en Claude, que aplicó la opción segura de la tabla anterior: **+5 puntos en el mínimo (`minSaved`) de los niveles donde el PRO sigue ganando siempre**, sin tocar estrellas, grandes incendios, niveles de presentación ni los 10 niveles donde el PRO bajaba del 90 %. Se revisará con los datos reales de derrotas (`level_fail` por nivel).
+
+- De los 38 niveles de la tabla, se quedan fuera los 3 grandes incendios (`nieve-5`, `museo-5` y el final) y la presentación del camping (`camping-1`): quedan 34.
+- Con +5, en 10 de ellos el casual se hundía (del 0 al 20 %). En esos se ha subido solo lo que deja al casual en el 40 % o más (medido con 16 partidas): `nieve-3`, `poligono-5` y `sanjuan-10`, +3; `castanar-9` y `nieve-8`, +2; `plaza-7`, `camping-3`, `puerto-8` y `poligono-10`, +1; `castanar-10` se queda como estaba.
+- En total cambian **33 niveles**: 24 con +5, 3 con +3, 2 con +2 y 4 con +1. El reto diario no cambia (usa los 6 mapas de siempre; `dailyTable.ts` regenerada, igual).
+
+Resultado con `npx tsx tools/bot.ts 10` (los niveles 1-40 no cambian):
+
+| Capítulo | PRO gana | Casual gana (antes) | Casual gana (después) | Casual salva (después) |
+|---|---|---|---|---|
+| 1-10 | 100 % | 91 % | 91 % | 70 % |
+| 11-20 | 100 % | 96 % | 96 % | 79 % |
+| 21-30 | 100 % | 93 % | 93 % | 76 % |
+| 31-40 | 100 % | 91 % | 91 % | 72 % |
+| 41-50 | 100 % | 90 % | 84 % | 75 % |
+| 51-60 | 99 % | 86 % | 76 % | 68 % |
+| 61-70 | 99 % | 87 % | 78 % | 70 % |
+| 71-80 | 99 % | 81 % | 72 % | 68 % |
+| 81-90 | 100 % | 74 % | 74 % | 67 % |
+| 91-100 | 100 % | 77 % | 74 % | 71 % |
+| 101-110 | 100 % | 81 % | 76 % | 73 % |
+| 111-120 | 97 % | 76 % | 70 % | 64 % |
+
+| Escenario | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|
+| plaza | 99 % | 79 % | 74 % |
+| granja | 100 % | 91 % | 82 % |
+| gasolinera | 100 % | 75 % | 66 % |
+| poligono | 100 % | 80 % | 69 % |
+| castanar | 98 % | 76 % | 61 % |
+| sanjuan | 99 % | 66 % | 70 % |
+| puerto | 100 % | 92 % | 73 % |
+| ciudad | 100 % | 91 % | 82 % |
+| estacion | 100 % | 90 % | 76 % |
+| nieve | 100 % | 71 % | 66 % |
+| museo | 99 % | 86 % | 70 % |
+| camping | 99 % | 77 % | 63 % |
+| grandes incendios | 99 % | 72 % | 64 % |
+
+- **El PRO gana el 90 % o más en todos los niveles.** Se quedan en el 90 % `castanar-6`, `sanjuan-6`, `museo-8` y `camping-7` (subidos +5), y `castanar-8` y el final (sin cambios); todos los demás, el 100 %.
+- **El casual baja del 91-96 % de la primera mitad al 70-76 % de la segunda.** Antes era el 74-87 %. La bajada es más suave que la que se buscaba (40-55 % al final), pero sin muros: ningún nivel normal deja al casual por debajo del 30 %.
+- Si los datos reales piden más, lo siguiente es la propagación (sección anterior).
