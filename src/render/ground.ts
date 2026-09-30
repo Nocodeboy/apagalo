@@ -21,7 +21,7 @@ function shade(hex: string, k: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-const GROUNDISH = new Set<number>([M.Grass, M.Dry, M.Leaves, M.Dirt, M.Road, M.Stone, M.Concrete, M.Sand, M.Water, M.Wood, M.Oil, M.Rail]);
+const GROUNDISH = new Set<number>([M.Grass, M.Dry, M.Leaves, M.Dirt, M.Road, M.Stone, M.Concrete, M.Sand, M.Water, M.Wood, M.Oil, M.Rail, M.Snow, M.Ice, M.Carpet, M.TallGrass]);
 
 export class Ground {
   readonly mesh: THREE.Mesh;
@@ -54,6 +54,8 @@ export class Ground {
         const i = z * W + x;
         const j = ((H - 1 - z) * W + x) * 4;
         mask[j] = sim.mat[i] === M.Water || sim.mat[i] === M.Slick ? 255 : 0;
+        mask[j + 1] = sim.mat[i] === M.Ice ? 255 : 0;
+        mask[j + 2] = sim.mat[i] === M.Snow || (theme.id === 'nieve' && sim.mat[i] === M.Dirt) ? 255 : 0;
       }
     const maskTex = new THREE.DataTexture(mask, W, H, THREE.RGBAFormat);
     maskTex.magFilter = THREE.LinearFilter;
@@ -79,7 +81,8 @@ float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
           '#include <map_fragment>',
           `#include <map_fragment>
 vec4 st = texture2D(uState, vMapUv);
-float wm = texture2D(uMask, vMapUv).r;
+vec4 mk = texture2D(uMask, vMapUv);
+float wm = mk.r;
 vec2 cuv = vMapUv * uGrid;
 float nn = hash2(floor(cuv * 6.0));
 if (wm > 0.01) {
@@ -87,6 +90,9 @@ if (wm > 0.01) {
   diffuseColor.rgb += vec3(0.07, 0.1, 0.12) * wv * wm;
   diffuseColor.rgb += vec3(0.25) * step(0.985, hash2(floor(cuv * 5.0) + floor(uTime * 2.0))) * wm;
 }
+// ice: a slow sheen sliding across it; snow: a few glints
+if (mk.g > 0.01) diffuseColor.rgb += vec3(0.1, 0.13, 0.16) * mk.g * smoothstep(0.55, 1.0, sin(cuv.x * 0.9 + cuv.y * 0.6 - uTime * 0.8));
+if (mk.b > 0.01) diffuseColor.rgb += vec3(0.5, 0.55, 0.6) * mk.b * step(0.994, hash2(floor(cuv * 9.0) + floor(uTime * 1.3)));
 float chr = smoothstep(0.04, 0.75, st.r);
 vec3 charC = mix(vec3(0.07, 0.062, 0.058), vec3(0.19, 0.17, 0.15), nn);
 diffuseColor.rgb = mix(diffuseColor.rgb, charC, chr * 0.95);
@@ -194,8 +200,73 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
           case M.Dirt: {
             ctx.fillStyle = shade(t.dirt, tint);
             ctx.fillRect(px, pz, PX, PX);
-            dot(shade(t.dirt, 0.82), 6, 2, 2);
-            dot(shade(t.dirt, 1.12), 4, 2, 1);
+            if (t.id === 'nieve') {
+              // packed snow: boot prints and ski tracks
+              dot(shade(t.dirt, 1.08), 5, 3, 2);
+              dot(shade(t.dirt, 0.9), 3, 2, 2);
+              if ((x + z * 3) % 7 === 0) {
+                ctx.fillStyle = shade(t.dirt, 0.86);
+                ctx.fillRect(px, pz + 5, PX, 1);
+                ctx.fillRect(px, pz + 10, PX, 1);
+              }
+            } else {
+              dot(shade(t.dirt, 0.82), 6, 2, 2);
+              dot(shade(t.dirt, 1.12), 4, 2, 1);
+            }
+            break;
+          }
+          case M.Snow: {
+            // deep snow: bright, with soft drifts
+            ctx.fillStyle = shade('#f4f8fc', 0.97 + rnd() * 0.04);
+            ctx.fillRect(px, pz, PX, PX);
+            ctx.fillStyle = 'rgba(150,175,210,0.28)';
+            ctx.beginPath();
+            ctx.ellipse(px + rnd() * PX, pz + rnd() * PX, 5 + rnd() * 5, 2 + rnd() * 2, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            dot('#ffffff', 4, 2, 2);
+            break;
+          }
+          case M.Ice: {
+            // ice: pale blue, glossy streaks and a few cracks
+            ctx.fillStyle = shade('#a9d4ec', 0.97 + rnd() * 0.05);
+            ctx.fillRect(px, pz, PX, PX);
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fillRect(px + rnd() * 8, pz + rnd() * 12, 7, 1);
+            ctx.strokeStyle = 'rgba(70,120,160,0.45)';
+            ctx.lineWidth = 1;
+            if (rnd() < 0.4) {
+              ctx.beginPath();
+              ctx.moveTo(px + rnd() * PX, pz + rnd() * PX);
+              ctx.lineTo(px + rnd() * PX, pz + rnd() * PX);
+              ctx.lineTo(px + rnd() * PX, pz + rnd() * PX);
+              ctx.stroke();
+            }
+            break;
+          }
+          case M.Carpet: {
+            // red carpet with a gold border where it meets something else
+            ctx.fillStyle = shade('#a8262e', 0.95 + rnd() * 0.06);
+            ctx.fillRect(px, pz, PX, PX);
+            dot('#8e1d25', 5, 2, 2);
+            ctx.fillStyle = '#d9b04a';
+            const cm = (dx: number, dz: number) => {
+              const xx = x + dx;
+              const zz = z + dz;
+              return xx >= 0 && zz >= 0 && xx < s.W && zz < s.H && s.mat[zz * s.W + xx] === M.Carpet;
+            };
+            if (!cm(0, -1)) ctx.fillRect(px, pz + 1, PX, 2);
+            if (!cm(0, 1)) ctx.fillRect(px, pz + PX - 3, PX, 2);
+            if (!cm(-1, 0)) ctx.fillRect(px + 1, pz, 2, PX);
+            if (!cm(1, 0)) ctx.fillRect(px + PX - 3, pz, 2, PX);
+            break;
+          }
+          case M.TallGrass: {
+            // tall dry grass: golden, long strokes
+            ctx.fillStyle = shade(t.dry[0], tint * 1.05);
+            ctx.fillRect(px, pz, PX, PX);
+            dot(shade(t.dry[1], 0.8), 9, 1, 6);
+            dot(shade(t.dry[0], 1.25), 9, 1, 6);
+            dot('#8a6a30', 3, 1, 4);
             break;
           }
           case M.Road: {
@@ -221,6 +292,21 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
           }
           case M.Stone: {
             const [a, b] = t.stone;
+            if (t.id === 'museo') {
+              // marble: big checker tiles with faint veins
+              ctx.fillStyle = shade((x + z) % 2 ? a : b, 0.98 + rnd() * 0.03);
+              ctx.fillRect(px, pz, PX, PX);
+              ctx.strokeStyle = 'rgba(150,140,125,0.35)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(px + rnd() * PX, pz);
+              ctx.quadraticCurveTo(px + rnd() * PX, pz + PX / 2, px + rnd() * PX, pz + PX);
+              ctx.stroke();
+              ctx.fillStyle = 'rgba(120,110,95,0.35)';
+              ctx.fillRect(px, pz, PX, 1);
+              ctx.fillRect(px, pz, 1, PX);
+              break;
+            }
             for (let k = 0; k < 4; k++) {
               ctx.fillStyle = shade(k % 3 === 0 ? a : b, 0.95 + rnd() * 0.1);
               ctx.fillRect(px + (k % 2) * 8, pz + Math.floor(k / 2) * 8, 8, 8);
@@ -280,6 +366,19 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
             break;
           }
           case M.Wood: {
+            if (t.id === 'museo') {
+              // parquet: honey-coloured boards, laid in squares that alternate direction
+              const across = (x + z) % 2 === 0;
+              for (let k = 0; k < 4; k++) {
+                ctx.fillStyle = shade('#c08a55', 0.9 + rnd() * 0.16);
+                if (across) ctx.fillRect(px, pz + k * 4, PX, 4);
+                else ctx.fillRect(px + k * 4, pz, 4, PX);
+                ctx.fillStyle = 'rgba(90,50,20,0.28)';
+                if (across) ctx.fillRect(px, pz + k * 4 + 3, PX, 1);
+                else ctx.fillRect(px + k * 4 + 3, pz, 1, PX);
+              }
+              break;
+            }
             for (let k = 0; k < 4; k++) {
               ctx.fillStyle = shade(t.wood, 0.9 + rnd() * 0.18);
               ctx.fillRect(px, pz + k * 4, PX, 4);
@@ -313,6 +412,7 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
         else if (m === M.Dry) col = t.dry[0];
         else if (m === M.Leaves) col = t.leaves[0];
         else if (m === M.Sand) col = t.sand;
+        else if (m === M.Snow) col = '#f4f8fc';
         if (!col) continue;
         ctx.fillStyle = shade(col, 0.97);
         for (let k = 0; k < 5; k++) {
@@ -325,7 +425,7 @@ totalEmissiveRadiance += vec3(1.0, 0.36, 0.07) * st.b * st.b * fl * 1.1;`,
       }
     // contact shadows under objects
     for (const e of s.ents) {
-      const k = { tree: 0.8, pine: 0.75, palm: 0.5, house: 0.2, church: 0.2, barn: 0.2, warehouse: 0.15, stall: 0.2, churros: 0.2, car: 0.35, truck: 0.3, hay: 0.5, cabin: 0.2, chiringuito: 0.25, shop: 0.15, hedge: 0.45, pallet: 0.4, container: 0.2, tower: 0.25, wagon: 0.3, crane: 0.1 }[e.type as string];
+      const k = { tree: 0.8, pine: 0.75, palm: 0.5, house: 0.2, church: 0.2, barn: 0.2, warehouse: 0.15, stall: 0.2, churros: 0.2, car: 0.35, truck: 0.3, hay: 0.5, cabin: 0.2, chiringuito: 0.25, shop: 0.15, hedge: 0.45, pallet: 0.4, container: 0.2, tower: 0.25, wagon: 0.3, crane: 0.1, chalet: 0.25, tent: 0.3, rv: 0.35, art: 0.3 }[e.type as string];
       if (!k) continue;
       const cx = e.cx * PX;
       const cz = e.cz * PX;

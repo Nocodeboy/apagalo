@@ -55,7 +55,30 @@ You are the village firefighter. Your hose is tied to the fire truck, the wind k
 **Móvil:** sí, controles táctiles de doble joystick.
 **Idiomas:** inglés y español.
 
-**Descripción en español** (por si la ficha la permite):
+**Con la 2.0** (rama `v2`, 120 niveles en 12 escenarios), la descripción pasa a esta (1.133 caracteres; nombre, descripción corta y controles, los mismos):
+
+```text
+Put It Out! Firefighter is a 3D firefighting game where the fire is alive. Your hose is tied to the fire truck, the wind keeps shifting and the flames spread cell by cell in real time. Aim at the base of the fire, rescue everyone and don't let anything important burn.
+
+- 120 handcrafted levels across 12 places, each with its own rule: foam for fuel fires, live electrical boxes, fireworks falling on the beach, burning fuel drifting across the docks, people trapped at downtown windows, trains that cut your hose, ice and frozen hydrants at the ski lodge, masterpieces to carry out of a museum at night and a helicopter on call at the campground.
+- A big fire every 10 levels. Win it and you make the front page of The Daily Blaze: collect all 12.
+- Power-ups on the ground and surprise events: rain showers, wind gusts, gas leaks, blackouts.
+- Hire your crew: Lola the firefighter, Sparky the rescue dog and a water drone.
+- 3 nozzles: jet for reach, fog to shield yourself from the heat, foam for fuel fires.
+- A new daily challenge every day, the same fire for every player.
+
+Plays in English and Spanish, on desktop and mobile.
+```
+
+Y la española:
+
+```text
+Eres el bombero. La manguera va atada al camión, el viento cambia y las llamas se extienden en tiempo real. Apunta a la base del fuego, rescata a todos y que no se queme nada importante. 120 niveles en 12 escenarios, cada uno con su regla (del puerto a la estación de esquí, el museo de noche y el camping), un gran incendio cada 10 niveles con su portada de periódico, power-ups, eventos sorpresa, tu propio equipo, 3 boquillas y un reto diario nuevo cada día.
+```
+
+La 2.0 en CrazyGames: sin «More games» (no hay enlaces a fuera), el apoyo aéreo es un anuncio con recompensa más que solo aparece en el Full Launch, y el guardado en su nube lleva también el equipo y las portadas (`tools/test_cg_data.py` prueba una partida de la 1.3.0 guardada en la nube). Las portadas y vídeos de la ficha se pueden quedar hasta tener capturas de los escenarios nuevos.
+
+**Descripción en español de la 1.x** (por si la ficha la permite):
 Eres el bombero del pueblo. La manguera va atada al camión, el viento cambia y las llamas se extienden en tiempo real. Apunta a la base del fuego, rescata a los animales, enfría las bombonas y que no se queme nada importante. 67 niveles en 6 escenarios, 3 boquillas (chorro, abanico y espuma) y un reto diario nuevo cada día.
 
 ## Requisitos técnicos cubiertos
@@ -64,7 +87,7 @@ Eres el bombero del pueblo. La manguera va atada al camión, el viento cambia y 
 - **Guardado en su nube (módulo Data)**: la partida se guarda también en CrazyGames, así que un jugador con cuenta la conserva entre dispositivos. Al entrar, si el portal ya tiene una partida, manda esa; si no, se copia la local. Comprobado con `tools/test_cg_data.py`.
 - **Un clic hasta jugar**: la primera vez, el botón JUGAR lleva directo al nivel 1 con el tutorial, sin pasar por el selector de niveles.
 - Si el SDK no carga o está desactivado, el juego funciona igual (todas las llamadas están protegidas).
-- Sin enlaces externos: el botón de compartir y el enlace a la política de privacidad no existen en esta versión. Sin pantalla completa propia (la pone el portal).
+- Sin enlaces externos: el botón de compartir, el enlace a la política de privacidad y, desde la 2.0, «More games» no existen en esta versión. Sin pantalla completa propia (la pone el portal).
 - Sin anuncios mientras dure el Basic Launch (ver «Anuncios» más abajo) y sin compras.
 - Todo el contenido está dentro del zip (fuentes incluidas dentro de `index.html`, porque el cargador de CrazyGames no conserva subcarpetas). La única petición externa es el propio SDK de CrazyGames.
 - Tamaño muy por debajo de los límites (3,5 MB frente a 50 MB iniciales / 250 MB totales; 3 archivos frente a 1.500).

@@ -15,6 +15,7 @@
     "serve": "python3 -m http.server 8765 --bind 127.0.0.1 -d dist",
     "bot": "tsx tools/bot.ts 10",
     "daily-table": "tsx tools/daily-table.ts",
+    "test:migration": "tsx tools/test_migration.ts",
     "android:sync": "node build.mjs && cap sync android",
     "deploy:web": "node build.mjs && cd dist/web && npx vercel@latest deploy --prod"
   },

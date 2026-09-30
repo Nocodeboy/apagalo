@@ -3,6 +3,7 @@ import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDon
 import { audio, vibrate } from './audio';
 import { buyCrew, buyUpgrade, claimFreeCoins, crewFor, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, takeDailyReward, toggleTeam, upgradeOptions, type UpgradeId } from './economy';
 import { CREW_INFO, EVENT_INFO, PLACE_INFO, POWER_INFO } from './content';
+import { gameLink, moreGames } from './games';
 import { isUnlocked, nextLevelIndex as nextIndex, noteReach } from './progress';
 import { detectLang, getLang, num, setLang, t, tx } from './i18n';
 import { adOffered, buy, canReward, hasStore, initMonetize, maybeInterstitial, noteLevelEnd, openPrivacyOptions, privacyOptionsAvailable, restorePurchases, showRewarded, storeProducts, type BuyResult, type Delivered } from './monetize';
@@ -28,6 +29,7 @@ import {
   $,
   albumScreen,
   banner,
+  moreGamesModal,
   eventBanner,
   newsHtml,
   pageModal,
@@ -63,6 +65,7 @@ declare const __PRIVACY_URL__: string;
 declare const __VERSION__: string;
 const TARGET_ANDROID = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'android';
 const TARGET_CG = typeof __TARGET__ !== 'undefined' && __TARGET__ === 'crazygames';
+const TARGET = typeof __TARGET__ !== 'undefined' ? __TARGET__ : 'web';
 const PRIVACY_URL = typeof __PRIVACY_URL__ !== 'undefined' ? __PRIVACY_URL__ : '';
 const GAME_URL = typeof __GAME_URL__ !== 'undefined' ? __GAME_URL__ : '';
 let dailyRank: { players: number; below: number } | null = null;
@@ -94,7 +97,7 @@ let slowHold = 0;
 let minimap: Minimap | null = null;
 let playStart = 0;
 let wakeLock: { release: () => Promise<void> } | null = null;
-const flags = { flares: 0, overheat: 0, hose: false, rocket: false, train: false, lift: 0 };
+const flags = { flares: 0, overheat: 0, hose: false, rocket: false, train: false, lift: 0, handsFull: -1, chip: 0 };
 /** rewarded +30 s in this attempt: offered once, and whether the player took it */
 let continueState: 'none' | 'offered' | 'taken' = 'none';
 /** an ad is on screen: the loop and the audio are paused */
@@ -330,6 +333,7 @@ function showTitle() {
       audio.play('click');
       showShop('title');
     },
+    onMore: moreGames(TARGET).length ? showMoreGames : undefined,
   });
   // players coming from 1.x: what is new, until they close it (the title can be drawn again while it is up)
   if (save.whatsNew < 2 && !document.querySelector('.whatsnew')) {
@@ -339,6 +343,17 @@ function showTitle() {
       audio.play('click');
     });
   }
+}
+
+/** The studio's other games (never on CrazyGames: src/games.ts). */
+function showMoreGames() {
+  audio.play('click');
+  track('crosspromo_open', {});
+  moreGamesModal({
+    games: moreGames(TARGET).map((g) => ({ id: g.id, name: tx(g.name), tagline: tx(g.tagline), href: gameLink(g, TARGET), color: g.color, emoji: g.emoji })),
+    onOpen: (id) => track('crosspromo_click', { id }),
+    onClose: () => audio.play('click'),
+  });
 }
 
 // ---------- shop ----------
@@ -552,6 +567,8 @@ function prepare(def: LevelDef, opts: ConstructorParameters<typeof Sim>[1] = {},
   flags.rocket = false;
   flags.train = false;
   flags.lift = 0;
+  flags.handsFull = -1;
+  flags.chip = 0;
   continueState = 'none';
   heliPress = false;
   photo.want = !!def.big && !save.pages[def.id] && def.id !== 'daily';
@@ -839,14 +856,14 @@ function handleEvent(ev: SimEvent) {
     case 'rescue': {
       audio.play('rescue');
       const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
-      floater(ev.k === 'dog' ? t('tDog') : e?.type === 'window' ? t('tWindowSafe') : t('tRescue'), ev.x, 1.8, ev.z, 'good');
+      floater(ev.k === 'dog' ? t('tDog') : ev.k === 'art' ? t('tArtSafe') : e?.type === 'window' ? t('tWindowSafe') : t('tRescue'), ev.x, 1.8, ev.z, 'good');
       if (vib) vibrate(25);
       break;
     }
     case 'fled': {
       audio.play('fled');
       const e = ev.ent !== undefined ? s.ents[ev.ent] : null;
-      floater(e?.type === 'window' ? t('tWindowFled') : t('tFled'), ev.x, 1.8, ev.z, 'bad');
+      floater(e?.type === 'window' ? t('tWindowFled') : e?.type === 'art' ? t('tArtLost') : t('tFled'), ev.x, 1.8, ev.z, 'bad');
       break;
     }
     case 'soak': {
@@ -887,7 +904,7 @@ function handleEvent(ev: SimEvent) {
       toast(t('tPowerOff'), 'good', 2400);
       break;
     case 'connect':
-      audio.play('connect');
+      audio.play(s.def.theme === 'nieve' && ev.ent !== undefined && s.ents[ev.ent].type === 'hydrant' ? 'thaw' : 'connect');
       floater(t('tConnect'), ev.x, 1.6, ev.z, 'water');
       break;
     case 'hose':
@@ -907,18 +924,19 @@ function handleEvent(ev: SimEvent) {
       toast(t('tWindWarn'), 'warn', 2400);
       break;
     case 'rocket':
-      audio.play('rocket');
+      if (s.def.theme !== 'camping') audio.play('rocket');
       if (!flags.rocket) {
         flags.rocket = true;
-        toast(t('tRocket'), 'warn', 3000);
+        toast(s.def.theme === 'camping' ? t('tLightning') : t('tRocket'), 'warn', 3000);
       }
       break;
     case 'rocketHit':
-      audio.play('rocketHit');
+      audio.play(s.def.theme === 'camping' ? 'thunder' : 'rocketHit');
+      if (s.def.theme === 'camping' && vib) vibrate(40);
       break;
     case 'fizzle':
       audio.play('fizzle');
-      floater(t('tFizzle'), ev.x, 1.6, ev.z, 'good');
+      floater(s.def.theme === 'camping' ? t('tBoltFizzle') : t('tFizzle'), ev.x, 1.6, ev.z, 'good');
       break;
     case 'foamEmpty':
       toast(t('tFoamEmpty'), 'warn');
@@ -1006,6 +1024,36 @@ function handleEvent(ev: SimEvent) {
       break;
     case 'droneDrop':
       audio.play('hiss');
+      break;
+    // ---- v2, entrega 2 ----
+    case 'ice':
+    case 'frozen':
+    case 'deepSnow': {
+      // explained the first few times only (every level of the ski lodge has them)
+      const key = `tip-${ev.type}`;
+      const n = save.seenTips.filter((k) => k === key).length;
+      if (n < 2) {
+        save.seenTips.push(key);
+        store.save();
+        toast(t(ev.type === 'ice' ? 'tIce' : ev.type === 'frozen' ? 'tFrozen' : 'tDeepSnow'), ev.type === 'deepSnow' ? '' : 'warn', 3200);
+      }
+      break;
+    }
+    case 'artPick':
+      audio.play('pick');
+      if (!save.seenTips.includes('art-pick')) {
+        save.seenTips.push('art-pick');
+        store.save();
+        toast(t('tArtPick'), 'good', 3800);
+      }
+      break;
+    case 'sprinkler':
+      audio.play('sprinkler');
+      toast(t('tSprinkler'), 'good', 3000);
+      break;
+    case 'heliReady':
+      audio.play('powerSpawn');
+      floater(t('tHeliBack'), s.player.x, 2.2, s.player.z, 'water');
       break;
     case 'win':
       audio.play('win');
@@ -1521,6 +1569,19 @@ function tick(dt: number) {
     lastFlameDrama(s);
     minimap?.update(dt, stage, time);
     const states = s.rescuees.map((e) => e.state);
+    // the museum: trying to spray with a work of art in your arms
+    if (input.spray && p.carry >= 0 && flags.handsFull !== p.carry) {
+      flags.handsFull = p.carry;
+      toast(t('tHandsFull'), 'warn', 2400);
+    }
+    // the ski lodge: chipping the ice off a frozen hydrant
+    if (p.connectEnt >= 0 && s.isFrozen(p.connectEnt) && p.connectT > 0.05) {
+      flags.chip += dt;
+      if (flags.chip > 0.22) {
+        flags.chip = 0;
+        audio.play('chip');
+      }
+    } else if (flags.chip !== 0) flags.chip = 0;
     updateHud({
       stars: s.def.stars,
       minSaved: s.def.minSaved,
@@ -1541,6 +1602,11 @@ function tick(dt: number) {
       heliBusy: s.helis.length > 0,
       cut: p.cut,
       blackout: s.evT.blackout > 0,
+      heliOnCall: !!s.def.heliEvery,
+      heliCd: s.heliCd,
+      heliEvery: s.def.heliEvery,
+      art: s.arts.length > 0,
+      lightning: s.def.theme === 'camping',
     });
     // the platform going up to a window makes a sound once per rescue
     const lifting = s.ents.find((e) => e.type === 'window' && e.state === 0 && e.prog > 0.05);

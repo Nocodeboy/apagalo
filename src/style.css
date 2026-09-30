@@ -2020,14 +2020,19 @@ p {
 }
 .pg-dots {
   display: flex;
-  flex-wrap: wrap;
+  align-self: stretch;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  padding: 4px 0;
 }
+/* 12 chapters in one row, whatever the width (the dots shrink on narrow phones) */
 .pg-dots .dot {
   position: relative;
-  width: 14px;
-  height: 14px;
+  flex: none;
+  width: min(14px, calc((100% - 55px) / 12));
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1);
@@ -2583,4 +2588,121 @@ p {
   width: 30px;
   height: 30px;
   color: var(--amber);
+}
+
+/* ---- v2, entrega 2: helicopter on call (campground), thawing, sprinkler levers ---- */
+.noz.heli.cooling {
+  background: #5a2a26;
+  color: #ffd2cc;
+  opacity: 1;
+}
+.noz.heli.cooling::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(rgba(10, 16, 32, 0.55) calc(var(--cd, 0) * 360deg), transparent 0);
+  pointer-events: none;
+}
+.noz.heli.cooling .hc {
+  background: #cfd6e4;
+}
+.ic.gauge.thaw span {
+  font-size: 15px;
+  color: #bfe8ff;
+}
+.ic.lever.sprinkler {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 132px;
+  margin-left: -66px;
+  background: #1f6fbf;
+  box-shadow: 0 3px 0 #134a82;
+}
+.ic.lever.sprinkler svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/* ---- More games (the studio's other games; web and Android) ---- */
+.more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: 700 13px 'Baloo 2', system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.more-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.more-btn:hover,
+.more-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.24);
+}
+.more-games .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border-left: 5px solid var(--gc, #e8743a);
+  color: #fff;
+  text-decoration: none;
+}
+.game-card:hover,
+.game-card:focus-visible {
+  background: rgba(255, 255, 255, 0.13);
+}
+.gc-ic {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  background: var(--gc, #e8743a);
+}
+.gc-t {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.gc-t b {
+  font-size: 16px;
+}
+.gc-t small {
+  font-size: 13px;
+  color: #c3cde0;
+}
+.gc-go {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 800;
+  color: var(--amber, #ffb21f);
+}
+.gc-go svg {
+  width: 18px;
+  height: 18px;
 }

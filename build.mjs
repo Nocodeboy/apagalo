@@ -60,7 +60,7 @@ const body = `<div id="app">
 </div>`;
 // English first (the target market is tier-1 countries); the game switches the tab title to Spanish for Spanish players
 const TITLE = 'Put It Out! Firefighter';
-const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind in 97 levels across 9 places, from the docks to downtown, with power-ups, surprise events, your own crew and a new daily challenge. Free, in your browser and on your phone.';
+const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind in 120 levels across 12 places, from the docks to a ski resort, a museum at night and a forest campground, with power-ups, surprise events, your own crew and a new daily challenge. Free, in your browser and on your phone.';
 
 async function bundle(target, gameUrl) {
   const res = await build({

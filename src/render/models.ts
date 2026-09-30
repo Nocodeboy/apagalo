@@ -621,6 +621,339 @@ function fishShed(w: number, d: number, v: number, t: Theme): Part[] {
   return P;
 }
 
+// ---------- v2, entrega 2: the ski lodge ----------
+const SNOW = 0xf1f5fa;
+const WARM = 0xffc46e;
+
+/** Log chalet: stone base, log walls, a steep snowy roof with its gable to the front, a balcony and warm windows.
+ *  Big footprints (the hotel) get two floors. */
+function chalet(w: number, d: number, v: number, t: Theme): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.3;
+  const D = d - 0.3;
+  const floors = w * d >= 16 ? 2 : 1;
+  const H = 1.9 * floors;
+  const log = pick(t.wall, v);
+  P.push(part(box(W + 0.1, 0.35, D + 0.1), 0x8a8f99, 0, 0.17, 0));
+  P.push(part(box(W, H, D), log, 0, 0.35 + H / 2, 0));
+  for (let y = 0.6; y < H + 0.3; y += 0.32) P.push(part(box(W + 0.05, 0.05, D + 0.05), shade(log, 0.72), 0, y, 0));
+  // gable roof facing the front (+z): the ridge runs along z; the snow layer is a little shorter so the gable shows
+  const rh = Math.min(2.2, 0.9 + W * 0.3);
+  P.push(part(prism(D + 0.8, W + 0.6, rh), 0x5a3a24, 0, 0.35 + H, 0, 0, PI / 2, 0));
+  P.push(part(prism(D + 0.5, W + 0.75, rh - 0.05), SNOW, 0, 0.35 + H + 0.13, 0, 0, PI / 2, 0));
+  for (let f = 0; f < floors; f++)
+    for (let x = -W / 2 + 0.55; x < W / 2 - 0.3; x += 1.0) P.push(part(box(0.5, 0.55, 0.05), (f + Math.round(x * 3) + v) % 3 ? WARM : WINDOW, x, 1.25 + f * 1.9, D / 2 + 0.02));
+  P.push(part(box(0.42, 0.45, 0.05), WARM, 0, 0.35 + H + rh * 0.35, D / 2 + 0.42));
+  // balcony across the front, with snow on the rail
+  P.push(part(box(W * 0.8, 0.07, 0.5), 0x6e4527, 0, 0.1 + H, D / 2 + 0.25));
+  P.push(part(box(W * 0.8, 0.3, 0.05), 0x6e4527, 0, 0.27 + H, D / 2 + 0.48));
+  P.push(part(box(W * 0.8, 0.06, 0.12), SNOW, 0, 0.44 + H, D / 2 + 0.48));
+  P.push(part(box(0.55, 1.1, 0.05), DOOR, W / 2 - 0.55, 0.9, D / 2 + 0.02));
+  // chimney with snow on it
+  P.push(part(box(0.3, 1.0, 0.3), 0x7a7f88, W / 4, 0.35 + H + rh * 0.6, -D / 5));
+  P.push(part(box(0.36, 0.08, 0.36), SNOW, W / 4, 0.35 + H + rh * 0.6 + 0.52, -D / 5));
+  return P;
+}
+/** A pine with snow on each layer. */
+function snowPine(v: number): Part[] {
+  const P = pine(v);
+  const s = 0.9 + (v % 4) * 0.07;
+  P.push(part(cone(0.78 * s, 0.7 * s, 7), SNOW, 0, 1.95 * s, 0));
+  P.push(part(cone(0.6 * s, 0.6 * s, 7), SNOW, 0, 2.65 * s, 0, 0, 0.3, 0));
+  P.push(part(cone(0.4 * s, 0.55 * s, 7), SNOW, 0, 3.3 * s, 0));
+  return P;
+}
+function snowTree(v: number, t: Theme): Part[] {
+  const P = tree(v, t);
+  const s = 0.9 + (v % 5) * 0.06;
+  P.push(part(ico(0.7 * s), SNOW, 0, 2.55 * s, 0, 0, 0, 0, 1, 0.45, 1));
+  P.push(part(ico(0.45 * s), SNOW, 0.45, 2.95 * s, 0.2, 0, 0, 0, 1, 0.45, 1));
+  return P;
+}
+function snowman(): Part[] {
+  return [
+    part(sphere(0.42, 10, 8), SNOW, 0, 0.38, 0),
+    part(sphere(0.31, 10, 8), SNOW, 0, 0.98, 0),
+    part(sphere(0.22, 10, 8), SNOW, 0, 1.42, 0),
+    part(cone(0.05, 0.28, 5), 0xf07a1a, 0, 1.42, 0.3, PI / 2, 0, 0),
+    part(box(0.05, 0.05, 0.04), DARK, -0.08, 1.5, 0.19),
+    part(box(0.05, 0.05, 0.04), DARK, 0.08, 1.5, 0.19),
+    part(cyl(0.15, 0.15, 0.26, 8), DARK, 0, 1.72, 0),
+    part(cyl(0.25, 0.25, 0.03, 10), DARK, 0, 1.6, 0),
+    part(box(0.55, 0.1, 0.55), 0xd8342a, 0, 1.2, 0, 0, 0.4, 0),
+    part(box(0.04, 0.5, 0.04), 0x5a3a24, 0.35, 1.05, 0, 0, 0, -0.9),
+    part(box(0.04, 0.5, 0.04), 0x5a3a24, -0.35, 1.05, 0, 0, 0, 0.9),
+  ];
+}
+/** Chairlift pylon: a tall pole, the cross arm with the cable wheels and two chairs hanging from it. */
+function liftPylon(): Part[] {
+  const g = 0x6a7078;
+  const P: Part[] = [part(cyl(0.12, 0.2, 5.2, 6), g, 0, 2.6, 0), part(box(2.4, 0.16, 0.22), g, 0, 5.2, 0)];
+  for (const x of [-1.0, 1.0]) {
+    P.push(part(cyl(0.16, 0.16, 0.08, 10), DARK, x, 5.05, 0, PI / 2, 0, 0));
+    P.push(part(box(0.05, 0.9, 0.05), DARK, x, 4.6, 0));
+    const c = x < 0 ? 0xd8342a : 0x2f6fb5;
+    P.push(part(box(0.75, 0.08, 0.42), c, x, 4.15, 0));
+    P.push(part(box(0.75, 0.42, 0.06), c, x, 4.38, -0.19));
+  }
+  return P;
+}
+/** Ski rack: skis and poles standing in a wooden rack. */
+function skiRack(v: number): Part[] {
+  const w = 0x5a3a24;
+  const P: Part[] = [part(box(1.0, 0.08, 0.3), w, 0, 0.55, 0), part(box(0.08, 0.6, 0.3), w, -0.45, 0.3, 0), part(box(0.08, 0.6, 0.3), w, 0.45, 0.3, 0)];
+  for (let k = 0; k < 4; k++) P.push(part(box(0.07, 1.5, 0.03), pick([0xd8342a, 0x2f6fb5, 0xf2c21a, 0x3aa35a, 0xf4f1ea], v + k), -0.33 + k * 0.22, 0.8, (k % 2) * 0.05, 0, 0, 0.05 * (k - 1.5)));
+  return P;
+}
+/** Stacked firewood with the log ends to the front (snow on top at the ski lodge). */
+function woodpile(v: number, snow: boolean): Part[] {
+  const P: Part[] = [];
+  for (let row = 0; row < 3; row++)
+    for (let k = 0; k < 3 - (row === 2 ? 1 : 0); k++) {
+      const x = -0.3 + k * 0.3 + (row === 2 ? 0.15 : row * 0.02);
+      const y = 0.16 + row * 0.26;
+      P.push(part(cyl(0.14, 0.14, 0.85, 7), (k + row + v) % 2 ? 0x8a5a36 : 0x7a4c2c, x, y, 0, PI / 2, 0, 0));
+      P.push(part(cyl(0.11, 0.11, 0.02, 7), 0xd9b27a, x, y, 0.43, PI / 2, 0, 0));
+    }
+  if (snow) P.push(part(box(0.8, 0.1, 0.8), SNOW, 0.08, 0.8, 0));
+  return P;
+}
+function snowmobile(v: number): Part[] {
+  const c = pick([0xd8342a, 0x2f6fb5, 0xf2c21a, 0x3aa35a], v);
+  return [
+    part(box(1.4, 0.3, 0.55), 0x2b2b30, -0.15, 0.22, 0),
+    part(box(1.15, 0.35, 0.6), c, 0.05, 0.55, 0),
+    part(box(0.5, 0.28, 0.56), c, 0.72, 0.45, 0, 0, 0, -0.35),
+    part(box(0.08, 0.3, 0.46), 0x8fc8e8, 0.42, 0.88, 0, 0, 0, -0.45),
+    part(box(0.6, 0.15, 0.42), DARK, -0.25, 0.8, 0),
+    part(box(0.95, 0.05, 0.1), 0x9a9aa0, 0.55, 0.05, 0.3),
+    part(box(0.95, 0.05, 0.1), 0x9a9aa0, 0.55, 0.05, -0.3),
+  ];
+}
+/** Christmas market stall: a wooden hut with a snowy roof and a string of lights. */
+function marketStall(w: number, d: number, v: number): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.2;
+  const D = d - 0.2;
+  const wood = 0x8a5a36;
+  P.push(part(box(W, 1.0, D * 0.6), wood, 0, 0.5, D * 0.2));
+  P.push(part(box(W, 2.0, 0.1), shade(wood, 0.85), 0, 1.0, -D / 2 + 0.05));
+  for (const x of [-W / 2 + 0.05, W / 2 - 0.05]) P.push(part(box(0.1, 2.0, D), shade(wood, 0.85), x, 1.0, 0));
+  P.push(part(prism(W + 0.4, D + 0.5, 0.7), 0x6e4527, 0, 2.0, 0));
+  P.push(part(prism(W + 0.45, D + 0.6, 0.62), SNOW, 0, 2.1, 0));
+  for (let k = 0; k < Math.floor(W / 0.5); k++) {
+    P.push(part(sphere(0.06, 5, 4), pick([0xffe066, 0xff6a5a, 0x7fd0ff, 0x9cff8a], k + v), -W / 2 + 0.3 + k * 0.5, 1.95, D / 2 + 0.25));
+    P.push(part(box(0.3, 0.2, 0.25), pick([0xd8342a, 0xf2c43a, 0x7fc96b, 0xf4f1ea], v + k), -W / 2 + 0.35 + k * 0.5, 1.12, D * 0.2));
+  }
+  return P;
+}
+/** Alpine chapel: white walls, a steep snowy roof and a bell tower with an onion dome. */
+function chapel(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.3;
+  const D = d - 0.3;
+  P.push(part(box(W - 1.2, 2.8, D), 0xf1ece2, 0.6, 1.4, 0));
+  P.push(part(prism(W - 0.9, D + 0.5, 1.5), 0x5a3a24, 0.6, 2.8, 0));
+  P.push(part(prism(W - 1.0, D + 0.6, 1.42), SNOW, 0.6, 2.9, 0));
+  const tx = -W / 2 + 0.7;
+  P.push(part(box(1.3, 5.0, 1.3), 0xf1ece2, tx, 2.5, 0));
+  P.push(part(box(0.5, 0.8, 1.32), 0x3a3030, tx, 4.2, 0));
+  P.push(part(sphere(0.75, 10, 8), 0x3f7a6a, tx, 5.4, 0, 0, 0, 0, 1, 1.1, 1));
+  P.push(part(cone(0.25, 0.9, 8), 0x3f7a6a, tx, 6.4, 0));
+  P.push(part(box(0.7, 1.2, 0.08), DOOR, 0.6, 0.6, D / 2 + 0.02));
+  P.push(part(cyl(0.3, 0.3, 0.06, 10), WARM, 0.6, 1.9, D / 2 + 0.03, PI / 2, 0, 0));
+  return P;
+}
+
+// ---------- v2, entrega 2: the museum ----------
+/** An inside wall, cut at 1.5 m so the rooms can be seen: plaster, a dark skirting board and a gilt top. */
+function museumWall(): Part[] {
+  return [part(box(1.0, 1.5, 1.0), 0xe8e0d2, 0, 0.75, 0), part(box(1.02, 0.18, 1.02), 0x5a3a26, 0, 0.09, 0), part(box(1.04, 0.09, 1.04), 0xc9a54a, 0, 1.52, 0)];
+}
+/** A door out of the museum: a glowing green mat, the dark door frame and the exit sign over it. */
+function exitDoor(): Part[] {
+  return [
+    part(box(0.98, 0.03, 0.98), 0x2fbf5a, 0, 0.02, 0),
+    part(box(0.74, 0.03, 0.74), 0x7af0a0, 0, 0.035, 0),
+    part(box(1.0, 0.16, 0.2), 0x4a2e1c, 0, 1.55, 0),
+    part(box(0.8, 0.34, 0.12), 0x2fbf5a, 0, 1.85, 0.02),
+    part(box(0.5, 0.1, 0.13), WHITE, 0, 1.85, 0.02),
+  ];
+}
+/** The hose cabinet on the wall of a museum room (an anchor like a hydrant). */
+function hoseCabinet(): Part[] {
+  return [
+    part(box(0.75, 1.05, 0.35), 0xd8342a, 0, 0.9, -0.2),
+    part(box(0.62, 0.9, 0.04), 0x9fd0e8, 0, 0.9, -0.01),
+    part(cyl(0.26, 0.26, 0.12, 12), 0xf2e6c8, 0, 0.95, -0.12, PI / 2, 0, 0),
+    part(box(0.2, 0.12, 0.06), WHITE, 0, 1.52, -0.02),
+  ];
+}
+/** Glass display case on a wooden base, with the pieces inside. */
+function vitrine(w: number, d: number, v: number): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.2;
+  const D = d - 0.2;
+  P.push(part(box(W, 0.8, D), 0x6e4527, 0, 0.4, 0));
+  P.push(part(box(W - 0.1, 0.55, D - 0.1), 0xbfe3f0, 0, 1.08, 0));
+  P.push(part(box(W, 0.05, D), 0xc9a54a, 0, 1.38, 0));
+  for (let k = 0; k < Math.floor(W / 0.6); k++) P.push(part(k % 2 ? sphere(0.12, 6, 4) : box(0.2, 0.25, 0.2), pick([0xd9b04a, 0x7a3a8a, 0x3a8a7a, 0xc0452e], v + k), -W / 2 + 0.35 + k * 0.6, 0.98, 0));
+  return P;
+}
+/** Bar or café counter. */
+function counter(w: number, d: number, v: number): Part[] {
+  const P: Part[] = [];
+  const W = w - 0.15;
+  const D = d - 0.15;
+  P.push(part(box(W, 1.0, D), 0x5a3a26, 0, 0.5, 0));
+  P.push(part(box(W + 0.08, 0.08, D + 0.08), 0xc9a54a, 0, 1.02, 0));
+  const long = W >= D;
+  const n = Math.floor((long ? W : D) / 0.35);
+  for (let k = 0; k < n; k++) {
+    const t = -(long ? W : D) / 2 + 0.2 + k * 0.35;
+    P.push(part(cyl(0.05, 0.06, 0.3, 6), pick([0x2f7a3a, 0x8a2a2a, 0xe8e0d0, 0xd9b04a], v + k), long ? t : 0, 1.2, long ? 0 : t));
+  }
+  return P;
+}
+/** Bookshelf: the books show on the side the camera sees (the front), in blocks of colour. */
+function bookshelf(v: number): Part[] {
+  const P: Part[] = [part(box(0.96, 1.8, 0.6), 0x4a2e1c, 0, 0.9, 0)];
+  for (let r = 0; r < 4; r++)
+    for (let k = 0; k < 3; k++) {
+      const c = pick([0x8a2a2a, 0x2a4a8a, 0x2f6a3a, 0xc9a54a, 0x6a3a7a, 0xd8d0b8], v + k * 3 + r);
+      P.push(part(box(0.27, 0.32 - ((k + r + v) % 3) * 0.04, 0.03), c, -0.3 + k * 0.3, 0.3 + r * 0.42, 0.31));
+    }
+  P.push(part(box(0.9, 0.05, 0.62), 0xc9a54a, 0, 1.82, 0));
+  return P;
+}
+function pottedPlant(v: number): Part[] {
+  return [part(cyl(0.3, 0.22, 0.5, 8), 0xb5652e, 0, 0.25, 0), part(ico(0.55), 0x3f8a44, 0, 1.0, 0, v, v, 0), part(ico(0.4), 0x4f9a4a, 0.2, 1.4, 0.1, v, 0, 0), part(cyl(0.04, 0.05, 0.6, 5), 0x6a4a30, 0, 0.6, 0)];
+}
+/** The dinosaur skeleton on its plinth, as long as the plinth. */
+function dinosaur(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const bone = 0xe9dfc6;
+  const L = w - 0.4;
+  P.push(part(box(w - 0.2, 0.4, d - 0.2), 0xb9b2a4, 0, 0.2, 0));
+  P.push(part(box(w - 0.1, 0.06, d - 0.1), 0xc9a54a, 0, 0.42, 0));
+  // spine: a curve from the tail (-x) to the neck (+x)
+  const n = 14;
+  let prev: [number, number] | null = null;
+  for (let k = 0; k <= n; k++) {
+    const u = k / n;
+    const x = -L / 2 + u * L;
+    const y = 0.9 + Math.sin(u * PI) * 1.6 + (u > 0.8 ? (u - 0.8) * 4 : 0);
+    P.push(part(box(0.18, 0.18, 0.18), bone, x, y, 0));
+    if (u > 0.3 && u < 0.7) P.push(part(box(0.06, 0.8, 0.6), bone, x, y - 0.45, 0, 0, 0, 0.1));
+    prev = [x, y];
+  }
+  void prev;
+  // skull and legs
+  P.push(part(box(0.7, 0.4, 0.35), bone, L / 2 + 0.2, 2.7, 0, 0, 0, -0.2));
+  P.push(part(box(0.5, 0.12, 0.3), bone, L / 2 + 0.3, 2.45, 0, 0, 0, -0.2));
+  for (const [x, zs] of [
+    [-L / 6, 1],
+    [L / 6, 1],
+  ] as const)
+    for (const z of [-0.3 * zs, 0.3 * zs]) {
+      P.push(part(cyl(0.07, 0.09, 1.3, 5), bone, x, 1.05, z, 0, 0, 0.15));
+      P.push(part(box(0.3, 0.08, 0.2), bone, x - 0.1, 0.46, z));
+    }
+  return P;
+}
+function crates(v: number): Part[] {
+  const c = 0xc49a5c;
+  const P: Part[] = [part(box(0.9, 0.7, 0.9), c, 0, 0.35, 0), part(box(0.92, 0.08, 0.92), shade(c, 0.75), 0, 0.35, 0), part(box(0.08, 0.72, 0.92), shade(c, 0.75), 0, 0.35, 0)];
+  if (v % 2) P.push(part(box(0.7, 0.55, 0.7), shade(c, 1.08), 0.05, 0.98, 0, 0, 0.3, 0));
+  return P;
+}
+function forklift(): Part[] {
+  return [
+    part(box(1.2, 0.6, 0.8), 0xf2b705, -0.1, 0.5, 0),
+    part(box(0.5, 0.8, 0.7), 0x2b2b30, -0.25, 1.2, 0),
+    part(box(0.08, 1.9, 0.6), 0x3a3a3a, 0.55, 0.95, 0),
+    part(box(0.6, 0.05, 0.12), 0x3a3a3a, 0.85, 0.15, 0.2),
+    part(box(0.6, 0.05, 0.12), 0x3a3a3a, 0.85, 0.15, -0.2),
+    part(cyl(0.2, 0.2, 0.1, 8), 0x1f1f22, 0.3, 0.2, 0.42, PI / 2, 0, 0),
+    part(cyl(0.2, 0.2, 0.1, 8), 0x1f1f22, -0.5, 0.2, 0.42, PI / 2, 0, 0),
+    part(cyl(0.2, 0.2, 0.1, 8), 0x1f1f22, 0.3, 0.2, -0.42, PI / 2, 0, 0),
+    part(cyl(0.2, 0.2, 0.1, 8), 0x1f1f22, -0.5, 0.2, -0.42, PI / 2, 0, 0),
+  ];
+}
+
+// ---------- v2, entrega 2: the campground ----------
+const TENT_C = [0xf07a1a, 0x3aa35a, 0x2f7bd8, 0xf2c21a, 0xd8342a];
+/** A-frame tent with its door flap to the front. */
+function tent(w: number, d: number, v: number): Part[] {
+  const c = pick(TENT_C, v);
+  const W = w - 0.25;
+  const D = d - 0.25;
+  return [
+    part(prism(D, W, 1.25), c, 0, 0.02, 0, 0, PI / 2, 0),
+    part(box(0.5, 0.75, 0.04), shade(c, 0.6), 0, 0.38, D / 2 - 0.02),
+    part(box(0.05, 1.4, 0.05), 0x9a9aa0, 0, 0.7, D / 2 + 0.05),
+    part(box(W + 0.4, 0.03, D + 0.3), 0x4a5a3a, 0, 0.01, 0),
+  ];
+}
+/** A motorhome: coloured lower half, white body, the bed alcove over the cab (+x), windows, a door, an awning. */
+function rv(len: number, wid: number, v: number): Part[] {
+  const P: Part[] = [];
+  const L = len - 0.2;
+  const B = Math.min(1.8, wid - 0.15);
+  const col = pick([0x2f6fb5, 0xd8342a, 0x3a8a5a, 0xc9812a], v);
+  const body = 0xfbfaf6;
+  P.push(part(box(L - 0.3, 0.75, B), col, -0.15, 0.7, 0));
+  P.push(part(box(L - 1.0, 1.15, B), body, -0.5, 1.63, 0));
+  P.push(part(box(1.0, 0.55, B), body, L / 2 - 0.55, 1.93, 0));
+  P.push(part(box(0.75, 0.75, B - 0.05), body, L / 2 - 0.42, 1.25, 0));
+  P.push(part(box(0.06, 0.45, B - 0.3), WINDOW, L / 2 - 0.04, 1.3, 0, 0, 0, 0.25));
+  P.push(part(box(L - 1.1, 0.1, B + 0.02), col, -0.5, 1.5, 0));
+  for (let x = -L / 2 + 0.5; x < L / 2 - 1.3; x += 0.75) P.push(part(box(0.42, 0.34, 0.04), WINDOW_LIT, x, 1.8, B / 2 + 0.01));
+  P.push(part(box(0.45, 1.0, 0.04), shade(col, 0.8), L / 2 - 1.3, 1.1, B / 2 + 0.01));
+  P.push(part(box(L - 1.4, 0.05, 0.75), col, -0.75, 2.12, B / 2 + 0.37, -0.2, 0, 0));
+  for (const x of [-L / 2 + 0.55, L / 2 - 0.6]) for (const z of [-B / 2, B / 2]) P.push(part(cyl(0.28, 0.28, 0.2, 10), 0x1f1f22, x, 0.3, z, PI / 2, 0, 0));
+  return P;
+}
+/** The fire lookout: a wooden cabin with windows all round on four tall stilts. */
+function lookout(w: number, d: number): Part[] {
+  const P: Part[] = [];
+  const wood = 0x7a5232;
+  const S = Math.min(w, d) - 0.6;
+  for (const x of [-S / 2, S / 2]) for (const z of [-S / 2, S / 2]) P.push(part(box(0.18, 5.0, 0.18), wood, x, 2.5, z));
+  for (const y of [1.5, 3.2]) {
+    P.push(part(box(S, 0.1, 0.1), wood, 0, y, S / 2, 0, 0, 0.5));
+    P.push(part(box(S, 0.1, 0.1), wood, 0, y, -S / 2, 0, 0, -0.5));
+    P.push(part(box(0.1, 0.1, S), wood, S / 2, y, 0, 0.5, 0, 0));
+    P.push(part(box(0.1, 0.1, S), wood, -S / 2, y, 0, -0.5, 0, 0));
+  }
+  P.push(part(box(S + 0.6, 0.2, S + 0.6), wood, 0, 5.05, 0));
+  P.push(part(box(S + 0.2, 1.3, S + 0.2), 0xd9c9a0, 0, 5.8, 0));
+  for (const z of [-(S + 0.2) / 2 - 0.02, (S + 0.2) / 2 + 0.02]) P.push(part(box(S - 0.1, 0.6, 0.04), WINDOW_LIT, 0, 5.95, z));
+  P.push(part(cone((S + 0.9) * 0.75, 1.0, 4), 0x6a3a24, 0, 6.95, 0, 0, PI / 4, 0));
+  return P;
+}
+function picnicTable(): Part[] {
+  const w = 0x9a6a3e;
+  return [
+    part(box(0.95, 0.07, 0.55), w, 0, 0.72, 0),
+    part(box(0.95, 0.06, 0.2), w, 0, 0.42, 0.45),
+    part(box(0.95, 0.06, 0.2), w, 0, 0.42, -0.45),
+    part(box(0.06, 0.75, 1.1), shade(w, 0.8), -0.38, 0.36, 0, 0.0, 0, 0),
+    part(box(0.06, 0.75, 1.1), shade(w, 0.8), 0.38, 0.36, 0, 0.0, 0, 0),
+  ];
+}
+function canoe(len: number, v: number): Part[] {
+  const c = pick([0xd8342a, 0x3a8a5a, 0xe08a2a], v);
+  const L = len - 0.4;
+  return [
+    part(box(L - 0.6, 0.35, 0.55), c, 0, 0.2, 0),
+    part(cone(0.28, 0.6, 4), c, L / 2 - 0.05, 0.2, 0, 0, PI / 4, -PI / 2),
+    part(cone(0.28, 0.6, 4), c, -L / 2 + 0.05, 0.2, 0, 0, PI / 4, PI / 2),
+    part(box(L - 0.8, 0.04, 0.45), 0xd9b27a, 0, 0.38, 0),
+    part(box(0.05, 0.05, 1.3), 0x9a6a3e, 0.2, 0.45, 0, 0, 0.5, 0),
+  ];
+}
+
 export interface ModelSpec {
   geo: THREE.BufferGeometry;
   rotY: number;
@@ -633,19 +966,19 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
   // multi-cell buildings are authored along X with the front facing +Z.
   switch (type) {
     case 'house':
-      P = t.id === 'ciudad' ? apartments(w, h, v, t) : t.id === 'estacion' ? brickHall(w, h, v, t) : t.id === 'puerto' ? fishShed(w, h, v, t) : house(w, h, v, t);
+      P = t.id === 'ciudad' ? apartments(w, h, v, t) : t.id === 'estacion' ? brickHall(w, h, v, t) : t.id === 'puerto' ? fishShed(w, h, v, t) : t.id === 'nieve' ? chalet(w, h, v, t) : house(w, h, v, t);
       break;
     case 'church':
-      P = t.id === 'puerto' ? lighthouse(w, h) : t.id === 'ciudad' ? theatre(w, h) : church(w, h);
+      P = t.id === 'puerto' ? lighthouse(w, h) : t.id === 'ciudad' ? theatre(w, h) : t.id === 'nieve' ? chapel(w, h) : t.id === 'camping' ? lookout(w, h) : church(w, h);
       break;
     case 'barn':
       P = barn(w, h);
       break;
     case 'stall':
-      P = stall(w, h, v);
+      P = t.id === 'nieve' ? marketStall(w, h, v) : t.id === 'museo' ? vitrine(w, h, v) : stall(w, h, v);
       break;
     case 'churros':
-      P = stall(w, h, v, true);
+      P = t.id === 'museo' ? counter(w, h, v) : stall(w, h, v, true);
       break;
     case 'warehouse':
       P = t.id === 'estacion' ? brickHall(w, h, v, t, true) : warehouse(w, h, v, t);
@@ -660,15 +993,33 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       P = chiringuito(w, h);
       break;
     case 'fountain':
-      P = fountain(Math.min(w, h));
+      P = t.id === 'museo' ? dinosaur(Math.max(w, h), Math.min(w, h)) : fountain(Math.min(w, h));
+      rotY = t.id === 'museo' && h > w ? PI / 2 : 0;
       break;
     case 'car':
-      P = car(t.id === 'ciudad' && v % 3 !== 2 ? 3 : v);
+      P = t.id === 'nieve' ? snowmobile(v) : t.id === 'museo' ? forklift() : car(t.id === 'ciudad' && v % 3 !== 2 ? 3 : v);
+      rotY = w >= h ? 0 : PI / 2;
+      break;
+    // ---- v2, entrega 2 ----
+    case 'chalet':
+      P = chalet(w, h, v, t);
+      break;
+    case 'wall':
+      P = museumWall();
+      break;
+    case 'exit':
+      P = exitDoor();
+      break;
+    case 'tent':
+      P = tent(w, h, v);
+      break;
+    case 'rv':
+      P = rv(Math.max(w, h), Math.min(w, h), v);
       rotY = w >= h ? 0 : PI / 2;
       break;
     // ---- v2 ----
     case 'boat':
-      P = w * h > 30 ? ferry(Math.max(w, h), Math.min(w, h)) : boat(Math.max(w, h), Math.min(w, h), v);
+      P = w * h > 30 ? ferry(Math.max(w, h), Math.min(w, h)) : t.id === 'camping' ? canoe(Math.max(w, h), v) : boat(Math.max(w, h), Math.min(w, h), v);
       rotY = w >= h ? 0 : PI / 2;
       break;
     case 'container':
@@ -681,7 +1032,7 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       P = seapump();
       break;
     case 'post':
-      P = t.id === 'ciudad' ? trafficLight() : t.id === 'estacion' ? railSignal() : bollard();
+      P = t.id === 'ciudad' ? trafficLight() : t.id === 'estacion' ? railSignal() : t.id === 'nieve' ? liftPylon() : bollard();
       break;
     case 'tower':
       P = tower(w, h, v, t);
@@ -697,11 +1048,11 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       P = gasPipe();
       break;
     case 'tree':
-      P = tree(v, t);
+      P = t.id === 'nieve' ? snowTree(v, t) : t.id === 'museo' ? pottedPlant(v) : tree(v, t);
       rotY = v;
       break;
     case 'pine':
-      P = pine(v);
+      P = t.id === 'nieve' ? snowPine(v) : pine(v);
       rotY = v;
       break;
     case 'palm':
@@ -709,11 +1060,11 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       rotY = v * 1.3;
       break;
     case 'hedge':
-      P = hedge(v, t);
+      P = t.id === 'museo' ? bookshelf(v) : hedge(v, t);
       rotY = orient ? 0 : PI / 2;
       break;
     case 'fence':
-      P = fence();
+      P = t.id === 'nieve' ? skiRack(v) : fence();
       rotY = orient ? 0 : PI / 2;
       break;
     case 'hay':
@@ -721,17 +1072,17 @@ export function entityModel(type: EntType, w: number, h: number, v: number, orie
       rotY = (v % 4) * 0.4;
       break;
     case 'pallet':
-      P = pallet(v);
-      rotY = (v % 3) * 0.1;
+      P = t.id === 'nieve' || t.id === 'camping' ? woodpile(v, t.id === 'nieve') : t.id === 'museo' ? crates(v) : pallet(v);
+      rotY = t.id === 'nieve' || t.id === 'camping' ? 0 : (v % 3) * 0.1;
       break;
     case 'bench':
-      P = bench();
+      P = t.id === 'camping' ? picnicTable() : bench();
       break;
     case 'rock':
-      P = rock(v);
+      P = t.id === 'nieve' ? snowman() : rock(v);
       break;
     case 'hydrant':
-      P = hydrant();
+      P = t.id === 'museo' ? hoseCabinet() : hydrant();
       break;
     case 'elec':
       P = elec();
@@ -1086,6 +1437,60 @@ export function droneModel(): THREE.Group {
   }
   g.add(mk(P));
   return g;
+}
+
+/** A work of art (museum), by variant: a painting on its easel, a bronze bust on a pedestal or a porcelain vase. */
+export function artModel(v: number): THREE.Group {
+  const g = new THREE.Group();
+  const kind = v % 3;
+  let P: Part[];
+  if (kind === 0) {
+    const wood = 0x6e4527;
+    const pal = [
+      [0x7fb2e5, 0x5a9a4a, 0xf2c21a],
+      [0xe8a23a, 0xc0452e, 0x3a4a8a],
+      [0x2f6a8a, 0xe8dcc0, 0x8a2a2a],
+      [0x3a2a5a, 0xd9b04a, 0xf4f1ea],
+    ][(v >> 2) % 4];
+    P = [
+      part(box(0.05, 1.5, 0.05), wood, -0.32, 0.72, 0.08, 0.12, 0, 0.12),
+      part(box(0.05, 1.5, 0.05), wood, 0.32, 0.72, 0.08, 0.12, 0, -0.12),
+      part(box(0.05, 1.5, 0.05), wood, 0, 0.72, -0.28, -0.3, 0, 0),
+      part(box(0.8, 0.06, 0.1), wood, 0, 0.8, 0.14),
+      part(box(1.0, 0.8, 0.07), 0xd9b04a, 0, 1.25, 0.12, -0.12, 0, 0),
+      part(box(0.84, 0.34, 0.08), pal[0], 0, 1.4, 0.13, -0.12, 0, 0),
+      part(box(0.84, 0.3, 0.08), pal[1], 0, 1.08, 0.17, -0.12, 0, 0),
+      part(sphere(0.09, 6, 4), pal[2], 0.22, 1.45, 0.19),
+    ];
+  } else if (kind === 1) {
+    const bronze = (v >> 1) % 2 ? 0xb07a3a : 0xe8e4dc;
+    P = [
+      part(box(0.5, 0.95, 0.5), 0xece8e0, 0, 0.47, 0),
+      part(box(0.58, 0.08, 0.58), 0xc9a54a, 0, 0.97, 0),
+      part(box(0.5, 0.22, 0.26), bronze, 0, 1.12, 0),
+      part(cyl(0.08, 0.1, 0.16, 6), bronze, 0, 1.28, 0),
+      part(sphere(0.17, 8, 6), bronze, 0, 1.46, 0.02),
+    ];
+  } else {
+    const blue = (v >> 1) % 2 ? 0x2f5fa8 : 0x2f8a6a;
+    P = [
+      part(cyl(0.26, 0.3, 0.9, 8), 0xece8e0, 0, 0.45, 0),
+      part(cyl(0.32, 0.32, 0.06, 8), 0xc9a54a, 0, 0.92, 0),
+      part(sphere(0.26, 10, 8), blue, 0, 1.22, 0, 0, 0, 0, 1, 1.15, 1),
+      part(cyl(0.27, 0.27, 0.08, 10), WHITE, 0, 1.2, 0),
+      part(cyl(0.1, 0.14, 0.25, 8), blue, 0, 1.55, 0),
+      part(cyl(0.15, 0.1, 0.05, 8), 0xd9b04a, 0, 1.68, 0),
+    ];
+  }
+  g.add(mk(P));
+  return g;
+}
+
+/** Ice over a frozen hydrant (the ski lodge): gone once the player has chipped it off. */
+export function iceCap(): THREE.Mesh {
+  const g = merge([part(box(0.62, 0.95, 0.62), 0xd6f0ff, 0, 0.47, 0), part(cone(0.07, 0.35, 4), 0xeaf8ff, 0.2, 0.8, 0.33, PI, 0, 0), part(cone(0.06, 0.3, 4), 0xeaf8ff, -0.15, 0.82, 0.33, PI, 0, 0), part(box(0.7, 0.12, 0.7), WHITE, 0, 0.98, 0)]);
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.78, flatShading: true }));
+  return m;
 }
 
 /** Rescue dog vest (red with a white cross), to put on the dog model. */

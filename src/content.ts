@@ -50,6 +50,9 @@ export const PLACE_INFO: Record<ThemeId, { name: Txt; tip: Txt }> = {
   puerto: { name: { es: 'El puerto', en: 'The docks' }, tip: { es: 'Gasóleo ardiendo que el viento lleva por el agua', en: 'Burning fuel the wind drives across the water' } },
   ciudad: { name: { es: 'El centro', en: 'Downtown' }, tip: { es: 'Gente en las ventanas: súbeles la plataforma', en: 'People at the windows: bring the platform up' } },
   estacion: { name: { es: 'La estación', en: 'The rail yard' }, tip: { es: 'Trenes que cortan la manguera', en: 'Trains that cut your hose' } },
+  nieve: { name: { es: 'La estación de esquí', en: 'The ski lodge' }, tip: { es: 'Hielo que resbala y bocas de riego heladas', en: 'Slippery ice and frozen hydrants' } },
+  museo: { name: { es: 'El museo', en: 'The museum' }, tip: { es: 'Saca las obras de arte y activa los rociadores', en: 'Carry the art out and pull the sprinklers' } },
+  camping: { name: { es: 'El camping', en: 'The campground' }, tip: { es: 'Hierba seca y un helicóptero siempre a mano', en: 'Dry grass and a helicopter on call' } },
 };
 
 /** Colour of each place (level select, album). */
@@ -63,4 +66,7 @@ export const PLACE_COLOR: Record<ThemeId, string> = {
   puerto: '#2f8fa5',
   ciudad: '#5a8fd0',
   estacion: '#b4553c',
+  nieve: '#6fa8dc',
+  museo: '#9a4a8a',
+  camping: '#3f8a5a',
 };

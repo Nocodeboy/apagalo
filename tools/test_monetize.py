@@ -426,10 +426,12 @@ async def other_modes(b):
     info = await page.evaluate("""(() => { const a = __apagalo, ids = a.levels, s = a.save;
       const won = (id) => (s.stars[id] || 0) >= 1;
       const open = ids.map((id, i) => i === 0 || won(ids[i - 1]) || won(id) || s.open.includes(id));
-      const f = ids.indexOf('castanar-4');
-      return { f, openAtF: open[f], afterF: open[f + 1], allBefore: open.slice(0, f + 1).every(Boolean),
-        newBefore: ids.slice(0, f + 1).filter((id) => /^(puerto|ciudad|estacion)-/.test(id)), route: s.route, reach: s.reach } })()""")
-    check(info['openAtF'] and info['allBefore'] and not info['afterF'], f'1.3.0 save: everything up to where it had got (castanar-4, now #{info["f"] + 1}) is open, nothing after ({info})')
+      // where it had got: castanar-4, or a level it had won that the new route puts later
+      let f = ids.indexOf('castanar-4');
+      ids.forEach((id, i) => { if (won(id)) f = Math.max(f, i); });
+      return { f, openAtF: open[f], afterF: (won(ids[f]) ? open.slice(f + 2) : open.slice(f + 1)).some(Boolean), allBefore: open.slice(0, f + 1).every(Boolean),
+        newBefore: ids.slice(0, f + 1).filter((id) => /^(puerto|ciudad|estacion|nieve|museo|camping)-/.test(id)), route: s.route, reach: s.reach } })()""")
+    check(info['openAtF'] and info['allBefore'] and not info['afterF'], f'1.3.0 save: everything up to where it had got (#{info["f"] + 1}) is open, nothing after ({info})')
     check(len(info['newBefore']) >= 6, f'1.3.0 save: the new levels inserted before that point are playable ({info["newBefore"]})')
     # the next level is the first new one (the docks), and it can be played and won
     await page.click('.title-screen [data-a=levels]')

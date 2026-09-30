@@ -2,7 +2,7 @@ export type Lang = 'es' | 'en';
 export type Txt = { es: string; en: string };
 
 /** Scenario of a level: its look (render/themes.ts) and, for the new ones, its star mechanic (docs/diseno-v2.md). */
-export type ThemeId = 'plaza' | 'granja' | 'gasolinera' | 'poligono' | 'castanar' | 'sanjuan' | 'puerto' | 'ciudad' | 'estacion';
+export type ThemeId = 'plaza' | 'granja' | 'gasolinera' | 'poligono' | 'castanar' | 'sanjuan' | 'puerto' | 'ciudad' | 'estacion' | 'nieve' | 'museo' | 'camping';
 
 /** Pick-ups that appear on the ground during a level (one at a time). */
 export type PowerKind = 'turbo' | 'boots' | 'clock' | 'extinguisher' | 'heli' | 'suit';
@@ -72,6 +72,10 @@ export interface LevelDef {
   headline?: Txt;
   /** events this level wants if the route gives it any (e.g. a blackout for a night in the city) */
   wantEvents?: EventKind[];
+  /** campground: the helicopter is always on call, ready again this many seconds after each drop */
+  heliEvery?: number;
+  /** museum: sprinkler zones, each switched on (once) by pulling the lever at `lever` (cell x, z); `area` is x, z, w, h */
+  sprinklers?: { lever: [number, number]; area: [number, number, number, number] }[];
   // ---- set by the route (src/sim/levels.ts), not by the level files ----
   /** first level of a scenario: calm, no events nor power-ups */
   intro?: boolean;
@@ -82,11 +86,14 @@ export interface LevelDef {
   news?: News[];
   /** crew slots on this level (0 before the crew unlocks) */
   crewSlots?: number;
+  /** how fast the fire spreads compared with the base game (a gentle ramp along the second half of the route) */
+  spread?: number;
 }
 
-/** Night levels: flagged, or in a place that is always at night (the beach on Midsummer night). */
+/** Night levels: flagged, or in a place that is always at night (the beach on Midsummer night, the ski lodge, the
+ *  museum after closing time). */
 export function isNight(d: { night?: boolean; theme: ThemeId }): boolean {
-  return !!d.night || d.theme === 'sanjuan';
+  return !!d.night || d.theme === 'sanjuan' || d.theme === 'nieve' || d.theme === 'museo';
 }
 
 export type EntType =
@@ -135,6 +142,13 @@ export type EntType =
   | 'window'
   | 'wagon'
   | 'canopy'
+  // v2: the ski lodge, the museum and the campground
+  | 'wall'
+  | 'art'
+  | 'exit'
+  | 'tent'
+  | 'rv'
+  | 'chalet'
   // v2: spawned by events
   | 'leak'
   | 'onlooker'
@@ -153,7 +167,7 @@ export interface Ent {
   height: number;
   variant: number;
   // behaviour state
-  state: number; // generic: rescuee 0 idle / 1 rescued / 2 fled / 3 not there yet (events); cylinder 0 ok / 1 exploded; elec 1 live / 0 off; lever 0 up / 1 pulled; leak 3 dormant / 0 leaking / 1 exploded / 2 fixed
+  state: number; // generic: rescuee 0 idle / 1 rescued / 2 fled / 3 not there yet (events); cylinder 0 ok / 1 exploded; elec 1 live / 0 off; lever 0 up / 1 pulled; leak 3 dormant / 0 leaking / 1 exploded / 2 fixed; art 0 on show / 1 carried out / 2 burnt / 4 in the player's arms; hydrant (ski lodge) 0 frozen / 1 thawed
   t: number; // timers (danger for rescuees, pressure for cylinders and leaks)
   soakCd: number;
   alert: number; // 0..1 how close the fire is (rescuees) / pressure (cylinders)
@@ -203,7 +217,14 @@ export type SimEventType =
   | 'hoseCut'
   | 'hoseFixed'
   | 'pumpFoam'
-  | 'droneDrop';
+  | 'droneDrop'
+  // v2, entrega 2
+  | 'ice'
+  | 'frozen'
+  | 'artPick'
+  | 'heliReady'
+  | 'sprinkler'
+  | 'deepSnow';
 
 export interface SimEvent {
   type: SimEventType;

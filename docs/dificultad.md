@@ -293,3 +293,102 @@ daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/1/9  rescued 0.0
 - **En los escenarios nuevos el casual gana casi tanto como el PRO.** Sus niveles se deciden más por la mecánica (espuma para el gasóleo, estar debajo de la ventana, esperar al tren) que por la puntería o la rapidez, y el bot casual las usa igual de bien que el PRO. Por eso sus tasas de victoria del casual se quedan altas aunque los umbrales estén justo por debajo de lo que salva el PRO. A una persona le costarán más: no sabe de antemano que el agua aviva el gasóleo ni que el tren corta la manguera.
 - **El PRO rescata más ventanas y salva menos edificios** que el casual en algunos niveles del centro (`ciudad-8`): gasta tiempo en la plataforma mientras la manzana arde. Da las tres estrellas (nadie se escapa), no más % salvado.
 - **`sanjuan-4`** sigue con el PRO al 80-90 % (lo mismo que en la 1.3.0).
+
+## 2.0, entrega 2: ruta de 120 niveles
+
+Medida el 30 sept 2026 con `npx tsx tools/bot.ts 10 --sum` sobre la ruta final (120 niveles, 12 escenarios, 12 grandes incendios). Con 10 partidas cada porcentaje baila unos ±15 puntos.
+
+**El PRO gana el 90 % o más en todos los niveles** (el que menos, el final, con el 90 %; todos los demás entre el 99 y el 100 % por capítulo).
+
+Por capítulos:
+
+| Capítulo | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| 1-10 | 10 | 100 % | 91 % | 70 % |
+| 11-20 | 10 | 100 % | 96 % | 79 % |
+| 21-30 | 10 | 100 % | 93 % | 76 % |
+| 31-40 | 10 | 100 % | 91 % | 72 % |
+| 41-50 | 10 | 100 % | 90 % | 75 % |
+| 51-60 | 10 | 100 % | 86 % | 68 % |
+| 61-70 | 10 | 100 % | 87 % | 70 % |
+| 71-80 | 10 | 99 % | 81 % | 68 % |
+| 81-90 | 10 | 100 % | 74 % | 67 % |
+| 91-100 | 10 | 100 % | 77 % | 71 % |
+| 101-110 | 10 | 100 % | 81 % | 73 % |
+| 111-120 | 10 | 99 % | 77 % | 64 % |
+
+Por escenario:
+
+| Escenario | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| plaza | 12 | 99 % | 82 % | 74 % |
+| granja | 11 | 100 % | 91 % | 82 % |
+| gasolinera | 11 | 100 % | 85 % | 66 % |
+| poligono | 11 | 100 % | 85 % | 69 % |
+| castanar | 11 | 99 % | 77 % | 61 % |
+| sanjuan | 11 | 100 % | 75 % | 69 % |
+| puerto | 10 | 100 % | 95 % | 73 % |
+| ciudad | 10 | 100 % | 93 % | 82 % |
+| estacion | 10 | 100 % | 90 % | 76 % |
+| nieve | 8 | 100 % | 79 % | 66 % |
+| museo | 8 | 100 % | 91 % | 70 % |
+| camping | 7 | 100 % | 83 % | 63 % |
+
+| Grandes incendios | Niveles | PRO gana | Casual gana | Casual salva |
+|---|---|---|---|---|
+| todos | 12 | 99 % | 72 % | 64 % |
+
+Retos diarios del 25 sept al 1 oct (solo PRO; `dailyTable.ts` regenerado con la simulación de esta entrega):
+
+```
+daily#1 casta wind     win  50%  saved  35%  left 115s  ★ 5/5/0/0  rescued 2.5/4  boom 0.0  zap 0.0  pw 0.4  {"win":5,"control":5}
+daily#2 plaza wind     win 100%  saved  91%  left  93s  ★ 0/0/10/0  rescued 0.0/0  boom 0.0  zap 0.0  pw 0.3  {"win":10}
+daily#3 casta night    win 100%  saved  71%  left 145s  ★ 0/1/6/3  rescued 1.8/4  boom 0.0  zap 0.0  pw 0.7  {"win":10}
+daily#4 gasol short    win 100%  saved  64%  left  62s  ★ 0/8/2/0  rescued 0.0/0  boom 0.0  zap 0.0  pw 0.8  {"win":10}
+daily#5 sanju wind     win 100%  saved  80%  left  64s  ★ 0/1/9/0  rescued 0.0/2  boom 0.0  zap 0.0  pw 2.3  {"win":10}
+daily#6 granj night    win 100%  saved  66%  left 102s  ★ 0/10/0/0  rescued 4.4/6  boom 0.0  zap 0.0  pw 1.1  {"win":10}
+daily#7 plaza wind     win 100%  saved  94%  left  95s  ★ 0/0/1/9  rescued 0.0/0  boom 0.1  zap 0.0  pw 0.3  {"win":10}
+```
+
+### Los 23 niveles nuevos
+
+Entre paréntesis, el % salvado de mediana. «Mínimo» es el `minSaved` (por debajo, el fuego se descontrola y se pierde).
+
+| Nº | id | Nombre | Tiempo | Mínimo | ★★ / ★★★ | PRO gana | Casual gana |
+|---|---|---|---|---|---|---|---|
+| 24 | `nieve-1` | The mountain hut / El refugio (presentación) | 130 s | 60 % | 93 / 97 % | 100 % (96 %) | 100 % (81 %) |
+| 33 | `museo-1` | The gallery / La galería (presentación) | 130 s | 60 % | 93 / 96 % | 100 % (95 %) | 100 % (92 %) |
+| 34 | `nieve-2` | The hotel terrace / La terraza del hotel | 150 s | 42 % | 85 / 88 % | 100 % (87 %) | 70 % (53 %) |
+| 43 | `nieve-3` | The chairlift / El telesilla | 150 s | 55 % | 81 / 84 % | 100 % (81 %) | 80 % (59 %) |
+| 44 | `camping-1` | The campfire / La hoguera (presentación) | 130 s | 49 % | 79 / 83 % | 100 % (82 %) | 100 % (70 %) |
+| 45 | `museo-2` | The sculpture hall / La sala de esculturas | 150 s | 55 % | 93 / 96 % | 100 % (95 %) | 90 % (62 %) |
+| 55 | `nieve-4` | The skating rink / La pista de patinaje | 160 s | 49 % | 73 / 77 % | 100 % (70 %) | 100 % (74 %) |
+| 56 | `museo-3` | The museum shop / La tienda del museo | 150 s | 80 % | 92 / 95 % | 100 % (94 %) | 90 % (91 %) |
+| 60 | `nieve-5` | Fire at the ski resort / Fuego en la estación de esquí (gran incendio) | 210 s | 63 % | 87 / 93 % | 100 % (89 %) | 40 % (64 %) |
+| 62 | `camping-2` | Tent city / Las tiendas | 150 s | 62 % | 73 / 78 % | 100 % (76 %) | 70 % (68 %) |
+| 67 | `museo-4` | The library / La biblioteca | 160 s | 56 % | 62 / 65 % | 100 % (64 %) | 100 % (62 %) |
+| 70 | `museo-5` | Night at the museum / Noche en el museo (gran incendio) | 220 s | 58 % | 71 / 74 % | 100 % (73 %) | 80 % (59 %) |
+| 74 | `camping-3` | The RV park / Las caravanas | 150 s | 74 % | 85 / 90 % | 100 % (88 %) | 90 % (76 %) |
+| 81 | `nieve-6` | The snowy forest / El bosque nevado | 170 s | 74 % | 80 / 85 % | 100 % (82 %) | 80 % (75 %) |
+| 87 | `camping-4` | The lake shore / El lago | 160 s | 57 % | 65 / 75 % | 100 % (67 %) | 50 % (59 %) |
+| 89 | `museo-6` | The storeroom / El almacén | 160 s | 55 % | 65 / 69 % | 100 % (68 %) | 100 % (63 %) |
+| 90 | `camping-5` | Wildfire at the national park / Incendio en el parque nacional (gran incendio) | 220 s | 61 % | 67 / 70 % | 100 % (69 %) | 90 % (62 %) |
+| 99 | `nieve-7` | The alpine village / La aldea alpina | 170 s | 59 % | 65 / 70 % | 100 % (67 %) | 90 % (65 %) |
+| 102 | `museo-7` | Natural history / Historia natural | 170 s | 68 % | 78 / 81 % | 100 % (77 %) | 100 % (71 %) |
+| 108 | `camping-6` | The lookout / El mirador | 170 s | 56 % | 66 / 70 % | 100 % (67 %) | 100 % (61 %) |
+| 112 | `nieve-8` | Blizzard night / Noche de ventisca | 190 s | 56 % | 69 / 74 % | 100 % (72 %) | 70 % (58 %) |
+| 114 | `museo-8` | The gala / La gala | 180 s | 49 % | 72 / 75 % | 100 % (71 %) | 70 % (60 %) |
+| 119 | `camping-7` | Dry lightning / Tormenta seca | 180 s | 36 % | 49 / 56 % | 100 % (51 %) | 80 % (44 %) |
+
+### Cómo se han ajustado
+
+1. **Mapas**: como en la entrega 1, con `npx tsx tools/probe.ts 4 <id>` (cuánto se pierde sin nadie, cuánto salvan el casual y el PRO). En el museo el mármol no arde: el fuego corre por el parqué y las alfombras, y los muros bajos (`|`, 1,6 m) paran el agua, así que hay que entrar en cada sala. En el camping el suelo base es tierra y la hierba alta va en manchas: con todo de hierba el parque entero ardía en 20 s.
+2. **El bot apunta como sale el chorro**: antes daba por buena la línea de tiro aunque en medio hubiera algo bajo (una valla de 0,9 m) y se quedaba regando la valla. Ahora sigue la parábola del chorro. Esto cambió las cifras de algunos niveles de siempre.
+3. **Umbrales con `tools/tune-route.ts`** (tasa del casual según el puesto en la ruta: 95 % en las presentaciones, del 90 % al 50 % a lo largo de la ruta, 10 puntos menos en los grandes incendios y 10 más justo después) y `tools/apply-tune.py`. En los 23 niveles nuevos, estrellas y mínimo. En el resto, solo el mínimo (`--min-only`): siempre a la baja donde el PRO no llegaba al 90 %, y al alza solo desde el nivel 55, como mucho 20 puntos y con el tope de dos estrellas menos 6 puntos (perder siempre queda lejos de las dos estrellas). Las estrellas de los niveles de siempre solo se han bajado donde el PRO ya no llegaba a dos.
+4. **Rampa de propagación** (`spread` en `src/sim/levels.ts`): desde el nivel 40 el fuego corre un poco más, hasta un 12 % más en el 120 (nunca en las presentaciones). Sube la presión en la segunda mitad sin tocar los mapas.
+
+### Lo que no se ha conseguido
+
+- **La curva del casual baja menos de lo buscado**: del 91-96 % de los primeros capítulos al 74-81 % de los últimos (se buscaba el 40-55 %). Los grandes incendios sí son más duros (72 % el casual). Subir más los mínimos dejaba al PRO por debajo del 90 % en muchos niveles: el bot casual está cerca del PRO en los niveles que se deciden por la mecánica (coger el cuadro, tirar de la palanca, pedir el helicóptero), como ya pasaba en la entrega 1. A una persona le costará más que al bot: tiene que descubrir que el hielo resbala, que la palanca activa los aspersores o que el helicóptero se recarga. Hay que medirlo con la analítica (`level_fail` por nivel) tras publicar y ajustar los mínimos.
+- **Niveles donde el casual gana poco**: `nieve-5` (40 %) y `camping-4` (50 %). Son el gran incendio de la nieve y el lago; se dejan así porque el PRO gana el 100 % y quedan justo antes de un nivel tranquilo.
+- **`nieve-8` y `museo-8` piden eventos** (ventisca con apagón y racha; gala con apagón y curiosos) pero la ruta no les da ninguno: los eventos van a la mitad de los niveles y, en su puesto, les toca nivel sin evento. Se puede forzar en `decorate()` si Germán lo quiere.

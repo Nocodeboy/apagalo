@@ -371,6 +371,27 @@ export class Audio {
         this.noiseBurst(0.25, 'highpass', 2500, 5000, 0.2);
         [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.1, 0.1 + i * 0.08));
         break;
+      // ---- v2, entrega 2 ----
+      case 'thunder':
+        this.noiseBurst(0.12, 'highpass', 2000, 6000, 0.35);
+        this.noiseBurst(1.6, 'lowpass', 900, 60, 0.5, 0.7, 0.05);
+        break;
+      case 'chip':
+        if (!this.limit('chip', 0.12)) return;
+        this.noiseBurst(0.06, 'highpass', 3500, 6000, 0.14);
+        this.tone(1800 + Math.random() * 600, 0.05, 'triangle', 0.05);
+        break;
+      case 'thaw':
+        this.noiseBurst(0.3, 'highpass', 3000, 7000, 0.22);
+        [1320, 1760].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.08, i * 0.06));
+        break;
+      case 'sprinkler':
+        this.noiseBurst(1.8, 'bandpass', 5000, 3000, 0.22, 0.6);
+        break;
+      case 'pick':
+        this.tone(520, 0.1, 'triangle', 0.1);
+        this.tone(780, 0.14, 'triangle', 0.1, 0.08);
+        break;
     }
   }
 }

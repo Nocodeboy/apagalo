@@ -229,11 +229,30 @@ const S = {
   tPowerGot: { es: '¡{name}!', en: '{name}!' },
   tEventSoon: { es: 'En 3 s', en: 'In 3 s' },
   whatsNewTitle: { es: 'Novedades de la 2.0', en: "What's new in 2.0" },
-  whatsNew1: { es: '3 sitios nuevos: el puerto, el centro y la estación, cada uno con su reto', en: '3 new places: the docks, downtown and the rail yard, each with its own twist' },
+  whatsNew1: { es: '6 sitios nuevos, cada uno con su reto: el puerto, el centro, la estación de tren, la de esquí, el museo y el camping', en: '6 new places, each with its own twist: the docks, downtown, the rail yard, the ski lodge, the museum and the campground' },
   whatsNew2: { es: 'Objetos en el suelo, sorpresas a mitad de nivel y equipo que contratas', en: 'Pick-ups on the ground, mid-level surprises and a crew to hire' },
   whatsNew3: { es: 'Un gran incendio cada 10 niveles: gánalo y sales en portada', en: 'A big fire every 10 levels: win it and make the front page' },
   whatsNew4: { es: 'Tus estrellas siguen ahí, y los niveles nuevos que han quedado detrás ya están abiertos', en: 'Your stars are safe, and new levels behind you are already open' },
   gotIt: { es: '¡Vamos!', en: "Let's go!" },
+  // ---- v2, entrega 2: the ski lodge, the museum and the campground ----
+  tIce: { es: '¡Hielo! Resbalas: suelta antes de llegar', en: 'Ice! You slide: let go before you get there' },
+  tFrozen: { es: 'Boca de riego helada: quédate encima para romper el hielo', en: 'Frozen hydrant: stay on it to chip the ice off' },
+  tDeepSnow: { es: 'La nieve honda te frena: ve por los caminos', en: 'Deep snow slows you down: stick to the paths' },
+  tArtPick: { es: '¡Cogida! Sácala por una puerta verde (cargado no puedes echar agua)', en: 'Got it! Carry it out of a green door (no spraying while you carry)' },
+  tArtSafe: { es: '¡Obra a salvo!', en: 'Art saved!' },
+  tArtLost: { es: '¡Se ha quemado una obra!', en: 'A work of art burned!' },
+  tHandsFull: { es: 'Tienes las manos ocupadas: llévala antes a una puerta verde', en: 'Hands full: take it to a green door first' },
+  tSprinkler: { es: 'Rociadores encendidos: el fuego deja de avanzar en esta sala', en: 'Sprinklers on: the fire stops spreading in this room' },
+  tSprinklerLabel: { es: '¡Rociadores!', en: 'Sprinklers!' },
+  tHeliBack: { es: 'El helicóptero vuelve a estar listo', en: 'Helicopter ready again' },
+  tLightning: { es: '¡Rayo! Moja la zona marcada', en: 'Lightning! Wet the marked spot' },
+  tBoltFizzle: { es: '¡El rayo no prende!', en: 'Strike fizzled!' },
+  goal3art: { es: 'Salva el {n}% y que no se queme ninguna obra', en: 'Save {n}% and lose no work of art' },
+  // More games (cross-promotion, not on CrazyGames)
+  moreGames: { es: 'Más juegos', en: 'More games' },
+  moreGamesTitle: { es: 'Más juegos de Nocodeboy', en: 'More games by Nocodeboy' },
+  moreGamesSoon: { es: 'Muy pronto', en: 'Coming soon' },
+  moreGamesPlay: { es: 'Jugar', en: 'Play' },
 } satisfies Record<string, Txt>;
 
 export type Key = keyof typeof S;

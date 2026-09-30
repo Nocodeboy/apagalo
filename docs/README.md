@@ -3,7 +3,7 @@
 | Documento | De qué va |
 |---|---|
 | [concepto.md](concepto.md) | Ficha de concepto: fantasía, bucle, escenarios y los criterios para matar, iterar o seguir con el juego, decididos antes de probar |
-| [diseno-v2.md](diseno-v2.md) | Diseño de la 2.0: escenarios nuevos con su mecánica, ruta mezclada, power-ups, eventos, equipo, grandes incendios con portada, apoyo aéreo y migración de partidas |
+| [diseno-v2.md](diseno-v2.md) | Diseño de la 2.0: los 6 escenarios nuevos con su mecánica, ruta mezclada de 120 niveles, power-ups, eventos, equipo, grandes incendios con portada, apoyo aéreo, «More games» y migración de partidas |
 | [dificultad.md](dificultad.md) | Dificultad de cada nivel medida con el bot, como referencia para comparar después de tocar la simulación |
 | [google-play.md](google-play.md) | App de Android: estado de la prueba, cómo compilar y subir una versión, clave de firma, textos de la ficha y respuestas de Play Console |
 | [testers.md](testers.md) | Cómo conseguir los 12 testers de la prueba cerrada: montaje, calendario, problemas frecuentes, textos para redes y WhatsApp, y LaunchReady |
@@ -25,9 +25,9 @@ La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, 
 
 La **2.0.0** está en la rama `v2`, sin publicar. Responde a lo que dijo Germán de la 1.3.0 («casi siempre son los mismos escenarios y mecánicas»): diseño en [diseno-v2.md](diseno-v2.md).
 
-- **Entrega 1 (hecha):** 3 escenarios nuevos con su mecánica (el puerto con el gasóleo que arde en el agua, el centro con gente en las ventanas y la estación con trenes que cortan la manguera), ruta mezclada de 97 niveles, power-ups, eventos sorpresa, equipo (Lola, Chispa y el dron), un gran incendio cada 10 niveles con su portada de periódico y el álbum, apoyo aéreo con anuncio con recompensa, el juego en inglés salvo en dispositivos en español y la migración de las partidas de la 1.2.0 y la 1.3.0.
-- **Entrega 2:** los otros 3 escenarios (esquí, museo y camping) y la ruta final de 120 niveles.
-- Antes de publicarla: actualizar los textos de las fichas (Google Play, CrazyGames, redes), que siguen diciendo «67 niveles en 6 escenarios», y rehacer capturas y vídeo con los escenarios nuevos.
+- **Entrega 1 (hecha):** 3 escenarios nuevos con su mecánica (el puerto con el gasóleo que arde en el agua, el centro con gente en las ventanas y la estación con trenes que cortan la manguera), power-ups, eventos sorpresa, equipo (Lola, Chispa y el dron), un gran incendio cada 10 niveles con su portada de periódico y el álbum, apoyo aéreo con anuncio con recompensa, el juego en inglés salvo en dispositivos en español y la migración de las partidas de la 1.2.0 y la 1.3.0.
+- **Entrega 2 (hecha):** los otros 3 escenarios (la estación de esquí con hielo, nieve profunda y bocas de riego heladas; el museo de noche con obras de arte que sacar y aspersores con palanca; el camping con helicóptero de guardia, hierba alta y tormenta seca), la ruta final de **120 niveles en 12 escenarios** con 12 grandes incendios (12 portadas), una rampa suave de propagación en la segunda mitad y la entrada «More games» (promoción cruzada con *Tray Runner*; en CrazyGames no sale). Dificultad en [dificultad.md](dificultad.md) («2.0, entrega 2»).
+- Antes de publicarla: jugarla (sobre todo los escenarios nuevos), rehacer capturas y vídeo de las tiendas con los escenarios nuevos y dar la URL del juego del perro pastor cuando salga (`src/games.ts`). Los textos de las fichas ya están en [ficha-tienda-en.md](ficha-tienda-en.md), [google-play.md](google-play.md) y [crazygames.md](crazygames.md).
 
 | Canal | Publicado | Siguiente paso |
 |---|---|---|

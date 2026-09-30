@@ -81,7 +81,8 @@ export class MB {
           const zz = z + dz;
           if (!this.ok(xx, zz)) continue;
           const c = this.g[zz][xx];
-          if (!'.,l:;_#=-w~o'.includes(c)) {
+          // (v2 grounds s ! " j are new: no map from before them has any, so old maps are unchanged)
+          if (!'.,l:;_#=-w~os!"j'.includes(c)) {
             clear = false;
             break;
           }

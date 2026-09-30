@@ -361,7 +361,7 @@ export const GRANJA: LevelDef[] = [
         { t: 90, angle: 0, strength: 0.45 },
       ],
       stars: [0.7, 0.8],
-      minSaved: 0.45,
+      minSaved: 0.64,
     },
     (() => {
       const b = granjaBase(new MB(28, 24, '.'));
@@ -378,8 +378,8 @@ export const GRANJA: LevelDef[] = [
       time: 120,
       hose: 20,
       wind: { angle: -60, strength: 0.45 },
-      stars: [0.88, 0.95],
-      minSaved: 0.785,
+      stars: [0.84, 0.95],
+      minSaved: 0.75,
     },
     pozo(),
   ),
@@ -393,7 +393,7 @@ export const GRANJA: LevelDef[] = [
       hose: 18,
       wind: { angle: 90, strength: 0.4 },
       stars: [0.86, 0.93],
-      minSaved: 0.79,
+      minSaved: 0.8,
       night: true,
     },
     (() => {
@@ -432,7 +432,7 @@ export const GRANJA: LevelDef[] = [
         { t: 110, angle: 0, strength: 0.4 },
       ],
       stars: [0.72, 0.84],
-      minSaved: 0.67,
+      minSaved: 0.64,
     },
     cosecha(),
   ),

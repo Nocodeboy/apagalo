@@ -27,6 +27,11 @@ export const M = {
   Rail: 23, // railway track (rail yard): gravel and sleepers, trains cross it
   Hull: 24, // wooden fishing boats and freight wagons: catch easier than a car and burn longer
   Office: 25, // downtown towers: floors full of paper and furniture, the fire runs along the block
+  Snow: 26, // the ski lodge: deep snow, nothing burns
+  Ice: 27, // the ski lodge: frozen ground, you slide on it
+  Carpet: 28, // the museum: carpets and rugs, the fire runs along them
+  TallGrass: 29, // the campground: tall dry grass, the fastest fire of the game
+  Timber: 30, // the ski lodge: log chalets, they catch easier than a brick house, burn fast and throw embers
 } as const;
 export type MatId = (typeof M)[keyof typeof M];
 
@@ -72,6 +77,11 @@ def(M.Elec, { key: 'elec', flam: 0.4, fuel: 2.5, burn: 0.03, heatOut: 1.1, ember
 def(M.Slick, { key: 'slick', flam: 1.0, fuel: 1.6, burn: 0.035, heatOut: 1.35, ember: 0, value: 0, walk: false, oil: true });
 def(M.Hull, { key: 'hull', flam: 0.5, fuel: 1.2, burn: 0.045, heatOut: 1.3, ember: 0.04, value: 6, walk: false });
 def(M.Office, { key: 'office', flam: 0.28, fuel: 1.4, burn: 0.035, heatOut: 1.2, ember: 0.05, value: 6, walk: false });
+def(M.Snow, { key: 'snow', flam: 0, fuel: 0, burn: 0, heatOut: 0, ember: 0, value: 0, walk: true });
+def(M.Ice, { key: 'ice', flam: 0, fuel: 0, burn: 0, heatOut: 0, ember: 0, value: 0, walk: true });
+def(M.Carpet, { key: 'carpet', flam: 0.6, fuel: 0.7, burn: 0.07, heatOut: 0.95, ember: 0.01, value: 1, walk: true });
+def(M.TallGrass, { key: 'tallgrass', flam: 1.0, fuel: 0.5, burn: 0.14, heatOut: 1.2, ember: 0.03, value: 1, walk: true });
+def(M.Timber, { key: 'timber', flam: 0.55, fuel: 1.1, burn: 0.05, heatOut: 1.35, ember: 0.1, value: 6, walk: false });
 def(M.Rail, { key: 'rail', flam: 0, fuel: 0, burn: 0, heatOut: 0, ember: 0, value: 0, walk: true });
 
 export function isFlammable(m: number): boolean {

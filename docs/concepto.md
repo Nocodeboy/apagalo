@@ -22,7 +22,15 @@
 | 4 | El polígono | Nublado | Electricidad: corta la luz antes de mojar |
 | 5 | El Castañar | Otoño, viento | Cambios de viento, bocas de riego y reconectar la manguera |
 | 6 | Noche de San Juan en la playa | Noche | Cohetes que caen: moja antes de que prendan |
+| 7 | El puerto (2.0) | Atardecer naranja | Gasóleo que arde en el agua y el viento arrastra: solo la espuma lo para |
+| 8 | El centro (2.0) | Día frío | Gente en las ventanas: quédate debajo para subir la plataforma |
+| 9 | La estación de tren (2.0) | Mañana con bruma | Trenes con horario que tapan el agua y cortan la manguera |
+| 10 | La estación de esquí (2.0) | Hora azul con nieve | Hielo que resbala, nieve honda y bocas de riego heladas |
+| 11 | El museo (2.0) | Noche, interior | Sacar las obras de arte y encender los rociadores de cada sala |
+| 12 | El camping (2.0) | Hora dorada | Hierba alta que arde deprisa y un helicóptero de guardia |
 | ★ | Reto diario | Varía | El mismo para todos, numerado y con modificadores |
+
+Desde la 2.0 los escenarios se mezclan en una ruta de 120 niveles con un gran incendio cada 10 (diseño en [diseno-v2.md](diseno-v2.md)).
 
 ## Gancho para compartir
 - Resultado sin spoilers: `¡Apágalo! Reto #37 🚒 ⭐⭐⭐ 🟩🟩🟩🟩🟧 97% a salvo · 1:12`.

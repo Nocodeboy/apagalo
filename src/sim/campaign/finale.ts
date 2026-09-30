@@ -1,4 +1,4 @@
-// Level 67, the finale. See the note in ../levels.ts.
+// The finale (level 67 in 1.3.0, the last one, #120, of the 2.0 route). See the note in ../levels.ts.
 // "El gran incendio" / "The Big One": the whole town on fiesta night, with the fire truck at the crossroads in the
 // middle and a fire in each quarter around it: the fair (south-west), the gas station with gas bottles by the pumps
 // (south-east), the warehouses with a live electrical box (north-east) and the old quarter with the church

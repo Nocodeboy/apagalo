@@ -99,6 +99,8 @@ export interface TitleOpts {
   onShop: () => void;
   /** Privacy notice for new players (CrazyGames asks for it when the game collects its own stats). */
   privacyUrl?: string;
+  /** "More games" (the studio's other games): web and Android only */
+  onMore?: () => void;
 }
 export function titleScreen(o: TitleOpts) {
   const logo = t('logo');
@@ -116,7 +118,7 @@ export function titleScreen(o: TitleOpts) {
         <button class="btn ghost" data-a="levels">${IC.grid}${t('levels')}</button>
         <button class="btn amber daily-btn" data-a="daily">${IC.cal}#${o.dailyNum}${o.streak > 0 ? `<span class="badge">🔥 ${o.streak}</span>` : o.dailyDone ? `<span class="badge">✓</span>` : ''}</button>
       </div>
-      <div class="foot"><button class="icon-btn" data-a="settings" aria-label="${t('settings')}">${IC.gear}</button><span class="starcount"><span class="star-on">★</span> ${o.stars}/${o.maxStars}</span><span>${t('credits')}</span></div>
+      <div class="foot"><button class="icon-btn" data-a="settings" aria-label="${t('settings')}">${IC.gear}</button><span class="starcount"><span class="star-on">★</span> ${o.stars}/${o.maxStars}</span>${o.onMore ? `<button class="more-btn" data-a="more">${IC.grid}${t('moreGames')}</button>` : `<span>${t('credits')}</span>`}</div>
       ${o.privacyUrl ? `<p class="privacy-note">${t('privacyNote')} <a href="${o.privacyUrl}" target="_blank" rel="noopener">${t('privacyPolicy')}</a></p>` : ''}
     </div>
   </div>`);
@@ -125,7 +127,37 @@ export function titleScreen(o: TitleOpts) {
   n.querySelector('[data-a=daily]')!.addEventListener('click', o.onDaily);
   n.querySelector('[data-a=settings]')!.addEventListener('click', o.onSettings);
   n.querySelector('[data-a=shop]')!.addEventListener('click', o.onShop);
+  if (o.onMore) n.querySelector('[data-a=more]')!.addEventListener('click', o.onMore);
   show(n);
+}
+
+/** The studio's other games: a card each, with the link to play it (opens outside the game). */
+export function moreGamesModal(o: { games: { id: string; name: string; tagline: string; href: string; color: string; emoji: string }[]; onOpen: (id: string) => void; onClose: () => void }) {
+  const n = el(`
+  <div class="screen dim">
+    <div class="panel offer more-games">
+      <div class="tape"></div>
+      <div class="panel-head" style="text-align:center"><div class="eyebrow">${esc(t('credits'))}</div><h2>${esc(t('moreGamesTitle'))}</h2></div>
+      <div class="panel-body">
+        ${o.games
+          .map(
+            (g) => `<a class="game-card" href="${esc(g.href)}" target="_blank" rel="noopener" data-id="${esc(g.id)}" style="--gc:${g.color}">
+              <span class="gc-ic" aria-hidden="true">${g.emoji}</span>
+              <span class="gc-t"><b>${esc(g.name)}</b><small>${esc(g.tagline)}</small></span>
+              <span class="gc-go">${t('moreGamesPlay')}${IC.next}</span>
+            </a>`,
+          )
+          .join('')}
+        <button class="btn ghost" data-a="back" data-focus>${IC.back}${t('back')}</button>
+      </div>
+    </div>
+  </div>`);
+  n.querySelectorAll<HTMLElement>('.game-card').forEach((a) => a.addEventListener('click', () => o.onOpen(a.dataset.id!)));
+  n.querySelector('[data-a=back]')!.addEventListener('click', () => {
+    n.remove();
+    o.onClose();
+  });
+  overlay(n);
 }
 
 /** Levels per chapter of the level select: 1-10, 11-20... each one ends with its big fire. */
@@ -325,11 +357,12 @@ function windPill(angle: number, strength: number) {
 
 export function goalsHtml(def: LevelDef, hasRescues: boolean, saved?: number): string {
   const [s2, s3] = def.stars;
+  const art = def.map.some((r) => r.includes('$'));
   const mark = (ok: boolean) => (saved === undefined ? '' : `<span class="gchk ${ok ? 'ok' : ''}">${ok ? '✓' : '·'}</span>`);
   return `<div class="goals">
     <div class="goal"><span class="stars">${starsTxt(1)}</span><span>${t('goal1')}</span>${mark(false)}</div>
     <div class="goal"><span class="stars">${starsTxt(2)}</span><span>${t('goal2', { n: Math.round(s2 * 100) })}</span>${mark(saved !== undefined && saved >= s2)}</div>
-    <div class="goal"><span class="stars">${starsTxt(3)}</span><span>${hasRescues ? t('goal3', { n: Math.round(s3 * 100) }) : t('goal3b', { n: Math.round(s3 * 100) })}</span>${mark(saved !== undefined && saved >= s3)}</div>
+    <div class="goal"><span class="stars">${starsTxt(3)}</span><span>${art ? t('goal3art', { n: Math.round(s3 * 100) }) : hasRescues ? t('goal3', { n: Math.round(s3 * 100) }) : t('goal3b', { n: Math.round(s3 * 100) })}</span>${mark(saved !== undefined && saved >= s3)}</div>
   </div>`;
 }
 
@@ -839,14 +872,17 @@ export function updateIcons(stage: Stage, labels: Label[], edges: { x: number; z
     if (l.kind === 'alert') {
       e.className = 'ic alert' + (l.v > 0.6 ? ' hot' : '');
       e.textContent = '!';
+      e.dataset.pk = '';
     } else if (l.kind === 'pressure') {
       e.className = 'ic gauge';
       const c = l.v > 0.7 ? '#ff4b3a' : l.v > 0.4 ? '#ffb21f' : '#3cc46e';
       e.style.background = `conic-gradient(${c} ${Math.round(l.v * 360)}deg, rgba(255,255,255,.2) 0)`;
       e.innerHTML = `<span>${Math.round(l.v * 100)}</span>`;
+      e.dataset.pk = '';
     } else if (l.kind === 'lever') {
       e.className = 'ic lever';
       e.textContent = leverText;
+      e.dataset.pk = '';
     } else if (l.kind === 'power') {
       e.className = 'ic power' + (l.v < 3 ? ' ending' : '');
       if (e.dataset.pk !== l.k) {
@@ -857,8 +893,20 @@ export function updateIcons(stage: Stage, labels: Label[], edges: { x: number; z
       e.className = 'ic gauge lift';
       e.style.background = `conic-gradient(#ffd23a ${Math.round(l.v * 360)}deg, rgba(255,255,255,.2) 0)`;
       e.innerHTML = '<span>⇡</span>';
+      e.dataset.pk = '';
+    } else if (l.kind === 'thaw') {
+      e.className = 'ic gauge thaw';
+      e.style.background = `conic-gradient(#8fd8ff ${Math.round(l.v * 360)}deg, rgba(255,255,255,.2) 0)`;
+      e.innerHTML = '<span>❄</span>';
+      e.dataset.pk = '';
+    } else if (l.kind === 'sprinkler') {
+      e.className = 'ic lever sprinkler';
+      if (e.dataset.pk !== 'spr') {
+        e.innerHTML = `${IC.sprinkler}<span>${t('tSprinklerLabel')}</span>`;
+        e.dataset.pk = 'spr';
+      }
     }
-    e.style.transform = `translate(${p.x}px, ${p.y + (l.kind === 'lever' || l.kind === 'power' ? Math.sin(performance.now() / 200) * 4 : 0)}px)`;
+    e.style.transform = `translate(${p.x}px, ${p.y + (l.kind === 'lever' || l.kind === 'power' || l.kind === 'sprinkler' ? Math.sin(performance.now() / 200) * 4 : 0)}px)`;
   }
   // off-screen fire indicators, kept clear of the HUD and the minimap
   const W = window.innerWidth;
@@ -956,6 +1004,13 @@ export interface HudState {
   heliBusy: boolean;
   cut: number;
   blackout: boolean;
+  /** campground: the helicopter is on call (always shown) and comes back after `heliCd` seconds */
+  heliOnCall?: boolean;
+  heliCd?: number;
+  heliEvery?: number;
+  /** museum: the rescues are works of art; campground storm: the rockets are lightning */
+  art?: boolean;
+  lightning?: boolean;
 }
 let lastHud = '';
 let lastStars = 3;
@@ -965,7 +1020,7 @@ export function setStarLostHandler(f: () => void) {
 }
 export function updateHud(s: HudState) {
   const pct = Math.round(s.control * 100);
-  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}|${s.buffs.map((b) => b.k + Math.ceil(b.t)).join()}|${s.heli}|${s.heliBusy}|${Math.ceil(s.cut)}|${s.blackout}`;
+  const key = `${pct}|${Math.ceil(s.time)}|${Math.round(s.saved * 1000)}|${s.fled}|${s.rescue.states.join('')}|${Math.round(s.wind)}|${s.nozzle}|${s.foam.toFixed(1)}|${s.rockets}|${s.buffs.map((b) => b.k + Math.ceil(b.t)).join()}|${s.heli}|${s.heliBusy}|${Math.ceil(s.cut)}|${s.blackout}|${Math.ceil(s.heliCd ?? 0)}|${s.art}|${s.lightning}`;
   if (key === lastHud) return;
   lastHud = key;
   $('#hud-fill').style.width = `calc(${Math.max(3, pct)}% - 8px)`;
@@ -989,10 +1044,18 @@ export function updateHud(s: HudState) {
   sv.classList.toggle('danger', s.saved < s.minSaved + 0.05);
   const rc = $('#hud-resc');
   rc.hidden = s.rescue.total === 0;
+  if (rc.dataset.icon !== (s.art ? 'art' : 'paw')) {
+    rc.dataset.icon = s.art ? 'art' : 'paw';
+    rc.firstElementChild!.outerHTML = s.art ? IC.art : IC.paw;
+  }
   if (s.rescue.total) rc.querySelector('.dots')!.innerHTML = s.rescue.states.map((st) => `<i class="${st === 1 ? 'ok' : st === 2 ? 'lost' : ''}"></i>`).join('');
   $('#hud-windarrow').style.transform = `rotate(${s.wind + 90}deg) scale(${0.8 + s.windStrength * 0.6})`;
   const rk = $('#hud-rockets');
   rk.hidden = !s.hasRockets;
+  if (rk.dataset.icon !== (s.lightning ? 'bolt' : 'rocket')) {
+    rk.dataset.icon = s.lightning ? 'bolt' : 'rocket';
+    rk.firstElementChild!.outerHTML = s.lightning ? IC.turbo : IC.rocket;
+  }
   rk.lastElementChild!.textContent = String(s.rockets);
   document.querySelectorAll<HTMLElement>('.noz').forEach((b) => b.classList.toggle('sel', Number(b.dataset.n) === s.nozzle));
   const foamBtn = document.querySelector<HTMLButtonElement>('.noz[data-n="2"]');
@@ -1004,10 +1067,13 @@ export function updateHud(s: HudState) {
   // v2
   const heli = document.querySelector<HTMLButtonElement>('#hud-heli');
   if (heli) {
-    heli.hidden = s.heli <= 0 && !s.heliBusy;
+    const cd = s.heliOnCall && s.heli <= 0 && !s.heliBusy ? Math.ceil(s.heliCd ?? 0) : 0;
+    heli.hidden = s.heli <= 0 && !s.heliBusy && !s.heliOnCall;
     heli.disabled = s.heliBusy || s.heli <= 0;
     heli.classList.toggle('ready', s.heli > 0 && !s.heliBusy);
-    $('#hud-heli-n').textContent = String(s.heli);
+    heli.classList.toggle('cooling', cd > 0);
+    $('#hud-heli-n').textContent = cd > 0 ? `${cd}` : String(s.heli);
+    heli.style.setProperty('--cd', cd > 0 && s.heliEvery ? String(Math.min(1, (s.heliCd ?? 0) / s.heliEvery)) : '0');
   }
   const cut = $('#hud-cut');
   cut.hidden = s.cut <= 0;

@@ -1,6 +1,6 @@
 # ¡Apágalo! (Put It Out!)
 
-Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene una campaña de 97 niveles en 9 escenarios (cada escenario nuevo con su propia mecánica), power-ups, eventos sorpresa, un equipo que contratas, un gran incendio cada 10 niveles con su portada de periódico, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
+Arcade casual en 3D low-poly: eres un bombero con la manguera atada al camión y apagas incendios que se propagan en tiempo real. Tiene una campaña de 120 niveles en 12 escenarios (cada escenario nuevo con su propia mecánica), power-ups, eventos sorpresa, un equipo que contratas, un gran incendio cada 10 niveles con su portada de periódico, un reto diario y mejoras que se compran con las monedas de cada partida. Funciona en web y en móvil, en español y en inglés. En inglés se llama **Put It Out!** (en la web y en las fichas, «Put It Out! Firefighter»); quien juega en español sigue viendo «¡Apágalo!».
 
 | Dónde | Estado |
 |---|---|
@@ -65,6 +65,7 @@ npm run typecheck      # comprueba los tipos
 npm run serve          # sirve dist/ en http://127.0.0.1:8765 (abre /web/)
 npm run bot            # tasa de victoria por nivel (bot PRO y casual); con mejoras: npx tsx tools/bot.ts 10 --up=max
 npm run daily-table    # regenera las semillas del reto diario; obligatorio tras tocar la simulación
+npm run test:migration # partidas de la 1.2.0, la 1.3.0, la 2.0 (entrega 1) y de la nube de CrazyGames en la ruta de 120 niveles
 npm run deploy:web     # compila y publica la web en Vercel
 npm run android:sync   # compila y copia el juego dentro del proyecto Android
 CG_ADS=1 node build.mjs  # igual que build, con anuncios en CrazyGames (solo a partir del Full Launch)
@@ -100,7 +101,7 @@ Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo
 
 ## Campaña
 
-97 niveles en 9 escenarios, en una ruta mezclada (`buildRoute()` en `src/sim/levels.ts`; `npx tsx tools/route.ts` la imprime). Diseño completo en `docs/diseno-v2.md`.
+120 niveles en 12 escenarios, en una ruta mezclada (`buildRoute()` en `src/sim/levels.ts`; `npx tsx tools/route.ts` la imprime). Diseño completo en `docs/diseno-v2.md`.
 
 | Escenario | Niveles | Mecánica estrella | Archivo |
 |---|---|---|---|
@@ -108,18 +109,22 @@ Para firmar hace falta `android/keystore.properties` y `android/keystore/apagalo
 | El puerto (`puerto`) | 10 | Gasóleo ardiendo que el viento arrastra por el agua: solo la espuma lo apaga, y la bomba del muelle la rellena | `src/sim/campaign/puerto.ts` |
 | El centro (`ciudad`) | 10 | Gente en las ventanas: quédate en la marca amarilla y la plataforma los baja | `src/sim/campaign/ciudad.ts` |
 | La estación (`estacion`) | 10 | Trenes con horario que tapan el agua, te apartan y cortan la manguera | `src/sim/campaign/estacion.ts` |
+| La estación de esquí (`nieve`) | 8 | Hielo en el que resbalas, nieve honda que te frena y no arde, y bocas de riego heladas (la primera vez hay que romper el hielo) | `src/sim/campaign/nieve.ts` |
+| El museo (`museo`) | 8 | Obras de arte que coges y sacas por una puerta verde (cargado no echas agua) y palancas de rociadores por sala; los tabiques paran el agua | `src/sim/campaign/museo.ts` |
+| El camping (`camping`) | 7 | Helicóptero siempre de guardia que vuelve cada pocos segundos, hierba alta que arde volando y tormentas secas con rayos | `src/sim/campaign/camping.ts` |
 | El final | 1 | «El gran incendio»: todo el pueblo de noche con un fuego en cada barrio | `src/sim/campaign/finale.ts` |
 
-- **Orden**: los niveles 1-6 son los originales; los escenarios nuevos se estrenan en el 7 (puerto), el 12 (centro) y el 17 (estación) con un nivel tranquilo de presentación. Nunca tocan dos niveles seguidos del mismo sitio.
-- **Grandes incendios** en el 10, 20… 90 y el final en el 97: mapa grande, más fuego y dos eventos. La primera victoria imprime una portada de *El Diario del Fuego* / *The Daily Blaze* (con la foto del momento) que va al álbum y se comparte como imagen.
+- **Orden**: los niveles 1-6 son los originales; los escenarios nuevos se estrenan en el 7 (puerto), el 12 (centro), el 17 (estación), el 24 (esquí), el 33 (museo) y el 44 (camping) con un nivel tranquilo de presentación. Nunca tocan dos niveles seguidos del mismo sitio. Desde el nivel 40 el fuego se propaga un poco más deprisa, hasta un 12 % más en el 120 (`SPREAD_FROM` y `SPREAD_MAX` en `src/sim/levels.ts`; nunca en las presentaciones ni en el reto diario).
+- **Grandes incendios** en el 10, 20… 110 y el final en el 120 (12 portadas): mapa grande, más fuego y dos eventos. La primera victoria imprime una portada de *El Diario del Fuego* / *The Daily Blaze* (con la foto del momento) que va al álbum y se comparte como imagen.
 - **Power-ups** desde el nivel 3 (bomba turbo, botas, cronómetro, extintor, helicóptero y traje ignífugo) y **eventos sorpresa** desde el 8 (vecinos con cubos, chaparrón, racha de viento, baja la presión, fuga de gas, curiosos y apagón). Salen de una semilla fija por nivel: son los mismos en cada intento.
 - **Equipo**: Lola (compañera con su manguera), Chispa (perro de rescate) y el dron. Se contratan en la tienda y se eligen en la presentación del nivel: 1 hueco desde el nivel 9 y 2 desde el 40.
 - Se desbloquean en orden: hay que ganar el anterior (1 estrella o más). Las partidas guardadas usan el `id` de cada nivel, así que un id publicado no se cambia nunca; `num` (el número que ve el jugador) lo pone la ruta. Cuando la ruta cambia (`ROUTE_VERSION`), `src/progress.ts` abre todo lo que queda por detrás del punto al que había llegado el jugador (también para partidas de la 1.2.0 y la 1.3.0).
 - El selector de niveles va por capítulos de 10 (cada uno acaba en su gran incendio), con el icono y el color del escenario en cada nivel, y se abre en el capítulo del siguiente nivel por jugar. Desde ahí se abre el álbum de portadas.
 - El menú de fondo del título (el bot jugando) y el reto diario solo usan los 6 niveles originales.
+- **Más juegos** (web y Android, nunca en CrazyGames): un botón en el título abre la lista de los otros juegos del estudio, con enlaces con UTM. La lista está en `src/games.ts`; un juego sin `url` (el de los perros pastores) no sale hasta que la tenga.
 - Los eventos `level_start`, `level_complete`, `level_fail`, `level_quit` y `share` llevan el `id` del nivel (`level`) y su número (`num`); los de la 2.0, además, el escenario (`scn`) y si es gran incendio (`big`).
 
-**Cómo añadir un nivel.** En el archivo de su escenario, añade un `L({...}, mapa())` al array: el orden del array es el de dificultad y el primero es el de presentación. El mapa se dibuja con `MB` (`src/sim/mapbuilder.ts`) y los caracteres están en `src/sim/parse.ts`; tiene que haber un camión (`X`). Para ver el mapa: `npx tsx tools/map.ts <id>`. Para ajustarlo: `npx tsx tools/curve.ts <id>` (cuánto se quema sin nadie, con el bot casual y con el PRO) y `npx tsx tools/tune.ts 16 <id>:<casual>` (propone `minSaved` y estrellas para la tasa de victoria del casual que quieras). Luego compara con `docs/dificultad.md`. No hace falta regenerar `dailyTable.ts` si solo cambias niveles: el reto diario usa los 6 originales (sí si tocas la simulación o el bot).
+**Cómo añadir un nivel.** En el archivo de su escenario, añade un `L({...}, mapa())` al array: el orden del array es el de dificultad y el primero es el de presentación. El mapa se dibuja con `MB` (`src/sim/mapbuilder.ts`) y los caracteres están en `src/sim/parse.ts`; tiene que haber un camión (`X`). Para ver el mapa: `npx tsx tools/map.ts <id>`. Para ajustarlo: `npx tsx tools/probe.ts <id>` (cuánto se pierde sin nadie y cuánto salvan los bots), `npx tsx tools/curve.ts <id>` (la curva en el tiempo) y `npx tsx tools/tune-route.ts 16 <id> --json=f.json` (propone `minSaved` y estrellas con la tasa del casual que toca a su puesto en la ruta; `python3 tools/apply-tune.py f.json` las escribe en el archivo del nivel). Para verlo: `PORT=8791 python3 tools/shots_b.py <id>@12`. Luego compara con `docs/dificultad.md`. No hace falta regenerar `dailyTable.ts` si solo cambias niveles: el reto diario usa los 6 originales (sí si tocas la simulación o el bot).
 
 ## Controles
 
@@ -135,7 +140,7 @@ Por defecto está en **Automática**: los móviles empiezan en calidad media y l
 
 Cada partida da monedas, ganes o pierdas: 50 + 50 por estrella + hasta 50 según el % salvado (de 50 a 250). El primer resultado del día en el reto diario da 100 si pierdes y 200, 250 o 300 según las estrellas; si lo repites, paga como un nivel. Con las monedas se compran mejoras en la tienda (título o pantalla final): manguera más larga, más presión, botas y más tiempo, 5 niveles cada una a 200/500/1.000/2.000/4.000 monedas. El reto diario no aplica mejoras para que la clasificación sea justa. Efectos y equilibrio medido con el bot: `docs/dificultad.md`.
 
-Como referencia, una victoria con 3 estrellas da unas 250 monedas y una normal (2 estrellas) unas 190. Pasarse la campaña de 97 niveles, con sus derrotas, da unas 21.000 monedas sin anuncios. Desde la 2.0 las monedas también contratan y suben al **equipo** (3 niveles cada uno: Lola 2.500/4.000/7.000, Chispa 1.500/3.000/5.000, el dron 2.000/3.500/6.000; 34.500 en total), que se suma a las mejoras (30.800). Cálculo completo en `docs/monetizacion.md` («Economía»).
+Como referencia, una victoria con 3 estrellas da unas 250 monedas y una normal (2 estrellas) unas 190. Pasarse la campaña de 120 niveles, con sus derrotas, da unas 26.000 monedas sin anuncios (la misma proporción que las 15.000 de los 67 niveles de la 1.3.0). Desde la 2.0 las monedas también contratan y suben al **equipo** (3 niveles cada uno: Lola 2.500/4.000/7.000, Chispa 1.500/3.000/5.000, el dron 2.000/3.500/6.000; 34.500 en total), que se suma a las mejoras (30.800). Cálculo completo en `docs/monetizacion.md` («Economía»).
 
 ## Monetización
 
@@ -164,7 +169,7 @@ Hasta la 1.2.0 (y la web 1.3.0 publicada el 29 sept antes de juntar este cambio)
 
 Eventos: `first_open`, `session_start`, `session_end`, `ping`, `level_start`, `level_complete`, `level_fail`, `daily_start`, `daily_complete`, `daily_fail`, `share`, `quality_tier`... Cada uno lleva un identificador aleatorio del navegador (sin datos personales), la versión y la plataforma (`web`, `crazygames`, `android`). `first_open` y `session_start` llevan además el idioma del dispositivo (`loc`, p. ej. `en-US`) y su zona horaria (`tz`, p. ej. `America/New_York`), que dan la región aproximada. El jugador puede desactivarlo en Ajustes; la política está en `/privacidad`.
 
-Novedades de la 2.0: `powerup {k, level}` (power-up cogido), `event {k, level}` (evento sorpresa), `crew_hire {id, lvl, n}`, `frontpage {level}` (portada ganada) y `share {what: 'frontpage'}`. `level_start` lleva el equipo que va al nivel (`crew`) y `level_complete`/`level_fail` los power-ups cogidos (`pw`).
+Novedades de la 2.0: `powerup {k, level}` (power-up cogido), `event {k, level}` (evento sorpresa), `crew_hire {id, lvl, n}`, `frontpage {level}` (portada ganada), `share {what: 'frontpage'}`, `crosspromo_open` y `crosspromo_click {id}` (lista de «Más juegos»). `level_start` lleva el equipo que va al nivel (`crew`) y `level_complete`/`level_fail` los power-ups cogidos (`pw`).
 
 Economía y monetización: `coins_earn {src, n}` (`src`: `level`, `daily`, `x2`, `free`, `iap`, `restore`), `coins_spend {item, n}`, `upgrade {id, lvl}`, `shop_open {from}`, `ad_offer {pl}`, `ad_show {pl, type}` (el intersticial, solo si de verdad se ha mostrado), `ad_reward {pl}`, `ad_fail {pl}`, `iap_start {id}`, `iap_ok {id}`, `iap_pending {id}` (pago pendiente), `iap_fail {id}`, `iap_recover {id}` (compra pagada entregada al arrancar o al volver a la app) y `offer_show {id}` (la oferta de inicio). `level_complete` y `level_fail` llevan `cont: true` si el jugador usó los +30 s.
 

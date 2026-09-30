@@ -57,6 +57,13 @@ export const IC = {
   factory: s('<path d="M3 21V11l5 3v-3l5 3v-3l5 3V4h3v17z"/>'),
   moon: s('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/>'),
   flag: s('<path d="M3 5h18l-2 4H5zM5 9l3 5 3-5M11 9l3 5 3-5"/>'),
+  // ---- v2, entrega 2 ----
+  snow: s('<path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7"/><path d="M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5M3.6 10.8l3.4-.9-.9-3.4M20.4 13.2l-3.4.9.9 3.4M6.1 17.5l.9-3.4-3.4-.9M17.9 6.5l-.9 3.4 3.4.9"/>'),
+  museum: s('<path d="M3 9 12 4l9 5M4 9h16M5 20h14M3 22h18"/><path d="M7 11v7M12 11v7M17 11v7" stroke-width="2.8"/>'),
+  tent: s('<path d="M2 20 12 4l10 16z" fill="currentColor" stroke-width="1.6"/><path d="M12 20l-3-6h6z" fill="#fff" stroke="none" opacity=".55"/><path d="M12 4 10 1M12 4l2-3"/>'),
+  art: s('<rect x="3" y="4" width="18" height="14" rx="1.5"/><path d="M6 15l4-5 3 3 2-2 3 4" stroke-width="2"/><circle cx="16" cy="8" r="1.4" fill="currentColor"/><path d="M8 18l-2 4M16 18l2 4"/>'),
+  sprinkler: s('<path d="M4 4h16M12 4v4"/><path d="M8 8h8l-2 3h-4z" fill="currentColor"/><path d="M8 14l-2 4M12 14v5M16 14l2 4" stroke-width="2"/>'),
+  ice: s('<path d="M3 17h18M5 13l3-3 3 3 3-3 3 3 2-2"/><path d="M7 20l2-2M13 20l2-2" stroke-width="2"/>'),
 };
 
 /** Icon of each place (level select, album). */
@@ -70,6 +77,9 @@ export const PLACE_ICON: Record<string, string> = {
   puerto: IC.anchor,
   ciudad: IC.city,
   estacion: IC.train,
+  nieve: IC.snow,
+  museo: IC.museum,
+  camping: IC.tent,
 };
 export const POWER_ICON: Record<string, string> = { turbo: IC.turbo, boots: IC.boot, clock: IC.clock, extinguisher: IC.extinguisher, heli: IC.heli, suit: IC.suit };
 export const EVENT_ICON: Record<string, string> = { neighbors: IC.bucket, rain: IC.rain, gust: IC.gust, pressure: IC.gauge, leak: IC.leak, onlookers: IC.eye, blackout: IC.bulb };

@@ -74,6 +74,52 @@ Sin anuncios y sin compras. Se puede jugar sin conexión.
 
 > La publicada con la 1.2.0 decía «6 escenarios distintos»; la línea de los 67 niveles va con la versión que lleve la campaña. A partir de la 1.3.0 la frase de «Sin anuncios y sin compras» deja de ser cierta: antes de publicar la 1.3.0 hay que cambiarla y actualizar las declaraciones de anuncios, ID de publicidad, seguridad de los datos y clasificación de contenido (lista completa en `docs/monetizacion.md` y `docs/android-monetizacion.md`). La ficha en inglés está en `docs/ficha-tienda-en.md`.
 
+**Descripción completa de la 2.0** (rama `v2`; 2.476 caracteres, cambia por esta al publicar la 2.0; descripción breve, la misma). La ficha en inglés, que es la principal, en `docs/ficha-tienda-en.md` («2.0»):
+
+```text
+¡Apágalo! es un juego de bomberos en 3D: el fuego se extiende en tiempo real y el viento lo empuja. Coge la manguera, apunta a la base de las llamas y salva el pueblo antes de que sea tarde.
+
+🔥 120 niveles en 12 escenarios, cada uno con su regla
+• Verbena en la plaza
+• La granja de Doña Rosa: rescata a los animales
+• La gasolinera: el combustible no se apaga con agua, usa espuma
+• El polígono: corta la luz antes de mojar el cuadro eléctrico
+• El Castañar: el viento cambia y hay que engancharse a las bocas de riego
+• Noche de San Juan: caen cohetes del cielo
+• El puerto: el gasóleo arde en el agua y el viento lo arrastra; solo la espuma lo para
+• El centro: hay gente atrapada en las ventanas, súbeles la plataforma
+• La estación: los trenes pasan con horario y cortan la manguera
+• La estación de esquí: hielo que resbala, nieve honda y bocas de riego heladas
+• El museo de noche: saca las obras de arte y tira de la palanca de los rociadores
+• El camping: la hierba seca arde como nada, pero tienes un helicóptero de guardia
+Los escenarios se mezclan: nunca juegas dos veces seguidas en el mismo sitio.
+
+📰 Un gran incendio cada 10 niveles
+Mapa más grande, más fuego y dos sorpresas. Si lo ganas, sales en la portada de «El Diario del Fuego». Colecciona las 12 portadas en tu álbum y compártelas.
+
+⚡ Power-ups y sorpresas
+Bomba turbo, botas, cronómetro, extintor, helicóptero y traje ignífugo aparecen en el suelo. Y atento: chaparrones, rachas de viento, fugas de gas, apagones, vecinos con cubos y curiosos que se acercan demasiado.
+
+🐕 Tu equipo
+Contrata a Lola, bombera con su propia manguera, a Chispa, el perro de rescate, y a un dron que echa agua. Súbelos de nivel y elige a quién llevas en cada misión.
+
+🚒 3 boquillas
+Chorro para llegar lejos, abanico para protegerte del calor y espuma para los fuegos de combustible.
+
+🪙 Mejoras
+Gana monedas en cada misión y gástalas en una manguera más larga, más presión, botas ligeras, más tiempo y tu equipo. En el reto diario no cuentan, para que el ranking sea justo. Los anuncios son opcionales: tú decides cuándo ver uno a cambio de 30 s más, el doble de monedas o apoyo aéreo.
+
+📅 Reto diario
+Un incendio nuevo cada día, el mismo para todo el mundo. Mira en qué puesto quedas y comparte tu resultado.
+
+⭐ Hasta 3 estrellas por nivel
+Cuanto más pueblo salves y a más gente y animales rescates, más estrellas.
+
+Controles sencillos: un pulgar para moverte y el otro para apuntar y echar agua. Se puede jugar sin conexión.
+```
+
+Con la 2.0 no cambia ninguna declaración respecto a la 1.3.0: el apoyo aéreo es otro lugar de anuncio con recompensa (ya declarados) y «More games» solo abre la web de los otros juegos del estudio en el navegador. La 2.0 lleva `versionCode` 3 y `versionName` 2.0.0 (ya puestos en `android/app/build.gradle`).
+
 **Categoría:** Juegos › Casual
 **Correo de contacto:** ghptiemblo@gmail.com · **Web:** https://apagalo.vercel.app
 **Política de privacidad:** https://apagalo.vercel.app/privacidad

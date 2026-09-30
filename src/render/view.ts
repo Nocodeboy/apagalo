@@ -7,7 +7,7 @@ import { flameGeometry } from './geo';
 import { Ground } from './ground';
 import { Hose } from './hose';
 import { HELI_DELAY } from '../sim/world';
-import { characterMesh, dogVest, droneModel, entityModel, heliModel, heroRig, leverHandle, PARTNER_PALETTE, platformModel, powerModel, trainGroup, truckGroup, type HeroRig } from './models';
+import { artModel, characterMesh, dogVest, droneModel, entityModel, heliModel, heroRig, iceCap, leverHandle, PARTNER_PALETTE, platformModel, powerModel, trainGroup, truckGroup, type HeroRig } from './models';
 import { FxList, Particles } from './particles';
 import type { Theme } from './themes';
 
@@ -37,6 +37,9 @@ const TALL: Partial<Record<EntType, number>> = {
   container: 1.8,
   tower: 3.4,
   wagon: 1.5,
+  chalet: 2.1,
+  tent: 0.8,
+  rv: 1.3,
 };
 const BIG_FLAME: Partial<Record<EntType, number>> = {
   house: 1.45,
@@ -59,10 +62,25 @@ const BIG_FLAME: Partial<Record<EntType, number>> = {
   container: 1.3,
   tower: 1.6,
   wagon: 1.25,
+  chalet: 1.45,
+  tent: 1.15,
+  rv: 1.25,
 };
-const DARK_SMOKE = new Set<EntType>(['car', 'house', 'barn', 'warehouse', 'shop', 'elec', 'church', 'cabin', 'boat', 'container', 'tower', 'wagon']);
+const DARK_SMOKE = new Set<EntType>(['car', 'house', 'barn', 'warehouse', 'shop', 'elec', 'church', 'cabin', 'boat', 'container', 'tower', 'wagon', 'chalet', 'rv']);
 /** Characters that are not there until an event brings them in. */
 const LATE_CHARS = new Set<EntType>(['onlooker', 'neighbor']);
+
+function mergeBoxes(gs: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const pos: number[] = [];
+  for (const g of gs) {
+    const ng = g.index ? g.toNonIndexed() : g;
+    pos.push(...(ng.attributes.position.array as Float32Array));
+    g.dispose();
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  return out;
+}
 
 function hash(i: number): number {
   let h = i * 374761393;
@@ -102,7 +120,7 @@ export interface Label {
   x: number;
   y: number;
   z: number;
-  kind: 'alert' | 'pressure' | 'lever' | 'hydrant' | 'rocket' | 'power' | 'lift';
+  kind: 'alert' | 'pressure' | 'lever' | 'hydrant' | 'rocket' | 'power' | 'lift' | 'sprinkler' | 'thaw';
   /** power-up kind */
   k?: string;
   v: number;
@@ -157,6 +175,14 @@ export class LevelView {
   private trainStrips: THREE.Mesh[] = [];
   private helis: { x: number; z: number; t: number; dropped: boolean; obj: ReturnType<typeof heliModel>; ring: THREE.Mesh }[] = [];
   private leakObj: THREE.Mesh | null = null;
+  // v2, entrega 2
+  private arts: { ent: Ent; obj: THREE.Group; t: number; mat: THREE.MeshLambertMaterial }[] = [];
+  private exitRings: THREE.Mesh[] = [];
+  private ice = new Map<number, THREE.Mesh>();
+  private heliRing: THREE.Mesh;
+  private heliT = 0;
+  private bolts: { obj: THREE.Mesh; t: number }[] = [];
+  private sprAcc = 0;
   private rainT = 0;
   private cutFlash = 0;
   private torchLight = new THREE.PointLight(0xffe9c0, 0, 10, 1.4);
@@ -246,6 +272,11 @@ export class LevelView {
     this.powerRing.visible = false;
     this.group.add(this.powerRing);
     this.buildTrains();
+    // where the helicopter would drop right now (shown while one is ready)
+    this.heliRing = new THREE.Mesh(new THREE.RingGeometry(3.0, 3.3, 40), new THREE.MeshBasicMaterial({ color: 0xff6a3a, transparent: true, opacity: 0.55, depthWrite: false }));
+    this.heliRing.rotation.x = -Math.PI / 2;
+    this.heliRing.visible = false;
+    this.group.add(this.heliRing);
     // only levels with a blackout carry the torch (one more light in every shader otherwise)
     if (sim.def.events?.some((e) => e.kind === 'blackout')) this.group.add(this.torchLight);
 
@@ -302,6 +333,29 @@ export class LevelView {
         if (e.state === 3) obj.visible = false;
         this.chars.push(cv);
         continue;
+      }
+      if (e.type === 'art') {
+        const obj = artModel(e.variant);
+        obj.scale.setScalar(1.3);
+        obj.position.set(e.cx, 0, e.cz);
+        obj.rotation.y = e.variant % 2 ? 0.25 : -0.25;
+        this.group.add(obj);
+        const mat = (obj.children[0] as THREE.Mesh).material as THREE.MeshLambertMaterial;
+        this.arts.push({ ent: e, obj, t: 0, mat });
+        continue;
+      }
+      if (e.type === 'exit') {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.8, 28), new THREE.MeshBasicMaterial({ color: 0x3cff7a, transparent: true, opacity: 0.25, depthWrite: false }));
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(e.cx, 0.06, e.cz);
+        this.group.add(ring);
+        this.exitRings.push(ring);
+      }
+      if (e.type === 'hydrant' && this.sim.isFrozen(e.id)) {
+        const cap = iceCap();
+        cap.position.set(e.cx, 0, e.cz);
+        this.group.add(cap);
+        this.ice.set(e.id, cap);
       }
       if (e.type === 'leak') {
         const spec = entityModel('leak', 1, 1, 0, 0, this.theme)!;
@@ -502,6 +556,10 @@ export class LevelView {
     this.updatePower(dt, time);
     this.updateTrains(time);
     this.updateHelis(dt, time);
+    if (this.arts.length) this.updateArts(dt, time);
+    if (this.sim.sprinklers.length) this.updateSprinklerFx(dt);
+    this.updateHeliRing(dt, time);
+    this.updateBolts(dt);
     this.updateWeather(dt, cam);
     this.lastScale = pxScale;
     this.updateFire(dt, time);
@@ -516,10 +574,23 @@ export class LevelView {
     for (const [id, ring] of this.hydrantRings) {
       const active = s.player.anchor === id;
       const mat = ring.material as THREE.MeshBasicMaterial;
-      const connecting = s.player.connectEnt === id ? s.player.connectT / 0.6 : 0;
+      const connecting = s.player.connectEnt === id ? Math.min(1, s.player.connectT / s.connectTime(id)) : 0;
       mat.color.setHex(active ? 0x5cff8a : connecting > 0 ? 0xffe066 : 0xffffff);
       mat.opacity = active ? 0.7 : 0.35 + 0.25 * Math.sin(time * 4) + connecting * 0.4;
       ring.scale.setScalar(1 + connecting * 0.3);
+    }
+    for (const [id, cap] of this.ice) {
+      if (!s.isFrozen(id)) {
+        if (cap.visible) {
+          cap.visible = false;
+          const e = s.ents[id];
+          this.burstSparks(e.cx, 0.7, e.cz, 26, 0.85, 0.95, 1, 3);
+        }
+        continue;
+      }
+      const chip = s.player.connectEnt === id ? s.player.connectT : 0;
+      cap.position.x = s.ents[id].cx + (chip > 0 ? Math.sin(time * 60) * 0.03 : 0);
+      if (chip > 0 && Math.random() < 0.3) this.sparks.add({ x: s.ents[id].cx + (Math.random() - 0.5) * 0.5, y: 0.9, z: s.ents[id].cz + 0.3, vx: (Math.random() - 0.5) * 2, vy: 2, grav: 8, life: 0.4, s0: 0.12, s1: 0.05, r: 0.85, g: 0.95, b: 1 });
     }
     // shockwaves
     this.shock = this.shock.filter((sh) => {
@@ -967,6 +1038,8 @@ export class LevelView {
       ring.scale.setScalar(1.6 - u * 0.9 + Math.sin(time * 14) * 0.06);
       const wet = s.wet[r.cell] > 0.22;
       (ring.material as THREE.MeshBasicMaterial).color.setHex(wet ? 0x4fd0ff : 0xff4040);
+      // (lightning at the campground: only the marked spot, the bolt comes down when it hits)
+      if (this.theme.id === 'camping') return;
       const x = r.sx + (r.tx - r.sx) * u;
       const z = r.sz + (r.tz - r.sz) * u;
       const y = 0.5 + 4 * 11 * u * (1 - u);
@@ -1046,11 +1119,23 @@ export class LevelView {
         L.push({ x: c.win.x, y: c.win.y + 1.6, z: c.win.z, kind: 'alert', v: Math.max(0.35, e.alert, e.t / flee), ent: e.id });
       } else if (e.alert > 0.15 || e.t > 0) L.push({ x: e.cx, y: 1.6, z: e.cz, kind: 'alert', v: Math.max(e.alert, e.t / flee), ent: e.id });
     }
+    for (const a of this.arts) {
+      const e = a.ent;
+      if (e.state === 0 && (e.alert > 0.15 || e.t > 0)) L.push({ x: e.cx, y: 2.1, z: e.cz, kind: 'alert', v: Math.max(e.alert, e.t / 3), ent: e.id });
+    }
+    for (const z of s.sprinklers) {
+      const lv = s.ents[z.lever];
+      if (lv.state !== 0) continue;
+      const info = s.sprinklerFor(z.lever);
+      if (info && info.burning > 0) L.push({ x: lv.cx, y: 1.9, z: lv.cz, kind: 'sprinkler', v: 0.5 + 0.5 * Math.sin(time * 5), ent: lv.id });
+    }
+    const ce = s.player.connectEnt;
+    if (ce >= 0 && s.isFrozen(ce) && s.player.connectT > 0.05) L.push({ x: s.ents[ce].cx, y: 1.5, z: s.ents[ce].cz, kind: 'thaw', v: Math.min(1, s.player.connectT / s.connectTime(ce)), ent: ce });
     const pw = s.powerup;
     if (pw) L.push({ x: pw.x, y: 1.5, z: pw.z, kind: 'power', v: pw.t, k: pw.kind });
     for (const e of s.ents) {
       if ((e.type === 'cylinder' || e.type === 'leak') && e.state === 0 && e.alert > 0.08) L.push({ x: e.cx, y: 1.2, z: e.cz, kind: 'pressure', v: e.alert, ent: e.id });
-      if (e.type === 'lever' && e.state === 0 && s.ents.some((o) => o.type === 'elec' && o.state === 1)) L.push({ x: e.cx, y: 1.9, z: e.cz, kind: 'lever', v: 0.5 + 0.5 * Math.sin(time * 5), ent: e.id });
+      if (e.type === 'lever' && e.state === 0 && !s.sprinklers.some((z) => z.lever === e.id) && s.ents.some((o) => o.type === 'elec' && o.state === 1)) L.push({ x: e.cx, y: 1.9, z: e.cz, kind: 'lever', v: 0.5 + 0.5 * Math.sin(time * 5), ent: e.id });
     }
     this.labels = L;
   }
@@ -1115,10 +1200,12 @@ export class LevelView {
         this.shake = Math.max(this.shake, 0.3);
         break;
       case 'rocketHit':
-        this.fireworkBurst(x, z, false);
+        if (this.theme.id === 'camping') this.bolt(x, z, false);
+        else this.fireworkBurst(x, z, false);
         break;
       case 'fizzle':
-        this.fireworkBurst(x, z, true);
+        if (this.theme.id === 'camping') this.bolt(x, z, true);
+        else this.fireworkBurst(x, z, true);
         for (let k = 0; k < 5; k++) this.steam.add({ x, y: 0.4, z, vy: 1.8, life: 1.2, s0: 0.5, s1: 1.8, r: 0.97, g: 0.97, b: 1, a: 0.5 });
         break;
       case 'ignite':
@@ -1166,6 +1253,12 @@ export class LevelView {
       case 'hoseCut':
         this.burstSparks(x, 0.3, z, 30, 1, 0.8, 0.4, 4);
         this.cutFlash = 1;
+        break;
+      case 'sprinkler':
+        this.burstSparks(x, 1.4, z, 18, 0.5, 0.85, 1, 3);
+        break;
+      case 'artPick':
+        this.burstSparks(x, 1.2, z, 16, 1, 0.85, 0.4, 2.5);
         break;
       case 'leakFixed':
         for (let k = 0; k < 10; k++) this.steam.add({ x, y: 0.8, z, vy: 1.5 + Math.random(), vx: (Math.random() - 0.5) * 1.5, life: 1.2, s0: 0.3, s1: 1.2, r: 1, g: 1, b: 1, a: 0.6 });
@@ -1362,6 +1455,127 @@ export class LevelView {
       this.rainT -= 1;
       this.splash.add({ x: cx + (Math.random() - 0.5) * 30, y: 7 + Math.random() * 3, z: cz + (Math.random() - 0.5) * 26, vx: -1.5, vy: -16, vz: 0.5, life: 0.5, s0: 0.12, s1: 0.1, r: 0.8, g: 0.88, b: 1, a: 0.55 });
     }
+  }
+
+  // ---------- v2, entrega 2: art, sprinklers, the helicopter's target, lightning ----------
+  /** Works of art: on show (shaking when the fire is close), in the player's arms, carried out (off to the truck)
+   *  or burnt (black, knocked over). */
+  private updateArts(dt: number, time: number) {
+    const s = this.sim;
+    const p = s.player;
+    const truck = s.anchorPoint(s.anchors[0]);
+    for (const a of this.arts) {
+      const e = a.ent;
+      const o = a.obj;
+      if (e.state === 0) {
+        const shake = e.t > 0 ? Math.sin(time * 40 + e.id) * 0.03 * Math.min(1, e.t) : 0;
+        o.position.set(e.cx + shake, 0, e.cz);
+      } else if (e.state === 4) {
+        // held up in front of the player
+        const back = this.heroSt.aimYaw;
+        o.position.set(p.x + Math.cos(back) * 0.35, 0.35 + Math.abs(Math.sin(this.heroSt.walkPh)) * 0.06, p.z + Math.sin(back) * 0.35);
+        o.rotation.y = -back + Math.PI / 2;
+        o.scale.setScalar(0.95);
+      } else if (e.state === 1) {
+        // carried out: it goes off to the truck and disappears
+        a.t += dt;
+        const k = Math.min(1, a.t / 1.1);
+        o.position.set(e.cx + (truck.x - e.cx) * k, Math.sin(k * Math.PI) * 1.5, e.cz + (truck.z - e.cz) * k);
+        o.scale.setScalar(0.95 * (1 - k * 0.6));
+        if (k >= 1) o.visible = false;
+        if (Math.random() < 0.3) this.sparks.add({ x: o.position.x, y: o.position.y + 0.8, z: o.position.z, life: 0.5, s0: 0.2, s1: 0.05, r: 1, g: 0.9, b: 0.4 });
+      } else if (e.state === 2 && a.t === 0) {
+        a.t = 1;
+        a.mat.color.setRGB(0.22, 0.2, 0.2);
+        o.rotation.z = 1.1;
+        o.position.y = 0.1;
+      }
+    }
+    // the doors light up while the player is carrying something
+    const carrying = p.carry >= 0;
+    for (const r of this.exitRings) {
+      const m = r.material as THREE.MeshBasicMaterial;
+      m.opacity = carrying ? 0.55 + 0.35 * Math.sin(time * 8) : 0.22;
+      r.scale.setScalar(carrying ? 1.15 + 0.15 * Math.sin(time * 8) : 1);
+    }
+  }
+
+  /** Museum sprinklers: rain over the zones that are on. */
+  private updateSprinklerFx(dt: number) {
+    for (const z of this.sim.sprinklers) {
+      if (z.t <= 0) continue;
+      const w = z.x1 - z.x0 + 1;
+      const h = z.z1 - z.z0 + 1;
+      this.sprAcc += dt * w * h * (this.tier === 'low' ? 0.5 : 1.1);
+      while (this.sprAcc >= 1) {
+        this.sprAcc -= 1;
+        this.splash.add({ x: z.x0 + Math.random() * w, y: 2.4, z: z.z0 + Math.random() * h, vy: -5, grav: 8, life: 0.4, s0: 0.14, s1: 0.1, r: 0.8, g: 0.9, b: 1, a: 0.65 });
+      }
+    }
+  }
+
+  /** Where the helicopter would drop if called now (a charge is ready). */
+  private updateHeliRing(dt: number, time: number) {
+    const s = this.sim;
+    const on = s.heliReady();
+    this.heliRing.visible = on;
+    if (!on) return;
+    this.heliT -= dt;
+    if (this.heliT <= 0) {
+      this.heliT = 0.12;
+      const t = s.heliTarget();
+      this.heliRing.position.set(t.x, 0.08, t.z);
+    }
+    const m = this.heliRing.material as THREE.MeshBasicMaterial;
+    m.opacity = 0.35 + 0.2 * Math.sin(time * 6);
+  }
+
+  /** A lightning bolt (the campground's dry storm): a jagged white-blue line from the sky and a flash. */
+  private bolt(x: number, z: number, fizzled: boolean) {
+    const pts: THREE.Vector3[] = [];
+    let bx = x + (Math.random() - 0.5) * 3;
+    let bz = z - 4;
+    for (let k = 0; k <= 7; k++) {
+      const u = k / 7;
+      pts.push(new THREE.Vector3(bx, 16 * (1 - u), bz));
+      bx += (x - bx) * 0.45 + (Math.random() - 0.5) * 1.2;
+      bz += (z - bz) * 0.45 + (Math.random() - 0.5) * 1.2;
+    }
+    pts[pts.length - 1].set(x, 0, z);
+    const segs: THREE.BufferGeometry[] = [];
+    for (let k = 0; k < pts.length - 1; k++) {
+      const a = pts[k];
+      const b = pts[k + 1];
+      const len = a.distanceTo(b);
+      const g = new THREE.BoxGeometry(0.16, len, 0.16);
+      g.translate(0, len / 2, 0);
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      g.applyMatrix4(new THREE.Matrix4().compose(a, q, new THREE.Vector3(1, 1, 1)));
+      segs.push(g);
+    }
+    const geo = mergeBoxes(segs);
+    const obj = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: fizzled ? 0xbfe8ff : 0xfff6d0, transparent: true, opacity: 1, depthWrite: false }));
+    this.group.add(obj);
+    this.bolts.push({ obj, t: 0 });
+    this.flash = Math.max(this.flash, fizzled ? 0.4 : 0.8);
+    this.flashX = x;
+    this.flashZ = z;
+    this.shake = Math.max(this.shake, 0.35);
+    this.burstSparks(x, 0.4, z, fizzled ? 20 : 40, fizzled ? 0.6 : 1, fizzled ? 0.9 : 0.85, fizzled ? 1 : 0.4, 5);
+  }
+  private updateBolts(dt: number) {
+    if (!this.bolts.length) return;
+    this.bolts = this.bolts.filter((b) => {
+      b.t += dt;
+      (b.obj.material as THREE.MeshBasicMaterial).opacity = b.t < 0.08 || (b.t > 0.14 && b.t < 0.2) ? 1 : Math.max(0, 1 - b.t / 0.3);
+      if (b.t > 0.32) {
+        this.group.remove(b.obj);
+        b.obj.geometry.dispose();
+        (b.obj.material as THREE.Material).dispose();
+        return false;
+      }
+      return true;
+    });
   }
 
   dispose() {

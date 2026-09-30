@@ -1,4 +1,4 @@
-import { MATS } from './materials';
+import { M, MATS } from './materials';
 import { RESCUE_TYPES } from './parse';
 import type { SimInput } from './types';
 import type { Player, Sim } from './world';
@@ -26,6 +26,8 @@ type Goal =
   | { kind: 'anchor'; ent: number } // hook up to an anchor for real (sea pump, reconnecting a cut hose)
   | { kind: 'power' }
   | { kind: 'evade' }
+  | { kind: 'fetch'; ent: number } // the museum: pick up an artwork the fire is getting close to
+  | { kind: 'exit' } // ...and carry it out through the nearest door
   | { kind: 'idle' };
 
 /**
@@ -153,10 +155,30 @@ export class Bot {
     }
     // 1. power lever if the box is live
     const elec = this.hero ? s.ents.find((e) => e.type === 'elec' && e.state === 1) : undefined;
-    const lever = elec ? s.ents.find((e) => e.type === 'lever' && e.state === 0) : undefined;
+    const lever = elec ? s.ents.find((e) => e.type === 'lever' && e.state === 0 && !s.sprinklers.some((z) => z.lever === e.id)) : undefined;
     if (elec && lever && this.reachFromAnchor(lever.cx, lever.cz) < this.hoseLen + 1) {
       this.goal = { kind: 'lever', ent: lever.id };
       return;
+    }
+    // 1b. the museum: a sprinkler lever whose room is burning (the PRO goes sooner)
+    if (this.hero && s.sprinklers.length) {
+      let best = null;
+      let bd = 1e9;
+      for (const z of s.sprinklers) {
+        const lv = s.ents[z.lever];
+        if (lv.state !== 0) continue;
+        const info = s.sprinklerFor(z.lever);
+        if (!info || info.burning < (this.skill.smart ? 3 : 7)) continue;
+        const d = Math.hypot(lv.cx - p.x, lv.cz - p.z);
+        if (d < bd && this.reachFromAnchor(lv.cx, lv.cz) < this.hoseLen + 1) {
+          bd = d;
+          best = lv;
+        }
+      }
+      if (best) {
+        this.goal = { kind: 'lever', ent: best.id };
+        return;
+      }
     }
     // 2. cylinders under pressure (and a gas leak: always)
     const cylT = this.skill.smart ? 0.3 : 0.6;
@@ -171,6 +193,28 @@ export class Bot {
       }
       if (h === -1) {
         this.goal = { kind: 'cool', ent: cyl.id };
+        return;
+      }
+    }
+    // 2b. the museum: an artwork in hand goes out through the nearest door; one the fire is getting close to, into our hands
+    if (this.hero && s.arts.length) {
+      if (p.carry >= 0) {
+        this.goal = { kind: 'exit' };
+        return;
+      }
+      const artT = this.skill.smart ? 0.3 : 0.45;
+      let art = null;
+      let ad = 1e9;
+      for (const e of s.arts) {
+        if (e.state !== 0 || e.alert < artT) continue;
+        const d = Math.hypot(e.cx - p.x, e.cz - p.z);
+        if (d < ad && this.reachFromAnchor(e.cx, e.cz) <= this.hoseLen + 1) {
+          ad = d;
+          art = e;
+        }
+      }
+      if (art) {
+        this.goal = { kind: 'fetch', ent: art.id };
         return;
       }
     }
@@ -320,14 +364,21 @@ export class Bot {
    *  building reaches its flames (Sim.hit), so a flame inside a block can be fought from the street. */
   private los(x0: number, z0: number, x1: number, z1: number, targetCell: number, wall = false): boolean {
     const s = this.sim;
-    const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) * 2);
+    const D = Math.hypot(x1 - x0, z1 - z0);
+    const n = Math.ceil(D * 2);
     const own = wall && targetCell >= 0 ? s.owner[targetCell] : -1;
+    // height of the jet along its arc (world.ts spray: it leaves the nozzle at 1.05 m and lands on the target), so a
+    // low fence or bench right in front of the target stops it too
+    const T = D / 13;
+    const vy = T > 0 ? (6 * T * T - 1.05) / T : 0;
     for (let k = 1; k < n; k++) {
-      const x = x0 + ((x1 - x0) * k) / n;
-      const z = z0 + ((z1 - z0) * k) / n;
+      const u = k / n;
+      const x = x0 + (x1 - x0) * u;
+      const z = z0 + (z1 - z0) * u;
       const c = s.cellAt(x, z);
       if (c < 0 || c === targetCell) continue;
-      if (s.height[c] > 1.0) return own >= 0 && s.owner[c] === own && s.ents[own].cells.length > 1;
+      const y = 1.05 + vy * T * u - 6 * T * T * u * u;
+      if (s.height[c] > Math.max(0.35, Math.min(1.0, y))) return own >= 0 && s.owner[c] === own && s.ents[own].cells.length > 1;
     }
     return true;
   }
@@ -394,8 +445,18 @@ export class Bot {
         path.shift();
         continue;
       }
-      this.out.mx = ((x - p.x) / Math.max(d, 0.001)) * this.skill.speed;
-      this.out.mz = ((z - p.z) / Math.max(d, 0.001)) * this.skill.speed;
+      let mag = this.skill.speed;
+      // on ice a good player lets go early so the slide ends where they want (the casual bot does not)
+      if (this.skill.smart) {
+        const here = s.cellAt(p.x, p.z);
+        if (here >= 0 && s.mat[here] === M.Ice) {
+          const last = path[path.length - 1];
+          const rem = Math.hypot((last % s.W) + 0.5 - p.x, Math.floor(last / s.W) + 0.5 - p.z);
+          mag = Math.min(mag, Math.max(0.2, rem * 0.45));
+        }
+      }
+      this.out.mx = ((x - p.x) / Math.max(d, 0.001)) * mag;
+      this.out.mz = ((z - p.z) / Math.max(d, 0.001)) * mag;
       if (d < 0.2) {
         this.out.mx = 0;
         this.out.mz = 0;
@@ -466,6 +527,25 @@ export class Bot {
         if (Math.hypot(ap.x - p.x, ap.z - p.z) <= 0.9) return;
         this.moveAlong(this.bfs(nearAt(ap.x, ap.z, 1.05)));
         if (p.cut <= 0) this.opportunistic();
+        return;
+      }
+      case 'fetch': {
+        const e = s.ents[g.ent];
+        if (e.state !== 0) {
+          this.t = 0;
+          return;
+        }
+        this.moveAlong(this.centred(this.bfs(nearAt(e.cx, e.cz, 1.0))));
+        this.opportunistic();
+        return;
+      }
+      case 'exit': {
+        if (p.carry < 0) {
+          this.t = 0;
+          return;
+        }
+        // the nearest door the hose lets us walk to
+        this.moveAlong(this.centred(this.bfs((c) => s.exits.some((e) => Math.hypot((c % W) + 0.5 - e.cx, Math.floor(c / W) + 0.5 - e.cz) <= 0.9))));
         return;
       }
       case 'power': {

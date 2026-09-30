@@ -1,6 +1,6 @@
 # Ficha de Google Play en inglés
 
-26 sept 2026. Textos en inglés para la ficha de Google Play (en-US como idioma predeterminado y en-GB), la ficha de CrazyGames con el nombre nuevo y los textos de anuncios de Google Ads. Las explicaciones van en español; lo que se copia en la consola va en inglés, dentro de bloques.
+26 sept 2026; textos de la 2.0 añadidos el 30 sept. Textos en inglés para la ficha de Google Play (en-US como idioma predeterminado y en-GB), la ficha de CrazyGames con el nombre nuevo y los textos de anuncios de Google Ads. Las explicaciones van en español; lo que se copia en la consola va en inglés, dentro de bloques.
 
 - Todas las longitudes se han contado con un script (caracteres Unicode, espacios incluidos, sin el salto de línea final). Si cambias una palabra, vuelve a contar.
 - Límites de Google Play: título 30 caracteres ([Play, metadatos][play-meta]), descripción breve 80 ([Play, recursos][play-assets]), descripción completa 4.000 ([AppTweak][apptweak-kw]).
@@ -13,6 +13,97 @@
 - **Descripción:** sin repeticiones excesivas ni listas de palabras clave; Play puede rechazar la ficha por ello ([Play, metadatos][play-meta]). Play no tiene campo oculto de palabras clave: indexa título, descripción breve y descripción completa. La guía de AppTweak recomienda repetir las palabras principales 3-5 veces de forma natural en la descripción completa ([AppTweak][apptweak-kw]; [AppTweak, investigación][apptweak-research]). Aquí se ha preferido quedarse en ese rango antes que buscar un porcentaje de densidad.
 - **Capturas:** los textos sobre la imagen no deben ocupar más del 20 % de la captura. Nada de «Download now», rankings, premios, testimonios ni precios. Para que un juego sea elegible en algunos formatos de recomendación de Play hacen falta al menos 3 capturas verticales de 1080×1920 o más (o 3 horizontales de 1920×1080) ([Play, recursos][play-assets]).
 - **Público:** si la ficha parece dirigida a niños (animación infantil, personajes muy jóvenes), Play puede pedir que quites esos elementos o que cumplas la política de Familias ([Play, público][play-kids]). El juego es 13+: nada de «for kids», «toddler» ni «Fireman Sam» (es una marca registrada y un público infantil), aunque salgan en las sugerencias de búsqueda.
+
+## 2.0: textos con 120 niveles en 12 escenarios (usar al publicar la 2.0)
+
+Los de más abajo (versiones A y B, CrazyGames y anuncios) son los de la 1.x, con 67 niveles en 6 escenarios. El día que se publique la 2.0 (rama `v2`) se cambian por estos. Mismo título: `Put It Out! Firefighter` (23).
+
+**Descripción breve** (la 1 sigue siendo la recomendada; la 3 sirve para un experimento de ficha):
+
+| # | Texto | Caracteres |
+|---|---|---:|
+| 1 | `The fire spreads with the wind. Grab the hose, pick a nozzle and save the town.` | 79 |
+| 2 | `3D firefighter game: stop fires that spread in real time and rescue everyone.` | 77 |
+| 3 | `120 fire rescue levels in 12 places, from the docks to a museum at night.` | 73 |
+
+**Descripción completa** (3.589 caracteres de 4.000). «firefighter» 3 veces, «firefighting» 1, «fire truck» 2, «fire rescue» 1, «fireman» 1, «daily challenge» 2. Lleva ya el bloque de monedas, mejoras y anuncios (la 2.0 sale después de la 1.3) y los nombres del juego en inglés (escenarios en `src/content.ts`, power-ups, eventos y equipo en `src/content.ts` e `src/i18n.ts`):
+
+```text
+Put It Out! is a 3D firefighter game where the fire is alive. It spreads from one spot to the next and the wind pushes it in real time. Grab the hose, aim at the base of the flames and decide what to save first, before the whole town goes up.
+
+Your hose is tied to the fire truck, so every step counts. Run, aim, switch nozzles and keep the fire away from what matters most.
+
+120 FIRE RESCUE LEVELS IN 12 PLACES, EACH WITH ITS OWN RULE
+• Village square: learn to aim, spray and hold the fire line.
+• Farm: rescue the sheep, goats, dogs and cats before the flames reach them.
+• Gas station: water only spreads a fuel fire. Switch to foam and keep the gas bottles cool.
+• Industrial park: live power plus water means a shock. Pull the lever first, then spray.
+• Chestnut forest: the wind shifts. Hook your hose up to a hydrant to reach farther.
+• Midsummer night: fireworks rain down on the beach. Wet the marked spots before they land.
+• The docks: burning fuel drifts across the water, and only foam stops it.
+• Downtown: people are trapped at the windows. Bring the platform up in time.
+• Rail yard: trains run on schedule and cut your hose if it lies across the track.
+• Ski lodge: slide on the ice, wade through deep snow and chip the ice off frozen hydrants.
+• Museum at night: carry the masterpieces out and pull the sprinkler levers.
+• Campground: dry grass burns fastest of all, but a helicopter is on call.
+The places mix along the route, so you never play the same one twice in a row.
+
+A BIG FIRE EVERY 10 LEVELS
+Every tenth level is a big fire: a bigger map, more flames and two surprises. Win it and you make the front page of The Daily Blaze. Collect all 12 front pages in your album and share them.
+
+POWER-UPS AND SURPRISES
+Grab power-ups as they appear: turbo pump, sprint boots, stopwatch, extinguisher, helicopter drop and fire suit. And be ready for what the day throws at you: a rain shower, a wind gust, a gas leak, a blackout, neighbors with buckets or onlookers who get too close.
+
+BUILD YOUR CREW
+Hire Lola, a firefighter with her own hose, Sparky the rescue dog and a water drone. Level them up and pick who comes along on each mission.
+
+3 NOZZLES, 3 JOBS
+• Jet: long reach, so you can hit the fire from a safe distance.
+• Fog: a wide spray that shields you from the heat.
+• Foam: the only way to put out fuel fires.
+
+UPGRADE YOUR GEAR
+Earn coins in every mission and spend them on a longer hose, more water pressure, light boots, extra time and your crew. Upgrades and crew stay home in the daily challenge, so the ranking is fair.
+Optional ads can give you 30 extra seconds, double your coins or send air support after a tough level. You decide when to watch one.
+
+A NEW FIRE EVERY DAY
+The daily challenge gives every player the same map, the same wind and the same hot spots. See how you did against everyone who played today and share your result without spoilers.
+
+UP TO 3 STARS PER LEVEL
+Save more of the town, get everyone out and finish faster to earn all three stars.
+
+EASY TO PICK UP, HARD TO MASTER
+• One thumb moves, the other aims and sprays, with aim assist.
+• Each fire takes a few minutes: good for a quick break.
+• Plays offline. No account needed.
+• In English and Spanish.
+• Automatic graphics settings keep it smooth on older phones.
+
+This is a firefighting action game, not a truck driving simulator. No traffic, no sirens to switch on: just you, the hose and a fire that keeps moving. If you like firefighter games, fire truck games or fireman games and want to be the one holding the hose, this one is for you.
+
+Made by a solo indie developer.
+```
+
+- No menciona «More games» ni los otros juegos del estudio: la ficha es de este juego.
+- **en-GB** (3.597 caracteres): esta misma con 5 cambios: `tied to the fire truck` → `tied to the fire engine`, `• Gas station:` → `• Petrol station:`, `• Industrial park:` → `• Industrial estate:`, `neighbors with buckets` → `neighbours with buckets` y `fire truck games or fireman games` → `fire engine games or fireman games`.
+- **Capturas**: las 6 de abajo siguen valiendo para los escenarios de siempre, pero conviene cambiar dos por escenarios nuevos (el museo con un cuadro en brazos y el camping con el helicóptero) y la sexta por una portada de *The Daily Blaze*. `tools/store_shots.py` (con `GAME_LANG=en`) las saca a 1080×1920 con el HUD; hay que añadirle esos niveles y momentos (con `tools/shots_b.py` se buscan antes el nivel y el segundo que queden mejor).
+
+**CrazyGames, descripción 2.0** (1.133 caracteres; la de la 1.x tenía 1.011. Nombre y descripción corta, los mismos):
+
+```text
+Put It Out! Firefighter is a 3D firefighting game where the fire is alive. Your hose is tied to the fire truck, the wind keeps shifting and the flames spread cell by cell in real time. Aim at the base of the fire, rescue everyone and don't let anything important burn.
+
+- 120 handcrafted levels across 12 places, each with its own rule: foam for fuel fires, live electrical boxes, fireworks falling on the beach, burning fuel drifting across the docks, people trapped at downtown windows, trains that cut your hose, ice and frozen hydrants at the ski lodge, masterpieces to carry out of a museum at night and a helicopter on call at the campground.
+- A big fire every 10 levels. Win it and you make the front page of The Daily Blaze: collect all 12.
+- Power-ups on the ground and surprise events: rain showers, wind gusts, gas leaks, blackouts.
+- Hire your crew: Lola the firefighter, Sparky the rescue dog and a water drone.
+- 3 nozzles: jet for reach, fog to shield yourself from the heat, foam for fuel fires.
+- A new daily challenge every day, the same fire for every player.
+
+Plays in English and Spanish, on desktop and mobile.
+```
+
+**Google Ads 2.0**: la descripción de los 67 niveles pasa a `120 levels in 12 places: the docks, a ski lodge, a museum, a campground and more.` (81) y se puede sustituir un título por `Collect 12 front pages` (22).
 
 ## Título
 

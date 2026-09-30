@@ -26,9 +26,25 @@ export const EVENT_TIME: Record<EventKind, number> = { neighbors: 18, rain: 14, 
 /** A hose cut by a train is spliced by itself after this, or at once by hooking up to the truck or a hydrant. */
 export const HOSE_SPLICE = 6;
 /** Seconds a rescuee stands the fire next to it before it runs off (people at windows hold on longer). */
-const FLEE_TIME: Partial<Record<Ent['type'], number>> = { window: 4.5, onlooker: 3.2 };
+const FLEE_TIME: Partial<Record<Ent['type'], number>> = { window: 4.5, onlooker: 3.2, art: 3 };
 /** A person at a window is worth this much of the "saved" score (lost if they have to escape). */
 const WINDOW_VALUE = 15;
+/** The museum: each artwork is worth this much of the "saved" score (lost if it burns). */
+const ART_VALUE = 20;
+/** Seconds it takes to hook up to an anchor (a frozen hydrant at the ski lodge: the ice has to be chipped off first). */
+const CONNECT_TIME = 0.6;
+const FROZEN_CONNECT_TIME = 2.4;
+/** Walking on ice: how fast you get up to speed and stop (on the ground it is 14). */
+const ICE_GRIP = 2.2;
+/** Wading through deep snow (ski lodge): slower. */
+const SNOW_SPEED = 0.68;
+/** Carrying an artwork: slower, and no water. */
+const CARRY_SPEED = 0.72;
+/** Museum sprinklers: seconds they run once their lever is pulled, water they put on every cell per second, and how
+ *  much they weaken flames already burning (per second). They stop the spread; what burns still has to be put out. */
+export const SPRINKLER_TIME = 16;
+const SPRINKLER_WET = 0.24;
+const SPRINKLER_DOUSE = 0.1;
 /** Crew stats by level (1-3), see docs/diseno-v2.md §5.5. */
 export const CREW_STATS = {
   partner: { pow: [0.45, 0.6, 0.75], hose: [-3, -2, -1] },
@@ -92,6 +108,8 @@ export interface Player {
   hose: number;
   /** water power relative to the player (the partner is weaker) */
   pow: number;
+  /** the museum: id of the artwork being carried (-1: none) */
+  carry: number;
 }
 
 export interface PowerUp {
@@ -216,6 +234,8 @@ export class Sim {
   readonly powerMul: number;
   readonly reachMul: number;
   readonly speedMul: number;
+  /** fire spread of this level (route ramp) */
+  readonly spread: number;
   windAngle = 0;
   windStrength = 0;
   windX = 0;
@@ -248,7 +268,14 @@ export class Sim {
   private lastCluster = -10;
   private igniteSfxT = 0;
   private foamWarned = false;
-  hints = { cylinder: false, oil: false, elec: false, heat: false, hydrant: false, pump: false };
+  hints = { cylinder: false, oil: false, elec: false, heat: false, hydrant: false, pump: false, ice: false, frozen: false, snow: false };
+  /** the museum: artworks and the doors to carry them out */
+  readonly arts: Ent[] = [];
+  readonly exits: Ent[] = [];
+  /** the museum: sprinkler zones (cells x0..x1, z0..z1 inclusive), their lever and the seconds they have left */
+  readonly sprinklers: { lever: number; x0: number; z0: number; x1: number; z1: number; t: number }[] = [];
+  /** the campground: seconds until the helicopter is ready again (0: ready or not on call) */
+  heliCd = 0;
 
   // ---- v2 ----
   /** power-up on the ground, and the timed ones running */
@@ -321,7 +348,12 @@ export class Sim {
     }
     for (const e of this.ents) {
       if (e.type === 'truck' || e.type === 'hydrant' || e.type === 'seapump') this.anchors.push(e.id);
-      if (RESCUE_TYPES.has(e.type)) this.rescuees.push(e);
+      if (RESCUE_TYPES.has(e.type) || e.type === 'art') this.rescuees.push(e);
+      if (e.type === 'art') {
+        this.arts.push(e);
+        this.totalValue += ART_VALUE;
+      }
+      if (e.type === 'exit') this.exits.push(e);
       // (people at a window are up at the window: the water passes under them)
       if ((RESCUE_TYPES.has(e.type) && e.type !== 'window') || e.type === 'bystander') this.soakables.push(e);
       if (e.type === 'elec') e.state = 1;
@@ -335,9 +367,12 @@ export class Sim {
     this.powerMul = opts.powerMul ?? 1;
     this.reachMul = opts.reachMul ?? 1;
     this.speedMul = opts.speedMul ?? 1;
+    this.spread = def.spread ?? 1;
     this.foamMax = def.foam ?? 0;
     this.foamLeft = this.foamMax;
     this.heliCharges = opts.heli ?? 0;
+    // the campground: the helicopter is on call from the start
+    if (this.def.heliEvery) this.heliCharges = Math.max(1, this.heliCharges);
     const w = opts.windOverride ?? def.wind;
     this.setWind(w.angle, w.strength);
 
@@ -367,6 +402,13 @@ export class Sim {
       for (let i = 0; i < this.N; i++) if (MATS[this.mat[i]].flam > 0 && this.walk[i]) this.rocketCells.push(i);
     }
     for (const t of def.trains ?? []) this.trains.push({ z: t.z, dir: t.dir, len: t.len ?? 11, speed: t.speed ?? 13, every: t.every, next: t.first, head: 0, st: 0 });
+    for (const sp of def.sprinklers ?? []) {
+      const [lx, lz] = sp.lever;
+      const o = this.owner[lz * this.W + lx];
+      if (o < 0 || this.ents[o].type !== 'lever') throw new Error(`Level ${def.id}: sprinkler lever at ${lx},${lz} is not a lever`);
+      const [x, z, w, h] = sp.area;
+      this.sprinklers.push({ lever: o, x0: Math.max(0, x), z0: Math.max(0, z), x1: Math.min(this.W - 1, x + w - 1), z1: Math.min(this.H - 1, z + h - 1), t: 0 });
+    }
     this.planPowerups(opts);
     this.planEvents();
     this.addCrew(opts, a);
@@ -375,7 +417,7 @@ export class Sim {
   }
 
   private newFighter(x: number, z: number, anchor: number, hose: number, pow: number): Player {
-    return { x, z, vx: 0, vz: 0, kx: 0, kz: 0, face: -Math.PI / 2, aimX: 0, aimZ: -1, aimDist: 0, spraying: false, nozzle: 0, heat: 0, stun: 0, anchor, connectT: 0, connectEnt: -1, hoseTaut: 0, cut: 0, hose, pow };
+    return { x, z, vx: 0, vz: 0, kx: 0, kz: 0, face: -Math.PI / 2, aimX: 0, aimZ: -1, aimDist: 0, spraying: false, nozzle: 0, heat: 0, stun: 0, anchor, connectT: 0, connectEnt: -1, hoseTaut: 0, cut: 0, hose, pow, carry: -1 };
   }
 
   /** Length of the player's hose (with the upgrade). */
@@ -534,6 +576,13 @@ export class Sim {
     if (this.powerPlan.length || this.powerup) this.updatePowerups(dt);
     if (this.eventPlan.length) this.updateEvents(dt);
     if (this.helis.length) this.updateHelis(dt);
+    if (this.def.heliEvery && this.heliCharges === 0 && this.helis.length === 0) {
+      this.heliCd = Math.max(0, this.heliCd - dt);
+      if (this.heliCd <= 0) {
+        this.heliCharges = 1;
+        this.emit('heliReady', this.player.x, this.player.z);
+      }
+    }
     if (this.dog) this.updateDog(dt);
     if (this.drone) this.updateDrone(dt);
     if (this.comboT > 0) {
@@ -573,8 +622,25 @@ export class Sim {
       } else p.nozzle = inp.nozzle;
     }
     const nz = NOZZLES[p.nozzle];
-    const sp = SPEED * (hero ? this.speedMul * (this.buffs.boots > 0 ? 1.35 : 1) : this.speedMul * 0.92) * (p.spraying ? nz.slow : 1);
-    const k = 1 - Math.exp(-14 * dt);
+    // the ski lodge: on ice you slide (slow to get going, slower to stop), deep snow slows you down
+    const here = this.cellAt(p.x, p.z);
+    const onIce = here >= 0 && this.mat[here] === M.Ice;
+    const inSnow = here >= 0 && this.mat[here] === M.Snow;
+    if (onIce && hero && !this.hints.ice) {
+      this.hints.ice = true;
+      this.emit('ice', p.x, p.z);
+    }
+    if (inSnow && hero && !this.hints.snow && Math.hypot(mx, mz) > 0.3) {
+      this.hints.snow = true;
+      this.emit('deepSnow', p.x, p.z);
+    }
+    const sp =
+      SPEED *
+      (hero ? this.speedMul * (this.buffs.boots > 0 ? 1.35 : 1) : this.speedMul * 0.92) *
+      (p.spraying ? nz.slow : 1) *
+      (p.carry >= 0 ? CARRY_SPEED : 1) *
+      (inSnow ? SNOW_SPEED : 1);
+    const k = 1 - Math.exp(-(onIce ? ICE_GRIP : 14) * dt);
     p.vx += (mx * sp - p.vx) * k;
     p.vz += (mz * sp - p.vz) * k;
     const kd = Math.exp(-7 * dt);
@@ -625,8 +691,14 @@ export class Sim {
         p.connectT = 0;
       }
       p.connectT += dt;
-      if (p.connectT >= 0.6) {
+      if (hero && p.connectT > 0.3 && this.connectTime(near) > CONNECT_TIME && !this.hints.frozen) {
+        this.hints.frozen = true;
+        this.emit('frozen', this.ents[near].cx, this.ents[near].cz, 0, near);
+      }
+      if (p.connectT >= this.connectTime(near)) {
         const wasCut = p.cut > 0;
+        // a hydrant chipped free of ice stays free
+        if (this.ents[near].type === 'hydrant') this.ents[near].state = 1;
         p.anchor = near;
         p.connectT = 0;
         p.connectEnt = -1;
@@ -668,12 +740,37 @@ export class Sim {
         } else e.prog = Math.max(0, e.prog - dt * 2);
       } else if (RESCUE_TYPES.has(e.type)) {
         if (Math.hypot(e.cx - p.x, e.cz - p.z) < 1.25) this.rescue(e);
+      } else if (e.type === 'art') {
+        if (p.carry < 0 && Math.hypot(e.cx - p.x, e.cz - p.z) < 1.3) {
+          e.state = 4;
+          p.carry = e.id;
+          this.emit('artPick', e.cx, e.cz, 0, e.id);
+        }
       } else if (e.type === 'lever') {
         if (Math.hypot(e.cx - p.x, e.cz - p.z) < 1.3) {
           e.state = 1;
-          for (const o of this.ents) if (o.type === 'elec') o.state = 0;
-          this.emit('powerOff', e.cx, e.cz, 0, e.id);
+          // the museum: the lever of a sprinkler zone turns its sprinklers on; elsewhere it cuts the power
+          const zone = this.sprinklers.find((z) => z.lever === e.id);
+          if (zone) {
+            zone.t = SPRINKLER_TIME;
+            this.emit('sprinkler', e.cx, e.cz, 0, e.id);
+          } else {
+            for (const o of this.ents) if (o.type === 'elec') o.state = 0;
+            this.emit('powerOff', e.cx, e.cz, 0, e.id);
+          }
         }
+      }
+    }
+    // the museum: an artwork carried to a door is safe
+    if (p.carry >= 0) {
+      for (const x of this.exits) {
+        if (Math.hypot(x.cx - p.x, x.cz - p.z) >= 1.3) continue;
+        const a = this.ents[p.carry];
+        p.carry = -1;
+        a.cx = x.cx;
+        a.cz = x.cz;
+        this.rescue(a, 'art');
+        break;
       }
     }
     for (const e of this.ents) if (e.soakCd > 0) e.soakCd -= dt;
@@ -726,7 +823,7 @@ export class Sim {
   }
 
   private spray(p: Player, dt: number, inp: SimInput, hero: boolean) {
-    const want = inp.spray && p.stun <= 0 && p.cut <= 0;
+    const want = inp.spray && p.stun <= 0 && p.cut <= 0 && p.carry < 0;
     if (hero && want && p.nozzle === 2 && this.foamLeft <= 0) {
       if (!this.foamWarned) {
         this.foamWarned = true;
@@ -1106,7 +1203,7 @@ export class Sim {
         }
         wet[i] = Math.max(0, wet[i] - 0.22 * f * dt);
         // spread heat
-        const out = f * md.heatOut * TUNE.K * dt;
+        const out = f * md.heatOut * TUNE.K * this.spread * dt;
         const x = i % W;
         const z = (i - x) / W;
         for (let k = 0; k < wf.length; k++) {
@@ -1137,6 +1234,7 @@ export class Sim {
       if (rain && fuel[i] > 0.02 && fire[i] === 0) wet[i] = Math.min(1, wet[i] + 0.03 * dt);
     }
     if (this.hasSlick) this.updateSlicks(dt);
+    if (this.sprinklers.length) this.updateSprinklers(dt);
 
     // rescuees in danger
     for (const e of this.rescuees) {
@@ -1163,6 +1261,7 @@ export class Sim {
         e.state = 2;
         this.fled++;
         if (e.type === 'window') this.extraLost += WINDOW_VALUE;
+        if (e.type === 'art') this.extraLost += ART_VALUE;
         this.emit('fled', e.cx, e.cz, 0, e.id);
       }
     }
@@ -1243,6 +1342,35 @@ export class Sim {
       mat[i] = M.Water;
       fuel0[i] = fuel[i] = fire[i] = heat[i] = wet[i] = foam[i] = flareCd[i] = 0;
     }
+  }
+
+  /** The museum: a running sprinkler zone soaks every cell in it and weakens the flames (not on fuel). */
+  private updateSprinklers(dt: number) {
+    const { fire, wet, heat, W } = this;
+    for (const z of this.sprinklers) {
+      if (z.t <= 0) continue;
+      z.t = Math.max(0, z.t - dt);
+      for (let cz = z.z0; cz <= z.z1; cz++)
+        for (let cx = z.x0; cx <= z.x1; cx++) {
+          const i = cz * W + cx;
+          if (MATS[this.mat[i]].flam <= 0) continue;
+          wet[i] = Math.min(1, wet[i] + SPRINKLER_WET * dt);
+          heat[i] *= 1 - Math.min(1, 1.5 * dt);
+          if (fire[i] > 0 && !MATS[this.mat[i]].oil) {
+            fire[i] -= SPRINKLER_DOUSE * dt;
+            if (fire[i] <= 0) this.extinguish(i, false);
+          }
+        }
+    }
+  }
+
+  /** A sprinkler zone that is on, or still waiting for its lever, with fire in it. */
+  sprinklerFor(lever: number): { t: number; burning: number } | null {
+    const z = this.sprinklers.find((s) => s.lever === lever);
+    if (!z) return null;
+    let n = 0;
+    for (let cz = z.z0; cz <= z.z1; cz++) for (let cx = z.x0; cx <= z.x1; cx++) if (this.fire[cz * this.W + cx] > 0.05) n++;
+    return { t: z.t, burning: n };
   }
 
   private recount() {
@@ -1520,11 +1648,22 @@ export class Sim {
     return sw > 0 ? { x: sx / sw, z: sz / sw } : t;
   }
 
+  /** Seconds standing next to an anchor to hook up to it: a frozen hydrant at the ski lodge takes longer (once). */
+  connectTime(id: number): number {
+    return this.isFrozen(id) ? FROZEN_CONNECT_TIME : CONNECT_TIME;
+  }
+  /** A hydrant at the ski lodge nobody has chipped free of ice yet. */
+  isFrozen(id: number): boolean {
+    const e = this.ents[id];
+    return this.def.theme === 'nieve' && e.type === 'hydrant' && e.state === 0;
+  }
+
   /** Calls the helicopter (uses a charge). Returns false if none is ready. */
   callHeli(): boolean {
     if (!this.heliReady()) return false;
     const t = this.heliTarget();
     this.heliCharges--;
+    if (this.def.heliEvery) this.heliCd = this.def.heliEvery + HELI_DELAY;
     this.helis.push({ x: t.x, z: t.z, t: HELI_DELAY });
     this.emit('heliCall', t.x, t.z);
     return true;
@@ -1987,7 +2126,8 @@ export class Sim {
       let best = -1;
       let bs = -1e9;
       for (const e of this.rescuees) {
-        if (e.state !== 0 || e.type === 'window') continue;
+        // (people at windows wait for the platform, and paintings are not for a dog to carry)
+        if (e.state !== 0 || e.type === 'window' || e.type === 'art') continue;
         const danger = e.alert + e.t;
         if (danger < 0.2) continue;
         const s = danger * 4 - Math.hypot(e.cx - d.x, e.cz - d.z) * 0.1;

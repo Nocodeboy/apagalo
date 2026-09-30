@@ -1,9 +1,12 @@
+import { CAMPING } from './campaign/camping';
 import { CASTANAR } from './campaign/castanar';
 import { CIUDAD } from './campaign/ciudad';
 import { ESTACION } from './campaign/estacion';
 import { FINALE, FINALE_ID } from './campaign/finale';
 import { GASOLINERA } from './campaign/gasolinera';
 import { GRANJA } from './campaign/granja';
+import { MUSEO } from './campaign/museo';
+import { NIEVE } from './campaign/nieve';
 import { PLAZA } from './campaign/plaza';
 import { POLIGONO } from './campaign/poligono';
 import { PUERTO } from './campaign/puerto';
@@ -403,7 +406,7 @@ export const BASE_LEVELS: LevelDef[] = [
 // =====================================================================================================================
 
 /** Bumped every time the route changes: saves re-open what they had reached (src/progress.ts). */
-export const ROUTE_VERSION = 2;
+export const ROUTE_VERSION = 3;
 
 /** Order of the 1.3.0 campaign (67 levels), kept to migrate saves from 1.2.0 and 1.3.0. Never edit. */
 export const LEGACY_ROUTE_13 = [
@@ -435,6 +438,9 @@ export const SCENARIOS: Scenario[] = [
   { theme: 'puerto', name: { es: 'El puerto', en: 'The docks' }, levels: PUERTO, intro: 7 },
   { theme: 'ciudad', name: { es: 'El centro', en: 'Downtown' }, levels: CIUDAD, intro: 12 },
   { theme: 'estacion', name: { es: 'La estación', en: 'The rail yard' }, levels: ESTACION, intro: 17 },
+  { theme: 'nieve', name: { es: 'La estación de esquí', en: 'The ski lodge' }, levels: NIEVE, intro: 24 },
+  { theme: 'museo', name: { es: 'El museo', en: 'The museum' }, levels: MUSEO, intro: 33 },
+  { theme: 'camping', name: { es: 'El camping', en: 'The campground' }, levels: CAMPING, intro: 44 },
 ];
 
 export function scenarioOf(theme: ThemeId): Scenario {
@@ -448,10 +454,12 @@ const BIG_SLOTS: Record<number, string> = {
   30: 'estacion-4',
   40: 'puerto-6',
   50: 'ciudad-7',
-  60: 'estacion-8',
-  70: 'plaza-11',
-  80: 'sanjuan-11',
-  90: 'castanar-11',
+  60: 'nieve-5',
+  70: 'museo-5',
+  80: 'estacion-8',
+  90: 'camping-5',
+  100: 'castanar-11',
+  110: 'plaza-11',
 };
 /** Headlines of the big fires whose level files come from 1.3.0 (the new ones carry theirs). */
 const OLD_HEADLINES: Record<string, Txt> = {
@@ -465,6 +473,9 @@ const OLD_HEADLINES: Record<string, Txt> = {
 export const POWER_FROM: Record<PowerKind, number> = { turbo: 3, boots: 4, clock: 6, extinguisher: 8, heli: 11, suit: 14 };
 export const EVENT_FROM: Record<EventKind, number> = { neighbors: 8, rain: 11, gust: 14, pressure: 16, leak: 19, onlookers: 22, blackout: 26 };
 export const CREW_FROM = 9;
+/** Fire spread ramp: from this level on it grows up to +SPREAD_MAX at the last level. */
+export const SPREAD_FROM = 40;
+export const SPREAD_MAX = 0.12;
 export const CREW_TWO_FROM = 40;
 
 function buildRoute(): LevelDef[] {
@@ -581,6 +592,8 @@ function decorate(route: LevelDef[]): LevelDef[] {
     }
     d.events = events;
     d.crewSlots = n >= CREW_TWO_FROM ? 2 : n >= CREW_FROM ? 1 : 0;
+    // the fire spreads a little faster along the second half of the route (never in a new place's intro)
+    d.spread = d.intro || n <= SPREAD_FROM ? 1 : Math.round((1 + SPREAD_MAX * Math.min(1, (n - SPREAD_FROM) / (route.length - SPREAD_FROM))) * 1000) / 1000;
     if (n === CREW_FROM) news.push({ kind: 'crew', id: 'crew' });
     if (n === CREW_TWO_FROM) news.push({ kind: 'crew', id: 'crew2' });
     d.news = news;

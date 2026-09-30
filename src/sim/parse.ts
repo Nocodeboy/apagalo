@@ -23,6 +23,10 @@ const GROUND: Record<string, number> = {
   O: M.Slick, // fuel on the sea (the docks)
   R: M.Rail, // railway track (rail yard)
   '+': M.Road, // zebra crossing (downtown)
+  s: M.Snow, // snow (ski lodge)
+  '!': M.Ice, // ice: you slide (ski lodge)
+  '"': M.Carpet, // carpet (museum)
+  j: M.TallGrass, // tall dry grass (campground)
 };
 const BURNING = new Set(['*', '^', '%']);
 
@@ -64,6 +68,9 @@ const SINGLE: Record<string, SingleDef> = {
   i: { type: 'post', mat: null, height: 0, walk: false }, // bollard, signal or traffic light (the look depends on the theme)
   J: { type: 'window', mat: null, height: 0 }, // someone at the window of the building just north: stand on this spot to get them down
   z: { type: 'canopy', mat: null, height: 0 }, // platform canopy (decoration, walkable)
+  '|': { type: 'wall', mat: M.Block, height: 1.6 }, // inside wall (museum: shown cut away, water does not cross it)
+  $: { type: 'art', mat: null, height: 0, walk: false }, // a painting on its easel or a sculpture: carry it to an exit
+  '>': { type: 'exit', mat: null, height: 0 }, // museum door: artworks carried here are safe
 };
 
 interface RegionDef {
@@ -93,6 +100,9 @@ const REGION: Record<string, RegionDef> = {
   x: { type: 'crane', mat: M.Block, height: 5.0 },
   M: { type: 'tower', mat: M.Office, height: 6.2, chunk: 4 },
   g: { type: 'wagon', mat: M.Hull, height: 2.3, chunk: 4 },
+  t: { type: 'tent', mat: M.Thatch, height: 1.5, chunk: 2, value: 3 },
+  '&': { type: 'rv', mat: M.Vehicle, height: 2.4, chunk: 3 },
+  '1': { type: 'chalet', mat: M.Timber, height: 3.0, chunk: 3 },
 };
 
 export const RESCUE_TYPES = new Set<EntType>(['cat', 'dog', 'sheep', 'goat', 'person', 'window', 'onlooker']);
@@ -155,7 +165,7 @@ export function parseLevel(def: LevelDef): Parsed {
 
   const setCell = (i: number, m: number, wk?: boolean, hgt = 0, val?: number) => {
     mat[i] = m;
-    walk[i] = wk === undefined ? (m === M.Water || m === M.Block || m === M.Slick ? 0 : [M.Building, M.Tree, M.Hay, M.Hedge, M.Fence, M.Vehicle, M.Stall, M.Pallet, M.Thatch, M.Elec, M.Hull, M.Office].includes(m as never) ? 0 : 1) : wk ? 1 : 0;
+    walk[i] = wk === undefined ? (m === M.Water || m === M.Block || m === M.Slick ? 0 : [M.Building, M.Tree, M.Hay, M.Hedge, M.Fence, M.Vehicle, M.Stall, M.Pallet, M.Thatch, M.Elec, M.Hull, M.Office, M.Timber].includes(m as never) ? 0 : 1) : wk ? 1 : 0;
     height[i] = hgt;
     value[i] = val ?? -1;
   };
