@@ -6,7 +6,7 @@
 // Usage: node build.mjs [--dev]   (GAME_URL env overrides the public URL; CG_ADS=1 turns on CrazyGames ads;
 //        RELEASE=1 refuses to build the Android app with Google's test ads, see androidAdsCheck below)
 import { build } from 'esbuild';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
@@ -63,7 +63,7 @@ const body = `<div id="app">
 const TITLE = 'Put It Out! Firefighter';
 const DESC = 'You are the firefighter: grab the hose and put out fires that spread with the wind in 120 levels across 12 places, from the docks to a ski resort, a museum at night and a forest campground, with power-ups, surprise events, your own crew and a new daily challenge. Free, in your browser and on your phone.';
 
-async function bundle(target, gameUrl) {
+async function bundle(target, gameUrl, musicMap = music) {
   const res = await build({
     entryPoints: ['src/main.ts'],
     bundle: true,
@@ -73,7 +73,7 @@ async function bundle(target, gameUrl) {
     write: false,
     legalComments: 'none',
     define: {
-      __MUSIC__: JSON.stringify(music),
+      __MUSIC__: JSON.stringify(musicMap),
       __TARGET__: JSON.stringify(target),
       __VERSION__: JSON.stringify(VERSION),
       __GAME_URL__: JSON.stringify(gameUrl),
@@ -230,10 +230,24 @@ function androidAdsCheck() {
     process.exitCode = 1;
   } else {
     mkdirSync(out, { recursive: true });
-    const js = await bundle('android', GAME_URL);
+    // The app ships the loops as Opus (40 kbps; Opus at that rate sounds about like the 112 kbps MP3s on a phone), as Tray
+    // Runner does: with eight MP3 loops the AAB passed 13 MB; this keeps it under 10 MB. Encoded once into
+    // build/music-android (ffmpeg + libopus).
+    // Android only: Safari on iPhones does not play Opus in <audio>, so the web and CrazyGames keep the MP3s.
+    const musicAndroid = {};
+    mkdirSync('build/music-android', { recursive: true });
+    for (const [k, f] of Object.entries(music)) {
+      const ogg = f.replace(/\.mp3$/, '.ogg');
+      const dst = `build/music-android/${ogg}`;
+      if (!existsSync(dst) || statSync(dst).mtimeMs < statSync(`assets/${f}`).mtimeMs) {
+        execSync(`ffmpeg -v error -y -i assets/${f} -c:a libopus -b:a 40k -vbr on -application audio ${dst}`);
+      }
+      copyFileSync(dst, `${out}/${ogg}`);
+      musicAndroid[k] = ogg;
+    }
+    const js = await bundle('android', GAME_URL, musicAndroid);
     writeFileSync(`${out}/index.html`, page({ js }));
     copyFonts(out);
-    for (const f of Object.values(music)) copyFileSync(`assets/${f}`, `${out}/${f}`);
     // read by android/app/build.gradle before a release build
     writeFileSync(`${out}/ads-check.json`, JSON.stringify({ version: VERSION, testAds: ads.testAds, release: process.env.RELEASE === '1' }));
     console.log('android/index.html', kb(readFileSync(`${out}/index.html`).length), ads.testAds ? '(TEST ads)' : '(real ads)');
