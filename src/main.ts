@@ -1,4 +1,4 @@
-import { initAnalytics, localeProps, setAnalyticsEnabled, submitDaily, track } from './analytics';
+import { initAnalytics, localeProps, sourceProps, setAnalyticsEnabled, submitDaily, track } from './analytics';
 import { cloudStore, exitApp, gameplayStart, gameplayStop, happytime, loadingDone, onAndroidBack, platformInit } from './platform';
 import { audio, vibrate } from './audio';
 import { buyCrew, buyUpgrade, claimFreeCoins, crewFor, dailyCoins, FREE_COINS, freeCoinsLeft, hasUpgrades, isNonConsumable, levelCoins, takeDailyReward, toggleTeam, upgradeOptions, type UpgradeId } from './economy';
@@ -158,11 +158,11 @@ platformInit().finally(() => {
   });
 });
 if (save.firstOpen) {
-  track('first_open', { lang: getLang(), ...localeProps() });
+  track('first_open', { lang: getLang(), ...localeProps(), ...sourceProps() });
   save.firstOpen = false;
   store.save();
 }
-track('session_start', { stars: store.totalStars(), ...localeProps() });
+track('session_start', { stars: store.totalStars(), ...localeProps(), ...sourceProps() });
 initHud();
 setStarLostHandler(() => {
   audio.play('starLost');
