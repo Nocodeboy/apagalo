@@ -10,6 +10,17 @@
 - **Archivo para Play:** `apagalo-1.2.0.aab` (firmado con la clave de subida)
 - **APK para instalar a mano en tu móvil:** `apagalo-1.2.0.apk`
 
+## 2.2.0 (1 oct 2026)
+
+- **Estado el 1 oct:** la 2.0.0 (código 3) seguía **en revisión** en producción desde el 30 sept, sin publicar. Germán decidió subir la 2.2.0 igualmente, aunque sustituye a la que está en revisión y la revisión vuelve a empezar.
+- **Archivo:** `put-it-out-2.2.0.aab` en la raíz del repositorio (fuera de Git, `.git/info/exclude`): código 5, versión 2.2.0, anuncios reales, firmado con la clave de subida. Pesa 10,4 MB: la app lleva la música en Opus a 40 kbps (`build.mjs`), porque con las ocho canciones en MP3 pasaba de 13 MB. El APK para probar a mano es `put-it-out-2.2.0.apk`.
+- **Qué trae respecto a la 2.0.0:** seis idiomas, música en el móvil desde el primer toque y una canción por tipo de escenario, el extintor portátil y el Pulaski (ver `diseno-v2.md`, «2.2»).
+- **Notas de la versión** (como la 2.0.0 no llegó a publicarse, presentan el juego):
+
+> en-US y en-GB: Put It Out! is here: 120 levels in 12 places, from the docks to a ski resort, with power-ups, surprise events, your own crew and a daily challenge. New: a portable extinguisher that lets you go beyond your hose, and the Pulaski to dig firebreaks fire can't cross. Now in 6 languages.
+
+> es-ES: Llega ¡Apágalo!: 120 niveles en 12 sitios, del puerto a una estación de esquí, con objetos, sorpresas, tu propio equipo y un reto diario. Novedad: un extintor portátil para ir más allá de la manguera y el Pulaski para cavar cortafuegos que el fuego no cruza. Ahora en 6 idiomas.
+
 ## 2.0 a producción (30 sept 2026)
 
 - La cuenta no tiene el requisito de 12 testers durante 14 días: producción está abierta.
