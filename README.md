@@ -90,6 +90,10 @@ Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abier
 
 **Google Play**: la app es el mismo juego empaquetado con Capacitor 8 (carpeta `android/`, paquete `com.nocodeboy.apagalo`, objetivo Android 16 / API 36). Tiene pantalla completa, la pantalla siempre encendida, el botón atrás del sistema integrado (pausa, vuelve o sale desde el título) y compartir con el menú nativo.
 
+**R8 (desde la siguiente versión tras la 2.2.0)**: el build de release encoge y ofusca el código Java/Kotlin (`minifyEnabled` + `shrinkResources`, reglas `proguard-android-optimize.txt`). Medido el 3 oct: el dex baja de 17,4 a 5,2 MB y lo que descarga Play de 10,3 a 6,2 MB. Capacitor, AdMob y Billing traen sus propias reglas; los plugins no usan reflexión. El mapa de desofuscación va dentro del AAB, así que Play muestra los fallos legibles. Antes de publicarla en producción, probarla desde la prueba interna en un móvil real: arrancar, jugar una partida, ver un anuncio y abrir la tienda.
+
+Avisos de Play Console que no hay que tocar: «vista de extremo a extremo» (el juego ya va a pantalla completa y Capacitor 8 gestiona los recortes de cámara) y «APIs obsoletas `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`» (las llaman el SDK de AdMob y Play Core, código de Google; desaparecerá cuando lo actualicen).
+
 ```bash
 RELEASE=1 npm run android:sync            # compila (sin anuncios de prueba) y copia dist/android dentro del proyecto Android
 cd android && ./gradlew bundleRelease     # android/app/build/outputs/bundle/release/app-release.aab
