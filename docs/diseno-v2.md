@@ -229,3 +229,9 @@ Con los datos del Basic Launch de CrazyGames (2.2.0), la granja, que era el nive
 - El **puerto** abre en el **nivel 2** (su primer nivel lo ganaron todos los que llegaron). Gasolinera, polígono, castañar y playa siguen en los niveles 3 a 6.
 - `ROUTE_VERSION` pasa a 4: las partidas guardadas conservan las estrellas por id y abren todo lo que el jugador ya había alcanzado (`src/progress.ts`, `tools/test_migration.ts` OK).
 - Pendiente de medir: el nivel 1 (*plaza*) se gana en el 28 % de los intentos (238 de 859), con un 43 % de los jugadores que acaban pasándolo. Si con la 2.3 no sube, toca hacerlo más fácil.
+- **Pulaski útil** (Germán: «prácticamente inútil»; en la analítica solo 4 jugadores llegaron a cavar). Antes cavaba 0,45 s por casilla andando a 1 m/s: una casilla por segundo mientras el fuego corría más, y sin poder echar agua. Ahora:
+  - 0,12 s por casilla y se anda a 3 m/s mientras se cava (antes 1 m/s): en 4 s, unas 19 casillas en lugar de 5.
+  - La zanja sale de **dos casillas de ancho** (la segunda, al lado, de través a la marcha), así que una racha que lleva el calor a dos casillas ya no la salta.
+  - **Apaga llamas pequeñas**: la hierba que acaba de prender (fuego por debajo de 0,75) se sofoca con el Pulaski y queda tierra. Cuenta como apagada (combo incluido).
+  - Textos de ayuda en los 6 idiomas: «cavas un cortafuegos que el fuego no cruza y apagas las llamas pequeñas».
+- **Cohetes sin esperas.** En los niveles con cohetes, el nivel no acababa hasta que caían todos (uno cada 10-20 s), así que con el fuego apagado tocaba quedarse mirando. Ahora, cuando no queda nada ardiendo, los cohetes que faltan llegan en una **traca final rápida**: como mucho 3, uno cada 1,4 s. Con el bot, los niveles con cohetes terminan entre 45 y 70 s antes (playa: 74 → 144 s de sobra; *sanjuan-9*: 71 → 114 s; *plaza-9*: 40 → 106 s) y ganar no es más difícil (casual en la playa: 88 % → 100 %).

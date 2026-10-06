@@ -238,7 +238,7 @@
  "New": "Neu",
  "New best!": "Neuer Rekord!",
  "NEW PLACE": "NEUER ORT",
- "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth": "Neu: die Pulaski. Halte ihre Taste (oder G), um Brandschneisen zu graben: Feuer kommt nicht über nackte Erde",
+ "New: the Pulaski. Hold its button (or G) and walk: you dig a firebreak fire can't cross, and beat out small flames": "Neu: die Pulaski. Halte ihre Taste (oder G) gedrückt und lauf: Du gräbst eine Brandschneise, die das Feuer nicht überquert, und schlägst kleine Flammen aus",
  "New: {name}. {desc}": "Neu: {name}. {desc}",
  "Next": "Weiter",
  "Next chapter": "Nächstes Kapitel",
@@ -286,7 +286,7 @@
  "Previous chapter": "Voriges Kapitel",
  "Privacy": "Datenschutz",
  "Privacy policy": "Datenschutzerklärung",
- "Pulaski: dig firebreaks": "Pulaski: grab Brandschneisen",
+ "Pulaski: firebreaks and small flames": "Pulaski: Brandschneisen und kleine Flammen",
  "Pull the lever before you spray the fish market's fuse box, and watch the huts' gas bottles.": "Zieh den Hebel, bevor du den Stromkasten des Fischmarkts nass machst, und achte auf die Gasflaschen der Hütten.",
  "Pull the lever!": "Zieh den Hebel!",
  "Purchase delivered! +{n} coins": "Kauf erhalten! +{n} Münzen",
@@ -559,5 +559,5 @@
  "−1 ★": "−1 ★",
  "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Kampagne geschafft! {n} Level · ★ {s}/{m}",
  "Extinguisher stored: use it with its button": "Feuerlöscher verstaut: nutze ihn mit seiner Taste",
- "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth": "Neu: die Pulaski. Halte ihre Taste und lauf los, um eine Brandschneise zu graben: Feuer kommt nicht über nackte Erde"
+ "New: the Pulaski. Hold its button and walk: you dig a firebreak fire can't cross, and beat out small flames": "Neu: die Pulaski. Halte ihre Taste gedrückt und lauf: Du gräbst eine Brandschneise, die das Feuer nicht überquert, und schlägst kleine Flammen aus"
 }

@@ -238,7 +238,7 @@
  "New": "Nouveau",
  "New best!": "Record battu !",
  "NEW PLACE": "NOUVEAU LIEU",
- "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth": "Nouveau : le Pulaski. Maintiens son bouton (ou G) pour creuser des coupe-feu : le feu ne traverse pas la terre nue",
+ "New: the Pulaski. Hold its button (or G) and walk: you dig a firebreak fire can't cross, and beat out small flames": "Nouveau : le Pulaski. Maintiens son bouton (ou G) et marche : tu creuses un pare-feu que le feu ne franchit pas et tu étouffes les petites flammes",
  "New: {name}. {desc}": "Nouveau : {name}. {desc}",
  "Next": "Suivant",
  "Next chapter": "Chapitre suivant",
@@ -286,7 +286,7 @@
  "Previous chapter": "Chapitre précédent",
  "Privacy": "Vie privée",
  "Privacy policy": "Politique de confidentialité",
- "Pulaski: dig firebreaks": "Pulaski : creuse des coupe-feu",
+ "Pulaski: firebreaks and small flames": "Pulaski : pare-feu et petites flammes",
  "Pull the lever before you spray the fish market's fuse box, and watch the huts' gas bottles.": "Baisse le levier avant d’arroser le boîtier de la criée, et surveille les bouteilles de gaz des cabanes.",
  "Pull the lever!": "Baisse le levier !",
  "Purchase delivered! +{n} coins": "Achat reçu ! +{n} pièces",
@@ -559,5 +559,5 @@
  "−1 ★": "−1 ★",
  "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Campagne terminée ! {n} niveaux · ★ {s}/{m}",
  "Extinguisher stored: use it with its button": "Extincteur rangé : utilise-le avec son bouton",
- "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth": "Nouveau : le Pulaski. Maintiens son bouton et avance pour creuser un coupe-feu : le feu ne traverse pas la terre nue"
+ "New: the Pulaski. Hold its button and walk: you dig a firebreak fire can't cross, and beat out small flames": "Nouveau : le Pulaski. Maintiens son bouton et marche : tu creuses un pare-feu que le feu ne franchit pas et tu étouffes les petites flammes"
 }

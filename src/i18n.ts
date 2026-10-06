@@ -225,12 +225,12 @@ const S = {
   tNeedHose: { es: 'Sin manguera: recógela en el círculo', en: 'No hose: pick it up at the circle' },
   // 2.2: the Pulaski
   digTool: { es: 'Pulaski', en: 'Pulaski' },
-  digNews: { es: 'Pulaski: cava cortafuegos', en: 'Pulaski: dig firebreaks' },
+  digNews: { es: 'Pulaski: cortafuegos y llamas pequeñas', en: 'Pulaski: firebreaks and small flames' },
   tDigHelp: {
-    es: 'Nuevo: Pulaski. Mantén su botón (o G) para cavar cortafuegos: el fuego no cruza la tierra desnuda',
-    en: "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth",
+    es: 'Nuevo: Pulaski. Mantén su botón (o G) y camina: cavas un cortafuegos que el fuego no cruza y apagas las llamas pequeñas',
+    en: "New: the Pulaski. Hold its button (or G) and walk: you dig a firebreak fire can't cross, and beat out small flames",
   },
-  tDigHelpT: { es: 'Nuevo: Pulaski. Mantén su botón y camina para cavar un cortafuegos: el fuego no cruza la tierra desnuda', en: "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth" },
+  tDigHelpT: { es: 'Nuevo: Pulaski. Mantén su botón y camina: cavas un cortafuegos que el fuego no cruza y apagas las llamas pequeñas', en: "New: the Pulaski. Hold its button and walk: you dig a firebreak fire can't cross, and beat out small flames" },
   airSupport: { es: 'Apoyo aéreo', en: 'Air support' },
   airSupportD: { es: 'Reintenta con un helicóptero', en: 'Retry with a helicopter' },
   airSupportAria: { es: 'Mira un anuncio y reintenta con un helicóptero listo', en: 'Watch an ad and retry with a helicopter ready' },

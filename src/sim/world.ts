@@ -42,10 +42,17 @@ const HOSE_PICK_TIME = 0.25;
  * cannot be dug. Walking with it held leaves a trench along your path, kept tight at the corners (fire also spreads
  * diagonally, so two dug cells touching only by a corner would let it through).
  */
-export const DIG_TIME = 0.45;
-/** walking pace while digging (m/s), whatever the upgrades or the boots: crossing half a cell takes longer than digging
- *  it, so the cell you press the button on is dug too */
-const DIG_WALK = 1.0;
+export const DIG_TIME = 0.12;
+/** walking pace while digging (m/s), whatever the upgrades or the boots: crossing a cell still takes longer than
+ *  digging it and its neighbour, so the trench has no gaps.
+ *  2.3: it was 0.45 s a cell at 1 m/s, a cell a second while the fire ran at several, so nobody used it (4 digs in all
+ *  the analytics). Now it is three times faster, two cells wide (a gust can't jump it) and beats out young flames. */
+const DIG_WALK = 3.0;
+/** 2.3: grass that has just caught (fire below this) can be beaten out with the Pulaski, like with a real one */
+export const BEAT_MAX = 0.75;
+/** 2.3: seconds between the rockets of the final salvo, and how many at most */
+const ROCKET_SALVO = 1.4;
+const ROCKET_SALVO_MAX = 3;
 export const DIG_MATS = new Set<number>([M.Grass, M.Dry, M.Leaves, M.TallGrass]);
 /** Seconds a rescuee stands the fire next to it before it runs off (people at windows hold on longer). */
 const FLEE_TIME: Partial<Record<Ent['type'], number>> = { window: 4.5, onlooker: 3.2, art: 3 };
@@ -1181,6 +1188,12 @@ export class Sim {
 
   private updateRockets(dt: number) {
     const fw = this.def.fireworks;
+    // 2.3: with the fire out you used to stand there waiting for the rest of the rockets, one every 10-20 s. Now the
+    // rest come as a quick final salvo (one every ROCKET_SALVO s, at most ROCKET_SALVO_MAX of them).
+    if (fw && this.rocketsLeft > 0 && this.time > 3 && this.burning === 0 && this.embers.length === 0) {
+      this.rocketsLeft = Math.min(this.rocketsLeft, ROCKET_SALVO_MAX);
+      this.nextRocket = Math.min(this.nextRocket, this.time + ROCKET_SALVO);
+    }
     if (fw && this.rocketsLeft > 0 && this.time >= this.nextRocket && this.rocketCells.length) {
       // pick a flammable, not burning cell
       let cell = -1;
@@ -1689,7 +1702,15 @@ export class Sim {
     const here = this.cellAt(p.x, p.z);
     if (this.canDigCell(here)) return here;
     const front = this.cellAt(p.x + p.aimX * 0.9, p.z + p.aimZ * 0.9);
-    return this.canDigCell(front) ? front : -1;
+    if (this.canDigCell(front)) return front;
+    // 2.3: nothing left to dig: young flames in front (or underfoot) are beaten out
+    if (this.canBeatCell(front)) return front;
+    return this.canBeatCell(here) ? here : -1;
+  }
+
+  /** Grass that has just caught: the Pulaski smothers it (and leaves bare earth). */
+  canBeatCell(c: number): boolean {
+    return c >= 0 && DIG_MATS.has(this.mat[c]) && this.fire[c] > 0 && this.fire[c] < BEAT_MAX && this.owner[c] < 0;
   }
 
   private updateDig(inp: SimInput, dt: number) {
@@ -1710,6 +1731,15 @@ export class Sim {
     this.digT += dt;
     if (this.digT >= DIG_TIME) {
       this.digOut(target);
+      // 2.3: two cells wide, the second one beside the first across the way you go (or face), so a gust that carries
+      // the heat two cells downwind still can't cross it
+      {
+        const v = Math.hypot(p.vx, p.vz);
+        const dx = v > 0.3 ? p.vx / v : p.aimX;
+        const dz = v > 0.3 ? p.vz / v : p.aimZ;
+        const side = this.cellAt((target % this.W) + 0.5 - dz, Math.floor(target / this.W) + 0.5 + dx);
+        if (side !== target && (this.canDigCell(side) || this.canBeatCell(side))) this.digOut(side);
+      }
       // only a corner in common with the last one (walking diagonally): the cell between them too, or the fire,
       // which also spreads diagonally, would slip through
       const prev = this.digPrev;
@@ -1734,6 +1764,7 @@ export class Sim {
   }
 
   private digOut(c: number) {
+    if (this.fire[c] > 0) this.extinguish(c, true);
     this.mat[c] = M.Dirt;
     this.heat[c] = 0;
     this.dug++;

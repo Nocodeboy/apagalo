@@ -238,7 +238,7 @@
  "New": "Novo",
  "New best!": "Novo recorde!",
  "NEW PLACE": "NOVO LOCAL",
- "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth": "Novo: Pulaski. Segure o botão (ou G) para cavar aceiros: o fogo não cruza a terra nua",
+ "New: the Pulaski. Hold its button (or G) and walk: you dig a firebreak fire can't cross, and beat out small flames": "Novo: o Pulaski. Segure o botão (ou G) e ande: você cava um aceiro que o fogo não atravessa e apaga chamas pequenas",
  "New: {name}. {desc}": "Novo: {name}. {desc}",
  "Next": "Próximo",
  "Next chapter": "Próximo capítulo",
@@ -286,7 +286,7 @@
  "Previous chapter": "Capítulo anterior",
  "Privacy": "Privacidade",
  "Privacy policy": "Política de privacidade",
- "Pulaski: dig firebreaks": "Pulaski: cave aceiros",
+ "Pulaski: firebreaks and small flames": "Pulaski: aceiros e chamas pequenas",
  "Pull the lever before you spray the fish market's fuse box, and watch the huts' gas bottles.": "Puxe a alavanca antes de molhar o quadro do mercado de peixe, e vigie os botijões das barracas.",
  "Pull the lever!": "Puxe a alavanca!",
  "Purchase delivered! +{n} coins": "Compra recebida! +{n} moedas",
@@ -559,5 +559,5 @@
  "−1 ★": "−1 ★",
  "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Campanha concluída! {n} níveis · ★ {s}/{m}",
  "Extinguisher stored: use it with its button": "Extintor guardado: use com o botão dele",
- "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth": "Novo: Pulaski. Segure o botão e ande para cavar um aceiro: o fogo não cruza a terra nua"
+ "New: the Pulaski. Hold its button and walk: you dig a firebreak fire can't cross, and beat out small flames": "Novo: o Pulaski. Segure o botão e ande: você cava um aceiro que o fogo não atravessa e apaga chamas pequenas"
 }

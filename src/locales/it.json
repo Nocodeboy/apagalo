@@ -238,7 +238,7 @@
  "New": "Novità",
  "New best!": "Nuovo record!",
  "NEW PLACE": "NUOVO LUOGO",
- "New: the Pulaski. Hold its button (or G) to dig firebreaks: fire can't cross bare earth": "Novità: il Pulaski. Tieni premuto il suo pulsante (o G) per scavare tagliafuoco: il fuoco non attraversa la terra nuda",
+ "New: the Pulaski. Hold its button (or G) and walk: you dig a firebreak fire can't cross, and beat out small flames": "Novità: il Pulaski. Tieni premuto il suo tasto (o G) e cammina: scavi una tagliafuoco che il fuoco non attraversa e spegni le fiammelle",
  "New: {name}. {desc}": "Novità: {name}. {desc}",
  "Next": "Avanti",
  "Next chapter": "Capitolo successivo",
@@ -286,7 +286,7 @@
  "Previous chapter": "Capitolo precedente",
  "Privacy": "Privacy",
  "Privacy policy": "Informativa privacy",
- "Pulaski: dig firebreaks": "Pulaski: scava tagliafuoco",
+ "Pulaski: firebreaks and small flames": "Pulaski: tagliafuoco e fiammelle",
  "Pull the lever before you spray the fish market's fuse box, and watch the huts' gas bottles.": "Abbassa la leva prima di bagnare il quadro del mercato del pesce, e controlla le bombole dei capanni.",
  "Pull the lever!": "Abbassa la leva!",
  "Purchase delivered! +{n} coins": "Acquisto ricevuto! +{n} monete",
@@ -559,5 +559,5 @@
  "−1 ★": "−1 ★",
  "🏆 Campaign complete! {n} levels · ★ {s}/{m}": "🏆 Campagna completata! {n} livelli · ★ {s}/{m}",
  "Extinguisher stored: use it with its button": "Estintore riposto: usalo con il suo pulsante",
- "New: the Pulaski. Hold its button and walk to dig a firebreak: fire can't cross bare earth": "Novità: il Pulaski. Tieni premuto il suo pulsante e cammina per scavare un tagliafuoco: il fuoco non attraversa la terra nuda"
+ "New: the Pulaski. Hold its button and walk: you dig a firebreak fire can't cross, and beat out small flames": "Novità: il Pulaski. Tieni premuto il suo tasto e cammina: scavi una tagliafuoco che il fuoco non attraversa e spegni le fiammelle"
 }
