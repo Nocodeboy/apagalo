@@ -84,7 +84,7 @@ Para probarlo en local: `npm run serve` y abre http://127.0.0.1:8765/web/. Abier
 
 ## Publicación
 
-**Web** (https://apagalo.vercel.app, proyecto `apagalo` de Vercel): `npm run deploy:web`. La primera vez en cada ordenador hay que enlazar la carpeta: `cd dist/web && npx vercel@latest link --project apagalo`.
+**Web** (https://apagalo.vercel.app, proyecto `apagalo` de Vercel): desde el 7 oct 2026 el proyecto está conectado al repositorio y **cada push a `main` se publica solo** (`vercel.json` en la raíz, `node build.mjs --web`, que solo compila la web). `npm run deploy:web` sigue sirviendo para publicar a mano desde un ordenador con la CLI enlazada.
 
 **CrazyGames**: sube `dist/apagalo-crazygames.zip`. Estado, ficha y pasos en `docs/crazygames.md`.
 

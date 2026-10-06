@@ -10,6 +10,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
+// --web: only the web build (what Vercel runs on every push to main; no zip, ffmpeg or Android there)
+const webOnly = process.argv.includes('--web');
 const VERSION = '2.3.0';
 // CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
 const CG_ADS = process.env.CG_ADS === '1';
@@ -190,7 +192,7 @@ const kb = (n) => (n / 1024).toFixed(0) + ' KB';
 }
 
 // ---------- CrazyGames ----------
-{
+if (!webOnly) {
   const out = 'dist/crazygames';
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
@@ -220,7 +222,7 @@ function androidAdsCheck() {
   if (process.env.RELEASE === '1' && testAppId) return { error: `RELEASE=1 but AndroidManifest.xml still has Google's test AdMob app id (${TEST_APP_ID})` };
   return { testAds, testAppId };
 }
-{
+if (!webOnly) {
   const out = 'dist/android';
   rmSync(out, { recursive: true, force: true });
   const ads = androidAdsCheck();
@@ -255,7 +257,7 @@ function androidAdsCheck() {
 }
 
 // ---------- Claude artifact ----------
-{
+if (!webOnly) {
   const js = await bundle('artifact', GAME_URL);
   const artifact = `<title>${TITLE}</title>
 <meta name="description" content="${DESC}">
