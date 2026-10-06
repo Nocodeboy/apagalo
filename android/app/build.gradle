@@ -36,8 +36,8 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false // R8 (commit c71a5b7) vuelve cuando se pruebe en un móvil: anuncios y compras sin reglas propias de ProGuard
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
