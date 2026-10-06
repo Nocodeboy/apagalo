@@ -220,3 +220,12 @@ Pedido por Germán a partir del feedback de CrazyGames: el extintor no servía p
 - **HUD**: con chorro, abanico, espuma, helicóptero, extintor y Pulaski puede haber 6 botones. En pantallas de menos de 560 px de alto (móvil apaisado, el marco de CrazyGames en un portátil) van en columnas de 3: las boquillas a la derecha y las herramientas al lado. Los nombres largos («Extinguisher», «Feuerlöscher», «Hubschrauber») van en letra más pequeña para caber en el botón.
 - **Textos** en los 6 idiomas. Los avisos del extintor y del Pulaski no nombran teclas en el móvil.
 - **Música en iPhone** (fallo desde la 1.x, visto en la revisión de la 2.2): iOS ignora el volumen que se pone desde el código. El fundido de salida esperaba a que el volumen llegara a 0, así que la canción anterior no se paraba nunca y se iban sumando (con las canciones por escenario, cinco a la vez tras cuatro niveles), todas al 100 %. Ahora el fundido se para por número de pasos y los MP3 llevan dentro el nivel al que sonaban (el volumen 0,32 de los niveles y el 0,42 del menú; ver `tools/README.md`, «Música»), así que suenan igual en todas partes. Comprobado con un iPhone simulado en Playwright (el volumen no cambia): antes, 5 pistas sonando; ahora, 1. En Tray Runner se ha corregido el mismo fallo del fundido.
+
+### 2.3 (6 oct 2026): la granja, más adelante
+
+Con los datos del Basic Launch de CrazyGames (2.2.0), la granja, que era el nivel 2, la ganaba el 6 % de los intentos (45 de 760); el bot casual decía el 60 %. De cada 10 jugadores nuevos que empezaban, solo 1 llegaba al nivel 3. Germán: «si el nivel 2 es difícil hay que ponerlo más adelante».
+
+- La granja abre ahora en el **nivel 9**, cuando el jugador ya tiene el turbo, las botas, el reloj y el extintor, y le llega la tripulación.
+- El **puerto** abre en el **nivel 2** (su primer nivel lo ganaron todos los que llegaron). Gasolinera, polígono, castañar y playa siguen en los niveles 3 a 6.
+- `ROUTE_VERSION` pasa a 4: las partidas guardadas conservan las estrellas por id y abren todo lo que el jugador ya había alcanzado (`src/progress.ts`, `tools/test_migration.ts` OK).
+- Pendiente de medir: el nivel 1 (*plaza*) se gana en el 28 % de los intentos (238 de 859), con un 43 % de los jugadores que acaban pasándolo. Si con la 2.3 no sube, toca hacerlo más fácil.

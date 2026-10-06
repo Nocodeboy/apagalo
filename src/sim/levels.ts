@@ -406,7 +406,7 @@ export const BASE_LEVELS: LevelDef[] = [
 // =====================================================================================================================
 
 /** Bumped every time the route changes: saves re-open what they had reached (src/progress.ts). */
-export const ROUTE_VERSION = 3;
+export const ROUTE_VERSION = 4;
 
 /** Order of the 1.3.0 campaign (67 levels), kept to migrate saves from 1.2.0 and 1.3.0. Never edit. */
 export const LEGACY_ROUTE_13 = [
@@ -427,15 +427,19 @@ interface Scenario {
   intro: number;
 }
 
-/** Scenarios in the order they open. */
+/**
+ * Scenarios in the order they open. 2.3 (6 oct 2026): the farm opened at level 2 and real players won it in 6 % of the
+ * tries on CrazyGames (the casual bot said 60 %): 9 of every 10 new players were lost there. It now opens at level 9,
+ * with the extinguisher and the crew, and the docks (whose first level everybody won) open at level 2.
+ */
 export const SCENARIOS: Scenario[] = [
   { theme: 'plaza', name: { es: 'La plaza', en: 'The village square' }, levels: [BASE_LEVELS[0], ...PLAZA], intro: 1 },
-  { theme: 'granja', name: { es: 'La granja', en: 'The farm' }, levels: [BASE_LEVELS[1], ...GRANJA], intro: 2 },
+  { theme: 'granja', name: { es: 'La granja', en: 'The farm' }, levels: [BASE_LEVELS[1], ...GRANJA], intro: 9 },
   { theme: 'gasolinera', name: { es: 'La gasolinera', en: 'The gas station' }, levels: [BASE_LEVELS[2], ...GASOLINERA], intro: 3 },
   { theme: 'poligono', name: { es: 'El polígono', en: 'The industrial park' }, levels: [BASE_LEVELS[3], ...POLIGONO], intro: 4 },
   { theme: 'castanar', name: { es: 'El Castañar', en: 'The chestnut forest' }, levels: [BASE_LEVELS[4], ...CASTANAR], intro: 5 },
   { theme: 'sanjuan', name: { es: 'La playa', en: 'The beach' }, levels: [BASE_LEVELS[5], ...SANJUAN], intro: 6 },
-  { theme: 'puerto', name: { es: 'El puerto', en: 'The docks' }, levels: PUERTO, intro: 7 },
+  { theme: 'puerto', name: { es: 'El puerto', en: 'The docks' }, levels: PUERTO, intro: 2 },
   { theme: 'ciudad', name: { es: 'El centro', en: 'Downtown' }, levels: CIUDAD, intro: 12 },
   { theme: 'estacion', name: { es: 'La estación', en: 'The rail yard' }, levels: ESTACION, intro: 17 },
   { theme: 'nieve', name: { es: 'La estación de esquí', en: 'The ski lodge' }, levels: NIEVE, intro: 24 },

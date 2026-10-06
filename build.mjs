@@ -10,7 +10,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync,
 import { execSync } from 'node:child_process';
 
 const prod = !process.argv.includes('--dev');
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 // CrazyGames forbids ads during Basic Launch: turn them on (CG_ADS=1) only once the game is in Full Launch
 const CG_ADS = process.env.CG_ADS === '1';
 const GAME_URL = process.env.GAME_URL ?? 'https://apagalo.vercel.app';
