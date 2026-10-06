@@ -12,6 +12,13 @@
 - **Archivo para Play:** `apagalo-1.2.0.aab` (firmado con la clave de subida)
 - **APK para instalar a mano en tu móvil:** `apagalo-1.2.0.apk`
 
+## 2.3.0 (7 oct 2026)
+
+- **Enviada a revisión en producción el 7 oct a las 00:55**: versión «6 (2.3.0)», lanzamiento completo, notas en en-US, en-GB y es-ES. Publicación gestionada desactivada: sale sola al aprobarse.
+- **Archivo:** `publicacion\apagalo\google-play\put-it-out-2.3.0.aab` (10,2 MB), firmado con la clave de subida (huella SHA-256 `A0:F7:13:…:19:03`, la de siempre). Compilado en la nube de Claude con el SDK de Android (`platforms;android-36`, `build-tools;36.0.0`); la clave se copió de `NO-COMPARTIR\apagalo` solo para compilar y se borró después.
+- **R8 apagado** en esta versión (`minifyEnabled false`), como en la 2.2.0: con R8 los anuncios y las compras no se han probado en un móvil. Por eso Play avisa de que no hay archivo de desofuscación, igual que antes.
+- **Qué trae:** la granja pasa al nivel 9 y el puerto al 2, el Pulaski útil y la traca final de cohetes (ver `diseno-v2.md`, «2.3»).
+
 ## 2.2.0 (1 oct 2026)
 
 - **Estado el 1 oct:** la 2.0.0 (código 3) seguía **en revisión** en producción desde el 30 sept, sin publicar. Germán decidió subir la 2.2.0 igualmente, aunque sustituye a la que está en revisión y la revisión vuelve a empezar.
