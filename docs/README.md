@@ -36,7 +36,7 @@ La 1.3.0 (29 sept) trajo el nombre internacional «Put It Out! Firefighter», mo
 | Código | https://github.com/Nocodeboy/apagalo. Copia de trabajo en el portátil: `Documentos\Nocodeboy Games\apagalo`, al lado de las de `nocodeboy-games`, `marchando` y `pastorealo` (una carpeta por repositorio, como en GitHub) |
 | Archivos para publicar (zip, vídeos, `.aab`, imágenes) | `Documentos\Nocodeboy Games\publicacion\apagalo` en el portátil. Se pueden regenerar desde el código |
 | Clave de firma de Android | `Documentos\Nocodeboy Games\NO-COMPARTIR\apagalo` en el portátil. Guarda una copia fuera del ordenador |
-| Web | Vercel, proyecto `apagalo` |
+| Web | Vercel, proyecto `apagalo`, conectado al repositorio: cada push a `main` se publica solo (desde el 7 oct 2026) |
 | Analítica | Supabase, proyecto `nocodeboy-games` del estudio (tablas y vistas comunes con la columna `game`/`juego`). Las versiones instaladas hasta la 1.2.0 envían a los `apagalo_*` de Tools-NoCode, que lo reenvían allí |
 | Google Play | Play Console, cuenta NoCodeBuilder |
 | Testers | Grupo de Google `apagalo-testers` (https://groups.google.com/g/apagalo-testers) |
