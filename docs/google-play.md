@@ -1,5 +1,7 @@
 # ¡Apágalo! en Google Play
 
+> Estado actual (6 oct 2026: **2.2.0 en producción**) en [`versiones.md`](https://github.com/Nocodeboy/nocodeboy-games/blob/main/docs/versiones.md) del estudio. Este documento es la referencia de cómo se compila y se sube, y su historial.
+
 ## App
 
 - **Nombre en la tienda:** ¡Apágalo! Bomberos

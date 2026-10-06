@@ -2,7 +2,9 @@
 
 Todo lo necesario para publicar el juego en CrazyGames: estado, archivos, textos de la ficha, requisitos técnicos y cómo actualizarlo.
 
-## Estado (1 oct 2026)
+## Estado
+
+- **6 oct 2026: rechazado tras el Basic Launch** (4/15 en ordenador y 6/15 en móvil; D1 < 1 %). Detalle en [`negocio.md`](https://github.com/Nocodeboy/nocodeboy-games/blob/main/docs/negocio.md) del estudio y estado actual en [`versiones.md`](https://github.com/Nocodeboy/nocodeboy-games/blob/main/docs/versiones.md). Lo de abajo es el historial hasta el 1 oct.
 
 - **En Basic Launch** desde el 28 sept. Termina a las 500 partidas o el 19 oct.
   - La ficha quedó en categoría **Simulation**, con las etiquetas **3D, Top-Down, Hero, Skill, Mission**. Mientras dura el Basic Launch la ficha es de solo lectura (nombre, descripción, etiquetas), y para cambiarla hay que escribir al soporte. Todavía dice «6 handcrafted scenarios»; la descripción de la 2.0 está más abajo.

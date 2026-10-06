@@ -19,25 +19,16 @@ Lo técnico (estructura del código, comandos, analítica, calidad gráfica) est
 
 Lo común a todos los juegos del estudio (proceso por fases, motor, cómo arrancar un juego nuevo, infraestructura y el resumen de lo aprendido aquí) está en el repositorio privado `Nocodeboy/nocodeboy-games`. Los documentos de esta carpeta siguen siendo la referencia completa de cada tema.
 
-## Estado general (30 sept 2026)
+## Estado
 
-La **1.3.0** trae el nombre internacional «Put It Out! Firefighter», monedas, mejoras y tienda, anuncios y compras en Android, y una campaña de 67 niveles. Está publicada en la web (29 sept); en Google Play y CrazyGames sigue la 1.2.0.
+**El estado actual (Google Play, CrazyGames, web y lo pendiente) está en [`nocodeboy-games/docs/versiones.md`](https://github.com/Nocodeboy/nocodeboy-games/blob/main/docs/versiones.md)**, la única fuente del estudio. Aquí queda la historia de cómo se hizo y las decisiones; los detalles de cada envío a las tiendas, en [google-play.md](google-play.md) y [crazygames.md](crazygames.md).
 
-La **2.0.0** está en la rama `v2`, sin publicar. Responde a lo que dijo Germán de la 1.3.0 («casi siempre son los mismos escenarios y mecánicas»): diseño en [diseno-v2.md](diseno-v2.md).
+## Historia: 1.3.0 y 2.0
+
+La 1.3.0 (29 sept) trajo el nombre internacional «Put It Out! Firefighter», monedas, mejoras, tienda, anuncios y compras en Android y 67 niveles. La 2.0 respondió a lo que dijo Germán de la 1.3.0 («casi siempre son los mismos escenarios y mecánicas»): diseño en [diseno-v2.md](diseno-v2.md).
 
 - **Entrega 1 (hecha):** 3 escenarios nuevos con su mecánica (el puerto con el gasóleo que arde en el agua, el centro con gente en las ventanas y la estación con trenes que cortan la manguera), power-ups, eventos sorpresa, equipo (Lola, Chispa y el dron), un gran incendio cada 10 niveles con su portada de periódico y el álbum, apoyo aéreo con anuncio con recompensa, el juego en inglés salvo en dispositivos en español y la migración de las partidas de la 1.2.0 y la 1.3.0.
 - **Entrega 2 (hecha):** los otros 3 escenarios (la estación de esquí con hielo, nieve profunda y bocas de riego heladas; el museo de noche con obras de arte que sacar y aspersores con palanca; el camping con helicóptero de guardia, hierba alta y tormenta seca), la ruta final de **120 niveles en 12 escenarios** con 12 grandes incendios (12 portadas), una rampa suave de propagación en la segunda mitad y la entrada «More games» (promoción cruzada con *Tray Runner*; en CrazyGames no sale). Dificultad en [dificultad.md](dificultad.md) («2.0, entrega 2»).
-- Antes de publicarla: jugarla (sobre todo los escenarios nuevos), rehacer capturas y vídeo de las tiendas con los escenarios nuevos y dar la URL del juego del perro pastor cuando salga (`src/games.ts`). Los textos de las fichas ya están en [ficha-tienda-en.md](ficha-tienda-en.md), [google-play.md](google-play.md) y [crazygames.md](crazygames.md).
-
-| Canal | Publicado | Siguiente paso |
-|---|---|---|
-| Web | 1.3.0 en https://apagalo.vercel.app (29 sept), sin anuncios, con analítica y la página `/testers` | Probarla y mirar en Supabase si los niveles nuevos suben la retención |
-| Google Play | 1.2.0 en prueba cerrada (aprobada el 25 sept). Grupo de testers con 6 miembros contando contigo | Llegar a 12 testers y añadir el grupo de LaunchReady. Antes de subir la 1.3.0: cuenta de AdMob, productos y declaraciones (`android-monetizacion.md`) |
-| CrazyGames | Borrador completo con la 1.2.0 (build, revisión de calidad y ficha) | Cambiar a «Put It Out! Firefighter» con la 1.3.0 y las portadas en inglés, repetir la revisión de calidad, rellenar el cobro (Tipalti) y enviar |
-| GitHub | https://github.com/Nocodeboy/apagalo. El estudio está en `Nocodeboy/nocodeboy-games` (privado) | Subir cada cambio de *¡Apágalo!* (si Claude no puede subirlo, deja un `.bat` para hacerlo desde el portátil). Los otros juegos tienen su propio repositorio privado (`Nocodeboy/marchando`, `Nocodeboy/pastorealo`) |
-
-Decisión pendiente (después de 7-14 días con jugadores): mirar las vistas `kpis` y `niveles` (juego `apagalo`) en Supabase y aplicar los criterios de `concepto.md`.
-
 ## Dónde vive cada cosa
 
 | Qué | Dónde |
